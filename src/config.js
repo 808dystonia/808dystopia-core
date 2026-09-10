@@ -41,11 +41,6 @@ export const config = {
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET || "",
   },
 
-  googleSearch: {
-    cseId: process.env.GOOGLE_CSE_ID || "",
-    apiKey: process.env.GOOGLE_CSE_KEY || "",
-  },
-
   hashtags: [],
 
   // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.

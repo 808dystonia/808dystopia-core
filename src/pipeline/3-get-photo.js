@@ -1,9 +1,11 @@
-// Step 3: real photo of the artist/producer. Pinterest (own pinned content,
-// via Composio) first, Google Custom Search image fallback second. Never
-// AI-generated. If both fail, index.js treats this candidate as failed and
-// moves on to the next-newest unused one.
+// Step 3: real photo of the artist/producer, from the Pinterest account's
+// own pinned content (via Composio). Never AI-generated. Google Custom
+// Search was dropped as a fallback — Google discontinued free "search the
+// entire web" for new Programmable Search Engines (March 2026), so it can
+// no longer act as a general open-web fallback. If Pinterest has nothing,
+// index.js treats this candidate as failed and moves on to the
+// next-newest unused one.
 import { searchOwnPins } from "../clients/pinterest.js";
-import { imageSearch } from "../clients/googleSearch.js";
 
 export async function getPhoto(artist) {
   try {
@@ -11,13 +13,6 @@ export async function getPhoto(artist) {
     if (pinUrl) return { ok: true, url: pinUrl, source: "pinterest" };
   } catch (err) {
     console.log("pinterest:", err.message);
-  }
-
-  try {
-    const [googleUrl] = await imageSearch(`${artist} rapper`);
-    if (googleUrl) return { ok: true, url: googleUrl, source: "google" };
-  } catch (err) {
-    console.log("google image search:", err.message);
   }
 
   return { ok: false };
