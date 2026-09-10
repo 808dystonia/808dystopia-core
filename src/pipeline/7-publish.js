@@ -32,11 +32,16 @@ export async function publishCarousel({ slides, caption }) {
     uploadImage(slides.slide2Path),
   ]);
 
-  const [slide1ContainerId, slide2ContainerId, closerContainerId] = await Promise.all([
-    createImageContainer(slide1Url),
-    createImageContainer(slide2Url),
-    createVideoContainer(CLOSER_VIDEO_URL),
-  ]);
+  // Creating these concurrently (as this originally did) is unreliable —
+  // confirmed by reproducing real, non-deterministic failures from
+  // Instagram's media fetcher ("Timeout", "Media download has failed")
+  // when multiple container-creation calls hit the same IG account at
+  // once. Sequential creation adds a few seconds but is solid. Polling
+  // status afterward doesn't trigger a new fetch, so that stays parallel.
+  const slide1ContainerId = await createImageContainer(slide1Url);
+  const slide2ContainerId = await createImageContainer(slide2Url);
+  const closerContainerId = await createVideoContainer(CLOSER_VIDEO_URL);
+
   await Promise.all([
     waitForContainerReady(slide1ContainerId),
     waitForContainerReady(slide2ContainerId),
