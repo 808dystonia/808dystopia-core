@@ -1,6 +1,7 @@
-// Daily pipeline entry point. Runs once per invocation (Render cron job).
-// Wires the numbered steps together. Steps 2+ are currently stubs — see the
-// individual files in this folder.
+// Daily pipeline logic. Invoked by src/cron.js (the actual Render cron
+// entry point, which gates this to the 9 AM Chicago hour) — running this
+// file directly always runs immediately, which is useful for manual
+// testing regardless of the time of day.
 import "dotenv/config";
 import { getCandidates } from "./1-select-article.js";
 import { classifyArticle } from "./2-classify.js";
