@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { config } from "../config.js";
 import { runTool } from "../clients/composio.js";
-import { closerPathOrNull } from "../assets.js";
+import { ensureCloser } from "../assets.js";
 
 const UGUU = "https://uguu.se/upload";
 
@@ -21,8 +21,7 @@ export async function hostImage(filePath) {
 }
 
 export async function hostCloser() {
-  const closer = closerPathOrNull();
-  if (!closer) return null;
+  const closer = await ensureCloser();
   return hostFile(closer, "video/mp4");
 }
 
