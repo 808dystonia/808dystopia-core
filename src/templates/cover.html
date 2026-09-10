@@ -1,7 +1,13 @@
 <!doctype html>
 <!-- Slide 1: cover photo + distressed-style title. Layout measured from
      STOKELY's Drive reference (808 News Template.png / 808 example news
-     post.png) — see git history for exact pixel measurements. -->
+     post.png) — see git history for exact pixel measurements.
+     The album-cover placeholder below is optional (album_drop only): the
+     renderer substitutes an <img class="album-inset" src="..."> tag, or an
+     empty string when there's no album cover to show. Renderer note: that
+     placeholder token appears exactly ONCE in this file (in the markup
+     below) — a naive non-global string replace is safe, but don't add a
+     second mention of the literal token up here in this comment. -->
 <html>
 <head>
 <meta charset="utf-8" />
@@ -45,6 +51,17 @@
       #000 62%,
       #000 100%
     );
+  }
+
+  .album-inset {
+    position: absolute;
+    top: -3%;
+    left: -4%;
+    width: 42%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    transform: rotate(-8deg);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   }
 
   .badge {
@@ -144,6 +161,7 @@
   <div class="canvas">
     <img class="photo" src="{{PHOTO_URL}}" />
     <div class="gradient"></div>
+    {{ALBUM_COVER_BLOCK}}
 
     <div class="badge news-badge glow"><span>NEWS</span></div>
 

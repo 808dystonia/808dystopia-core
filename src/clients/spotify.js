@@ -50,10 +50,15 @@ async function getAlbumTracks(albumId) {
   return (json.items || []).map((t) => t.name);
 }
 
-// Returns an ordered array of track names, or null if no confident match.
-export async function getTracklist(artist, title) {
+// Returns { tracklist, albumArtUrl }, either of which may be null if
+// there's no confident match or the album has no art on Spotify.
+export async function getAlbumInfo(artist, title) {
   const album = await searchAlbum(artist, title);
-  if (!album) return null;
+  if (!album) return { tracklist: null, albumArtUrl: null };
+
   const tracks = await getAlbumTracks(album.id);
-  return tracks.length ? tracks : null;
+  return {
+    tracklist: tracks.length ? tracks : null,
+    albumArtUrl: album.images?.[0]?.url || null,
+  };
 }

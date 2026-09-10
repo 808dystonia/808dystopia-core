@@ -2,9 +2,10 @@
 // other, plus extracted fields. For album_drop, the tracklist is upgraded
 // to Spotify's authoritative track list when a confident match is found —
 // Gemini's inferred tracklist (from a two-sentence blurb) is only the
-// fallback.
+// fallback. albumArtUrl also comes from that same Spotify lookup (null for
+// non-album_drop, or when Spotify has no confident match).
 import { classifyWithGemini } from "../clients/gemini.js";
-import { getTracklist } from "../clients/spotify.js";
+import { getAlbumInfo } from "../clients/spotify.js";
 
 const VALID_TYPES = new Set(["album_drop", "diss", "other"]);
 
@@ -32,15 +33,17 @@ export async function classifyArticle(candidate) {
   const artist = result.artist || "";
   const title = result.title || "";
   let tracklist = type === "album_drop" && Array.isArray(result.tracklist) ? result.tracklist : [];
+  let albumArtUrl = null;
 
   if (type === "album_drop") {
     try {
-      const spotifyTracklist = await getTracklist(artist, title);
-      if (spotifyTracklist) tracklist = spotifyTracklist;
+      const info = await getAlbumInfo(artist, title);
+      if (info.tracklist) tracklist = info.tracklist;
+      albumArtUrl = info.albumArtUrl;
     } catch (err) {
-      console.log("spotify tracklist:", err.message);
+      console.log("spotify album info:", err.message);
     }
   }
 
-  return { type, artist, title, tracklist, hook: result.hook || "" };
+  return { type, artist, title, tracklist, albumArtUrl, hook: result.hook || "" };
 }
