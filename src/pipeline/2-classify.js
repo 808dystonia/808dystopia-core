@@ -8,6 +8,9 @@
 // inferred tracklist (from a two-sentence blurb) is only the fallback.
 // albumArtUrl also comes from that same Spotify lookup (null for
 // non-album_drop, or when Spotify has no confident match).
+// headlineLine1/2/Accent feed the cover slide's two-line headline for
+// diss/other — album_drop doesn't need them since the renderer builds
+// "ARTIST" / DROPS "TITLE" deterministically.
 import { classifyWithGemini } from "../clients/gemini.js";
 import { getAlbumInfo } from "../clients/spotify.js";
 
@@ -21,7 +24,9 @@ function buildPrompt(text) {
 - artist: the primary artist or producer this story is about. Use their normal stylized name as written in the text (preserve capitalization as given).
 - title: the release title or track title the lyric moment is on. If type is "other" and there's no clear release/track title, use a short descriptive title for the story instead.
 - tracklist: an array of track name strings, ONLY if type is "album_drop" AND the text lists specific track names. Otherwise an empty array.
-- hook: a short, punchy 3-6 word phrase capturing the story, suitable for a bold headline on a graphic.
+- headlineLine1: ONLY when type is "diss" or "other" — a short 1-3 word first line for a bold two-line headline (usually the artist/subject name). Omit or use "" for album_drop.
+- headlineLine2: ONLY when type is "diss" or "other" — the rest of the headline as a punchy 2-5 word phrase completing the thought (e.g. "DISSES TRAVIS SCOTT", "COMES TO LONDON", "COSIGNS NEW ARTIST"). Use each artist's one commonly recognized name consistently — never combine a real name with their nickname/alias into one phrase (e.g. "TRAVIS SCOTT", not "TRAVIS FLAME"). Omit or use "" for album_drop.
+- headlineAccent: ONLY when type is "diss" or "other" — within headlineLine2, the name of the OTHER artist/subject being addressed (the target, not the verb — e.g. in "DISSES TRAVIS SCOTT" accent "TRAVIS SCOTT", never "DISSES"). If headlineLine2 has no such name (e.g. "COMES TO LONDON"), accent the most specific noun phrase instead (e.g. "LONDON"). Must be an exact substring of headlineLine2. Omit or use "" otherwise.
 
 Text:
 """
@@ -54,5 +59,15 @@ export async function classifyArticle(candidate) {
 
   const lyricTag = type === "diss" && VALID_LYRIC_TAGS.has(result.lyricTag) ? result.lyricTag : "DISS";
 
-  return { type, artist, title, tracklist, albumArtUrl, lyricTag, hook: result.hook || "" };
+  return {
+    type,
+    artist,
+    title,
+    tracklist,
+    albumArtUrl,
+    lyricTag,
+    headlineLine1: result.headlineLine1 || artist,
+    headlineLine2: result.headlineLine2 || "",
+    headlineAccent: result.headlineAccent || "",
+  };
 }

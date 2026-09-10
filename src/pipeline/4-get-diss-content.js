@@ -19,6 +19,16 @@ function isConfidentMatch(hit, artist, title) {
   return artistMatch && titleMatch;
 }
 
+const MAX_EXPLANATION_LENGTH = 420;
+
+// Safety net for the rare first paragraph that's still too long for the
+// slide — cut at the last word boundary before the limit, not mid-word.
+function truncate(text) {
+  if (text.length <= MAX_EXPLANATION_LENGTH) return text;
+  const cut = text.slice(0, MAX_EXPLANATION_LENGTH);
+  return cut.slice(0, cut.lastIndexOf(" ")) + "…";
+}
+
 function pickBestReferent(referents) {
   const usable = referents.filter(
     (r) => (r.annotations?.[0]?.body?.plain || "").trim().length >= MIN_EXPLANATION_LENGTH
@@ -37,10 +47,16 @@ export async function getGeniusContent(artist, title) {
   const best = pickBestReferent(referents);
   if (!best) return { confident: false };
 
+  // Annotations are often multiple paragraphs; the first is reliably the
+  // self-contained core explanation, and the slide has room for one. Later
+  // paragraphs are supplementary and, worse, would get silently clipped
+  // mid-sentence by the slide's fixed-height text box if included.
+  const explanation = truncate(best.annotations[0].body.plain.split(/\n\s*\n/)[0].trim());
+
   return {
     confident: true,
     quote: best.fragment,
-    explanation: best.annotations[0].body.plain,
+    explanation,
     sourceUrl: match.result.url,
   };
 }
