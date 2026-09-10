@@ -17,3 +17,40 @@ services:
         value: "20"
       - key: TZ
         value: America/Chicago
+      # Everything below is a secret/credential — no value is committed.
+      # Render will prompt for each on first deploy; fill them in from the
+      # local .env (never itself committed — see .gitignore).
+      - key: COMPOSIO_API_KEY
+        sync: false
+      - key: COMPOSIO_USER_ID
+        sync: false
+      - key: DISCORD_HEAT_CHANNEL_ID
+        sync: false
+      - key: COMPOSIO_DISCORD_ACCOUNT_ID
+        sync: false
+      - key: IG_USER_ID
+        sync: false
+      - key: COMPOSIO_INSTAGRAM_ACCOUNT_ID
+        sync: false
+      - key: IMGBB_API_KEY
+        sync: false
+      - key: COMPOSIO_PINTEREST_ACCOUNT_ID
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: GENIUS_ACCESS_TOKEN
+        sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_SHEETS_ID
+        sync: false
+      - key: GOOGLE_SHEETS_TAB
+        value: Sheet1
+      - key: COMPOSIO_GOOGLESHEETS_ACCOUNT_ID
+        sync: false
+      - key: CAROUSEL_PUBLISH
+        value: "1"
