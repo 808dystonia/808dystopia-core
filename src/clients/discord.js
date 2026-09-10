@@ -12,11 +12,15 @@ import { runTool } from "./composio.js";
 export async function listHeatChannelMessages(limit = 25) {
   if (!config.discord.heatChannelId) throw new Error("DISCORD_HEAT_CHANNEL_ID missing");
 
-  const res = await runTool("DISCORDBOT_LIST_MESSAGES", {
-    channel_id: config.discord.heatChannelId,
-    limit,
-  });
-  const messages = res?.messages || [];
+  const res = await runTool(
+    "DISCORDBOT_LIST_MESSAGES",
+    { channel_id: config.discord.heatChannelId, limit },
+    config.discord.connectedAccountId || undefined
+  );
+  // The raw REST response wraps messages under `details` (confirmed against
+  // a live call) — not `messages`, despite that being what the CLI's SDK
+  // layer renames it to internally when it prints results.
+  const messages = res?.details || [];
   // DISCORDBOT_LIST_MESSAGES is documented as newest-first; sort defensively
   // in case that's not what actually comes back.
   return [...messages].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));

@@ -5,6 +5,7 @@ export const config = {
 
   discord: {
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
+    connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
   instagram: {
