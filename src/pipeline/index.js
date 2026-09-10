@@ -14,7 +14,7 @@ import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
 
 // Walks candidates newest-first, classifying each until one isn't a repeat
 // of an already-posted story (artist+title match against the Sheet log).
-async function selectUnusedArticle() {
+export async function selectUnusedArticle() {
   const [candidates, logRows] = await Promise.all([getCandidates(), readLogRows()]);
 
   for (const candidate of candidates) {
