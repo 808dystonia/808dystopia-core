@@ -1,0 +1,35 @@
+import fs from "node:fs";
+import { config } from "../config.js";
+import { runTool } from "../clients/composio.js";
+const UGUU = "https://uguu.se/upload";
+export async function hostImage(filePath) {
+  const buf = fs.readFileSync(filePath);
+  const form = new FormData();
+  form.append("files[]", new Blob([buf], { type: "image/jpeg" }), filePath.split("/").pop());
+  const res = await fetch(UGUU, { method: "POST", body: form });
+  const json = await res.json();
+  const url = json.files?.[0]?.url || json.url;
+  if (!url) throw new Error(`host fail ${JSON.stringify(json).slice(0, 200)}`);
+  return url;
+}
+export async function publishCarousel({ urls, caption, comments }) {
+  if (!config.publish) return { published: false, mediaId: "", urls };
+  const children = [];
+  for (const url of urls) {
+    const created = await runTool("INSTAGRAM_POST_IG_USER_MEDIA", { ig_user_id: config.igUserId, image_url: url, is_carousel_item: true }, "808 Instagram");
+    const id = created.id || created.data?.id;
+    if (!id) throw new Error(`no child id ${JSON.stringify(created).slice(0, 200)}`);
+    children.push(id);
+  }
+  const parent = await runTool("INSTAGRAM_POST_IG_USER_MEDIA", { ig_user_id: config.igUserId, media_type: "CAROUSEL", children, caption }, "808 Instagram");
+  const creation = parent.id || parent.data?.id;
+  const published = await runTool("INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH", { ig_user_id: config.igUserId, creation_id: creation, max_wait_seconds: 180 }, "808 Instagram");
+  const mediaId = published.id || published.data?.id || "";
+  if (mediaId) {
+    for (const batch of comments) {
+      try { await runTool("INSTAGRAM_POST_IG_MEDIA_COMMENTS", { ig_media_id: mediaId, message: batch }, "808 Instagram"); }
+      catch (err) { console.log("comment:", err.message); }
+    }
+  }
+  return { published: true, mediaId, urls };
+}
