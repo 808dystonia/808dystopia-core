@@ -3,7 +3,7 @@ export const config = {
   scheduleHint: "09:00 America/Chicago — Render cron is 14:00 UTC while CDT",
   canvas: { w: 1080, h: 1350 },
   heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "1545437232142360599",
-  adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "",
+  adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
   igUserId: process.env.IG_USER_ID || "28902406756011804",
   pinterestBoardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
   publish: process.env.CAROUSEL_PUBLISH === "1",
