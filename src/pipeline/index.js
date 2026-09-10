@@ -52,7 +52,11 @@ export async function runDailyFlow() {
 
   try {
     const result = await publishCarousel({ slides, caption });
-    return logAndReport({ classified, status: "posted", note: result?.note || "" });
+    // A dry run (CAROUSEL_PUBLISH off) must never log as "posted" — that
+    // status is what isAlreadyPosted checks for dedup, so logging a dry
+    // run that way would permanently block the real post later.
+    const status = result.published ? "posted" : "skipped";
+    return logAndReport({ classified, status, note: result?.note || "" });
   } catch (err) {
     console.log("publishCarousel failed:", err.message);
     return logAndReport({ classified, status: "failed-and-retried", note: err.message });
