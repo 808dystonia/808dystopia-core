@@ -1,5 +1,9 @@
-Place static template assets here once they're ready:
-- font file: Capture_it.ttf (added) — "Capture it" by Cpr.Sparhelt, free
-  for personal/commercial use, can't be resold directly (see the DaFont
-  license text that shipped with it)
-- closer video (logo spin + jingle) — reused as-is, not rendered
+Static template assets:
+- Capture_it.ttf — "Capture it" by Cpr.Sparhelt, free for personal/
+  commercial use, can't be resold directly (see the DaFont license text
+  that shipped with it)
+- logo.png — the "S" monogram, cropped/keyed out of the blank cover
+  template PNG. Placeholder until the official logo files are provided.
+- closer.mp4 — final carousel slide (logo + "FOLLOW FOR MORE" +
+  "808DYSTOPIA"), reused as-is, not rendered. Already 1080x1350 H.264/AAC
+  MP4 — Instagram-compatible with no conversion needed.
