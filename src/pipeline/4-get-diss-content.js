@@ -19,10 +19,12 @@ function isConfidentMatch(hit, artist, title) {
   return artistMatch && titleMatch;
 }
 
-const MAX_EXPLANATION_LENGTH = 420;
+const MAX_EXPLANATION_LENGTH = 750;
 
-// Safety net for the rare first paragraph that's still too long for the
-// slide — cut at the last word boundary before the limit, not mid-word.
+// Safety net for the rare annotation that's still too long for the slide
+// even at two paragraphs — cut at the last word boundary before the
+// limit, not mid-word. The slide's font size scales down for longer text
+// (see 5-render-slides.js) so this is a backstop, not the primary control.
 function truncate(text) {
   if (text.length <= MAX_EXPLANATION_LENGTH) return text;
   const cut = text.slice(0, MAX_EXPLANATION_LENGTH);
@@ -47,11 +49,12 @@ export async function getGeniusContent(artist, title) {
   const best = pickBestReferent(referents);
   if (!best) return { confident: false };
 
-  // Annotations are often multiple paragraphs; the first is reliably the
-  // self-contained core explanation, and the slide has room for one. Later
-  // paragraphs are supplementary and, worse, would get silently clipped
-  // mid-sentence by the slide's fixed-height text box if included.
-  const explanation = truncate(best.annotations[0].body.plain.split(/\n\s*\n/)[0].trim());
+  // Take up to the first two paragraphs for real depth — the first is
+  // reliably the self-contained core explanation, the second usually adds
+  // useful background. Later paragraphs tend to wander into tangential
+  // context, so they're dropped rather than risk overflowing the slide.
+  const paragraphs = best.annotations[0].body.plain.split(/\n\s*\n/).map((p) => p.trim());
+  const explanation = truncate(paragraphs.slice(0, 2).join("\n\n"));
 
   return {
     confident: true,

@@ -20,6 +20,20 @@ function readTemplate(name) {
   return fs.readFileSync(path.join(TEMPLATES_DIR, name), "utf8");
 }
 
+// Downloads a remote image to a local file and returns a file:// URL.
+// Puppeteer's Chromium has its own network stack, separate from Node's
+// fetch — rather than depend on it being able to reach arbitrary external
+// hosts (proxy config, hotlink protection, CDN hiccups mid-render) at
+// screenshot time, images are fetched once up front through the same fetch
+// path the rest of the pipeline already uses.
+async function downloadToFile(url, destPath) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`download ${url} failed: ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(destPath, buf);
+  return `file://${destPath}`;
+}
+
 function escapeHtml(text) {
   return (text || "")
     .replace(/&/g, "&amp;")
@@ -40,6 +54,36 @@ function withAccent(text, accent) {
   return `${before}<span class="accent">${mid}</span>${after}`;
 }
 
+// Picks a font size from a list of {maxLength, size} tiers (ascending),
+// scaling text down as it gets longer instead of letting it overflow its
+// fixed-height box. Falls back to the smallest tier for anything longer.
+function pickFontSize(text, tiers) {
+  const length = (text || "").length;
+  const tier = tiers.find((t) => length <= t.maxLength);
+  return (tier || tiers[tiers.length - 1]).size;
+}
+
+const QUOTE_FONT_TIERS = [
+  { maxLength: 70, size: 56 },
+  { maxLength: 110, size: 48 },
+  { maxLength: 160, size: 40 },
+  { maxLength: Infinity, size: 34 },
+];
+
+const EXPLANATION_FONT_TIERS = [
+  { maxLength: 300, size: 32 },
+  { maxLength: 450, size: 28 },
+  { maxLength: 600, size: 24 },
+  { maxLength: Infinity, size: 21 },
+];
+
+const CONTEXT_FONT_TIERS = [
+  { maxLength: 200, size: 36 },
+  { maxLength: 350, size: 32 },
+  { maxLength: 500, size: 28 },
+  { maxLength: Infinity, size: 24 },
+];
+
 // No reliable linguistic rule exists for which part of an arbitrary
 // release title to highlight — matches the approved reference (NOT DA 2
 // -> "NOT" plain, "DA 2" accent) by accenting the last word (or last two,
@@ -53,7 +97,7 @@ function splitTitleAccent(title) {
   return `${escapeHtml(plain)} <span class="accent">${escapeHtml(accent)}</span>`;
 }
 
-function buildCoverHtml({ classified, photoUrl }) {
+function buildCoverHtml({ classified, photoUrl, albumArtLocalUrl }) {
   let line1;
   let line2Html;
   let albumCoverBlock = "";
@@ -61,8 +105,8 @@ function buildCoverHtml({ classified, photoUrl }) {
   if (classified.type === "album_drop") {
     line1 = classified.artist;
     line2Html = `DROPS <span class="accent">&ldquo;${escapeHtml(classified.title)}&rdquo;</span>`;
-    if (classified.albumArtUrl) {
-      albumCoverBlock = `<img class="album-inset" src="${classified.albumArtUrl}" />`;
+    if (albumArtLocalUrl) {
+      albumCoverBlock = `<img class="album-inset" src="${albumArtLocalUrl}" />`;
     }
   } else {
     line1 = classified.headlineLine1 || classified.artist;
@@ -99,15 +143,19 @@ function buildDissHtml({ classified, genius }) {
   return readTemplate("slide-diss.html")
     .replace("{{LYRIC_TAG}}", classified.lyricTag)
     .replace("{{TITLE}}", escapeHtml(classified.title))
+    .replace("{{QUOTE_FONT_SIZE}}", pickFontSize(genius.quote, QUOTE_FONT_TIERS))
     .replace("{{QUOTE}}", escapeHtml(genius.quote))
+    .replace("{{EXPLANATION_FONT_SIZE}}", pickFontSize(genius.explanation, EXPLANATION_FONT_TIERS))
     .replace("{{EXPLANATION}}", escapeHtml(genius.explanation));
 }
 
 function buildContextHtml({ candidate, classified }) {
   const title = [classified.headlineLine1, classified.headlineLine2].filter(Boolean).join(" ");
+  const context = classified.context || candidate.text;
   return readTemplate("slide-context.html")
     .replace("{{TITLE}}", escapeHtml(title))
-    .replace("{{CONTEXT}}", escapeHtml(candidate.text));
+    .replace("{{CONTEXT_FONT_SIZE}}", pickFontSize(context, CONTEXT_FONT_TIERS))
+    .replace("{{CONTEXT}}", escapeHtml(context));
 }
 
 // album_drop -> tracklist. diss/cosign/shoutout/callout -> lyric quote,
@@ -140,7 +188,18 @@ async function renderHtmlToPng(page, html, outPath) {
 
 export async function renderSlides({ candidate, classified, photo, genius }) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "808-slides-"));
-  const slide1Html = buildCoverHtml({ classified, photoUrl: photo.url });
+
+  const photoLocalUrl = await downloadToFile(photo.url, path.join(outDir, "photo.jpg"));
+  let albumArtLocalUrl = null;
+  if (classified.albumArtUrl) {
+    try {
+      albumArtLocalUrl = await downloadToFile(classified.albumArtUrl, path.join(outDir, "album-art.jpg"));
+    } catch (err) {
+      console.log("album art download:", err.message);
+    }
+  }
+
+  const slide1Html = buildCoverHtml({ classified, photoUrl: photoLocalUrl, albumArtLocalUrl });
   const slide2 = buildSlide2({ candidate, classified, genius });
 
   const slide1Path = path.join(outDir, "slide1.png");
