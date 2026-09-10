@@ -10,6 +10,8 @@ export const config = {
   sheetsId: process.env.GOOGLE_SHEETS_ID || "",
   sheetsTab: process.env.GOOGLE_SHEETS_TAB || "carousel_log",
   outroDriveId: process.env.OUTRO_DRIVE_ID || "1RXsoQs4N8OnBfNSnMM0ZykADdwA-n3Us",
+  outroIgDriveId: process.env.OUTRO_IG_DRIVE_ID || "1qDshAf0oa4eOjzZbZznYblokbe48rhKE",
+  jingleDriveId: process.env.JINGLE_DRIVE_ID || "1RR3uUJrdTYXwYnpT5sQ1trXEx6CBefae",
   fontDriveId: process.env.FONT_DRIVE_ID || "1m7Ev0SCglKj70M87QnsOpcLubXNAppzN",
   templateDriveId: process.env.TEMPLATE_DRIVE_ID || "1SmfujfYpPF20OX-hBoozPPPXQl8EZ3pl",
   usedSeed: ["karrahbooo", "not da 2", "lazer dim 700", "ld7"],
