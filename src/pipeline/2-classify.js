@@ -27,7 +27,7 @@ function buildPrompt(text) {
 - headlineLine1: ONLY when type is "diss" or "other" — a short 1-3 word first line for a bold two-line headline (usually the artist/subject name). Omit or use "" for album_drop.
 - headlineLine2: ONLY when type is "diss" or "other" — the rest of the headline as a punchy 2-5 word phrase completing the thought (e.g. "DISSES TRAVIS SCOTT", "COMES TO LONDON", "COSIGNS NEW ARTIST"). Use each artist's one commonly recognized name consistently — never combine a real name with their nickname/alias into one phrase (e.g. "TRAVIS SCOTT", not "TRAVIS FLAME"). Omit or use "" for album_drop.
 - headlineAccent: ONLY when type is "diss" or "other" — within headlineLine2, the name of the OTHER artist/subject being addressed (the target, not the verb — e.g. in "DISSES TRAVIS SCOTT" accent "TRAVIS SCOTT", never "DISSES"). If headlineLine2 has no such name (e.g. "COMES TO LONDON"), accent the most specific noun phrase instead (e.g. "LONDON"). Must be an exact substring of headlineLine2. Omit or use "" otherwise.
-- context: ONLY when type is "other" — a 3-5 sentence expanded paragraph for the slide body, in a factual news-blurb tone. Elaborate naturally on what the text already says (spell out abbreviations, add a sentence of relevant framing/background you're confident about) — but do NOT invent specific facts the text doesn't support: no new dates, numbers, quotes, or claims about people/events not mentioned. If you don't have enough to responsibly expand it, it's fine to stay close to the original text rather than pad it. Omit or use "" otherwise.
+- context: when type is "other", OR type is "album_drop" and the text does NOT list specific track names — a 3-5 sentence expanded paragraph for the slide body, in a factual news-blurb tone. Elaborate naturally on what the text already says (spell out abbreviations, add a sentence of relevant framing/background you're confident about) — but do NOT invent specific facts the text doesn't support: no new dates, numbers, quotes, or claims about people/events not mentioned. If you don't have enough to responsibly expand it, it's fine to stay close to the original text rather than pad it. Omit or use "" otherwise (including for "album_drop" when the text does list track names).
 
 Text:
 """
@@ -60,6 +60,11 @@ export async function classifyArticle(candidate) {
 
   const lyricTag = type === "diss" && VALID_LYRIC_TAGS.has(result.lyricTag) ? result.lyricTag : "DISS";
 
+  // album_drop only needs context as a fallback for when neither the
+  // source text nor Spotify has a tracklist (e.g. an unreleased/unlisted
+  // album) — otherwise the tracklist slide would render with no rows.
+  const needsContext = type === "other" || (type === "album_drop" && tracklist.length === 0);
+
   return {
     type,
     artist,
@@ -70,6 +75,6 @@ export async function classifyArticle(candidate) {
     headlineLine1: result.headlineLine1 || artist,
     headlineLine2: result.headlineLine2 || "",
     headlineAccent: result.headlineAccent || "",
-    context: type === "other" ? result.context || "" : "",
+    context: needsContext ? result.context || "" : "",
   };
 }

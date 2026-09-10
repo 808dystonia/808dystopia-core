@@ -158,11 +158,13 @@ function buildContextHtml({ candidate, classified }) {
     .replace("{{CONTEXT}}", escapeHtml(context));
 }
 
-// album_drop -> tracklist. diss/cosign/shoutout/callout -> lyric quote,
-// but only with a confident Genius match; otherwise (including "other")
-// falls back to the general context slide rather than failing.
+// album_drop -> tracklist, but only when one was actually found (source
+// text or Spotify) — an unreleased/unlisted album falls back to context
+// rather than rendering an empty tracklist. diss/cosign/shoutout/callout
+// -> lyric quote, but only with a confident Genius match; otherwise
+// (including "other") falls back to the general context slide too.
 function buildSlide2({ candidate, classified, genius }) {
-  if (classified.type === "album_drop") {
+  if (classified.type === "album_drop" && classified.tracklist.length > 0) {
     return { kind: "tracklist", html: buildTracklistHtml({ classified }) };
   }
   if (classified.type === "diss" && genius?.confident) {
