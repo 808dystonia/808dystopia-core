@@ -31,6 +31,9 @@ export async function runDailyFlow() {
   return logAndReport({ item, slug, type: classified.type, mediaId: pub.mediaId, status: pub.published ? "published" : "staged", note: `${classified.type} photo=${photo.source} slide2=${slides.slide2Kind} publish=${config.publish ? "ON" : "OFF"} ${u1} ${u2}` });
 }
 
-runDailyFlow()
-  .then((report) => { console.log(JSON.stringify(report, null, 2)); process.exit(0); })
-  .catch((err) => { console.error(err); logAndReport({ status: "error", note: err.message }).finally(() => process.exit(1)); });
+const invokedDirectly = process.argv[1] && process.argv[1].endsWith("index.js");
+if (invokedDirectly) {
+  runDailyFlow()
+    .then((report) => { console.log(JSON.stringify(report, null, 2)); process.exit(0); })
+    .catch((err) => { console.error(err); logAndReport({ status: "error", note: err.message }).finally(() => process.exit(1)); });
+}
