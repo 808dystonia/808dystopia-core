@@ -38,7 +38,15 @@ export async function runDailyFlow() {
   }
   const { candidate, classified, photo } = selected;
 
-  const genius = classified.type === "diss" ? await getGeniusContent(candidate, classified.type) : null;
+  let genius = null;
+  if (classified.type === "diss") {
+    try {
+      genius = await getGeniusContent(classified.artist, classified.title);
+    } catch (err) {
+      console.log("genius diss content:", err.message);
+      genius = { confident: false };
+    }
+  }
   const slides = await renderSlides({ candidate, classified, photo, genius });
   const caption = buildCaption({ candidate, classified, genius });
   const result = await publishCarousel({ slides, caption });

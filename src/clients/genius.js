@@ -29,6 +29,18 @@ export async function getGeniusSong(id) {
   return json?.response?.song || null;
 }
 
+// Genius's API never exposes full lyrics text (licensing) — referents are
+// the API-native way to get an exact, verbatim lyric excerpt: each is a
+// community-annotated fragment plus the annotation body explaining it.
+export async function getReferents(songId, perPage = 20) {
+  const res = await fetch(`${API}/referents?song_id=${songId}&text_format=plain&per_page=${perPage}`, {
+    headers: authHeaders(),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(`genius referents ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+  return json?.response?.referents || [];
+}
+
 // Genius shows a generic placeholder for artists with no uploaded photo —
 // treat that as "no real photo" rather than a usable one.
 function isPlaceholderAvatar(url) {
