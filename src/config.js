@@ -19,6 +19,7 @@ export const config = {
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
+    connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
   composio: {

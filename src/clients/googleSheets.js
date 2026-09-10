@@ -11,10 +11,11 @@ import { runTool } from "./composio.js";
 export async function readLogRows() {
   if (!config.sheets.id) return [];
 
-  const result = await runTool("GOOGLESHEETS_BATCH_GET", {
-    spreadsheet_id: config.sheets.id,
-    ranges: [`${config.sheets.tab}!A:E`],
-  });
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.tab}!A:E`] },
+    config.sheets.connectedAccountId || undefined
+  );
   const values = result?.valueRanges?.[0]?.values || [];
   return values.slice(1).map((row) => ({
     timestamp: row[0] || "",
@@ -28,12 +29,16 @@ export async function readLogRows() {
 export async function appendLogRow(row) {
   if (!config.sheets.id) return null;
 
-  return runTool("GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND", {
-    spreadsheetId: config.sheets.id,
-    range: `${config.sheets.tab}!A:E`,
-    valueInputOption: "USER_ENTERED",
-    values: [[row.timestamp, row.artist, row.title, row.status, row.note || ""]],
-  });
+  return runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.tab}!A:E`,
+      valueInputOption: "USER_ENTERED",
+      values: [[row.timestamp, row.artist, row.title, row.status, row.note || ""]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
 }
 
 // Case-insensitive artist+title match against previously-posted rows.
