@@ -1,11 +1,14 @@
 services:
-  - type: web
+  - type: cron
     name: 808dystopia-core
-    runtime: python
+    runtime: node
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
-    healthCheckPath: /
+    region: oregon
+    schedule: "0 14 * * *"
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.6"
+      - key: NODE_VERSION
+        value: "20"
+      - key: TZ
+        value: America/Chicago

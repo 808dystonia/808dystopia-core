@@ -1,0 +1,19 @@
+{
+  "name": "808dystopia-automation",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "808 Dystopia daily IG news carousel pipeline",
+  "scripts": {
+    "start": "node src/pipeline/index.js",
+    "job": "node src/pipeline/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "puppeteer": "^23.6.0"
+  }
+}

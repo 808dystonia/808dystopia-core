@@ -1,28 +1,29 @@
-# 808 Dystopia Core
+# 808 Dystopia Automation
 
-Clean restart of the 808 Dystopia ops bot.
-Claude curates this repo. Old repos stay up until you can delete them:
-- `808dystonia/808dystopiabot`
-- `808dystonia/discord-gemini-bot`
+Daily 9:00 AM CT IG news carousel.
 
-## Stack
-- Python worker on Render
-- Discord ingest + Pinterest + IG jobs live here as they get rebuilt
+`Pinterest photo \u2192 classify \u2192 Genius \u2192 HTML slides \u2192 Composio IG publish \u2192 Sheet log`
+
+Never generate cover art. If Pinterest and Google both miss, skip the article.
+
+## Run
+```bash
+cp .env.example .env
+npm install
+CAROUSEL_PUBLISH=0 npm start
+```
+
+Publish stays off until `CAROUSEL_PUBLISH=1`.
 
 ## Render
-1. https://dashboard.render.com/select-repo?type=blueprint
-2. Connect GitHub account `808dystonia`
-3. Select this repo
-4. Apply the `render.yaml` blueprint
-5. Add env vars from `.env.example` in the Render dashboard (never commit secrets)
+Cron in `render.yaml`: `0 14 * * *` = 9:00 AM CDT.
+Set env vars in the Render dashboard. Do not commit secrets.
 
-Free web service sleeps. Use a Background Worker if you need it always on.
-
-## Local
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-python main.py
-```
+## Locked rules
+- Heat source: Discord `#underground-news` `1545437232142360599`
+- Slide 1 cover + real photo only
+- Album/EP/mixtape \u2192 tracklist slide, no album art on that slide
+- Diss \u2192 origin quote
+- Other \u2192 more info
+- Caption ends with credit + `Follow for more.`
+- First comments = 8-tag set split in two
