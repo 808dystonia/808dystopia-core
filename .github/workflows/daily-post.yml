@@ -1,0 +1,44 @@
+name: Daily IG Carousel Post
+
+# Genuinely free — GitHub Actions has no minutes cap on public repos.
+# Replaces an earlier Render cron plan, which turned out to carry a
+# $1/month minimum charge despite being labeled "free".
+on:
+  schedule:
+    # Fires hourly (UTC). GitHub Actions cron has no timezone/DST
+    # awareness, so src/cron.js checks the current America/Chicago hour
+    # on every firing and only runs the real pipeline during the 9 AM
+    # Chicago hour, year-round — same approach the Render setup used.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm start
+        env:
+          TZ: America/Chicago
+          CAROUSEL_PUBLISH: "1"
+          DEEPSEEK_MODEL: deepseek-chat
+          GOOGLE_SHEETS_TAB: Sheet1
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
+          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
+          COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GENIUS_ACCESS_TOKEN: ${{ secrets.GENIUS_ACCESS_TOKEN }}
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}
