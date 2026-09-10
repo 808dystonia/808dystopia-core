@@ -13,6 +13,9 @@ import { logAndReport } from "./8-log-and-report.js";
 
 export async function runDailyFlow() {
   const item = await selectArticle();
+  if (!item) {
+    return { status: "skip", note: "No unused article in the Discord heat channel." };
+  }
   const classified = await classifyArticle(item);
   const photo = await getPhoto(item);
   const genius = classified.type === "diss" ? await getGeniusContent(item, classified.type) : null;
