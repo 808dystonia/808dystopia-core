@@ -1,8 +1,15 @@
-// Step 1: pull the newest unused article from Discord #underground-news,
-// checked against the Google Sheet log. Falls back to next-newest unused;
-// returns nothing if none are unused (day is skipped).
-// TODO: implement once Discord read (via Composio) and the Sheet log are wired up.
+// Step 1: pull candidate stories from Discord #underground-news, newest
+// first. Each "Morning Heat" message bundles several bulleted stories with
+// no source URL, so a candidate is one bullet, not one message.
+//
+// This step can no longer resolve "the next unused one" by itself: dedup
+// needs the artist/title step 2 extracts, which isn't known until
+// a candidate is classified. So this just returns the ordered candidate
+// list; index.js loops through it, classifying each and checking the log,
+// until one isn't a repeat (or the list runs out and the day is skipped).
+import { listHeatChannelMessages, splitIntoStories } from "../clients/discord.js";
 
-export async function selectArticle() {
-  throw new Error("not implemented: selectArticle");
+export async function getCandidates() {
+  const messages = await listHeatChannelMessages();
+  return splitIntoStories(messages);
 }

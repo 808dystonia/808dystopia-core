@@ -4,10 +4,12 @@ services:
     runtime: node
     plan: free
     region: oregon
-    # Runs once daily. NOTE: this fixed UTC time does not shift for DST —
-    # revisit before launch so the job actually lands ~8:45 AM Central
-    # year-round (standard cron has no native timezone/DST awareness).
-    schedule: "0 14 * * *"
+    # Fires hourly on the hour (UTC) — cron itself has no timezone/DST
+    # awareness, so instead of a fixed UTC time that would drift an hour
+    # off target across the DST boundary, src/cron.js checks the current
+    # America/Chicago hour on every firing and only runs the real pipeline
+    # during the 9 AM Chicago hour, year-round.
+    schedule: "0 * * * *"
     buildCommand: npm install
     startCommand: npm start
     envVars:

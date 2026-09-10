@@ -5,19 +5,26 @@ export const config = {
 
   discord: {
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
+    connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
   instagram: {
     userId: process.env.IG_USER_ID || "",
+    connectedAccountId: process.env.COMPOSIO_INSTAGRAM_ACCOUNT_ID || "",
+  },
+
+  imgbb: {
+    apiKey: process.env.IMGBB_API_KEY || "",
   },
 
   pinterest: {
-    boardId: process.env.PINTEREST_BOARD_ID || "",
+    connectedAccountId: process.env.COMPOSIO_PINTEREST_ACCOUNT_ID || "",
   },
 
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
+    connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
   composio: {
@@ -25,18 +32,18 @@ export const config = {
     userId: process.env.COMPOSIO_USER_ID || "",
   },
 
-  gemini: {
-    apiKey: process.env.GEMINI_API_KEY || "",
-    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY || "",
+    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
   },
 
   genius: {
     accessToken: process.env.GENIUS_ACCESS_TOKEN || "",
   },
 
-  googleSearch: {
-    cseId: process.env.GOOGLE_CSE_ID || "",
-    apiKey: process.env.GOOGLE_CSE_KEY || "",
+  spotify: {
+    clientId: process.env.SPOTIFY_CLIENT_ID || "",
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || "",
   },
 
   hashtags: [],

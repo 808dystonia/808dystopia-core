@@ -5,7 +5,7 @@
   "type": "module",
   "description": "808 Dystopia daily IG news carousel pipeline",
   "scripts": {
-    "start": "node src/pipeline/index.js"
+    "start": "node src/cron.js"
   },
   "engines": {
     "node": ">=20"
