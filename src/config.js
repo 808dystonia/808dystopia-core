@@ -1,0 +1,31 @@
+export const config = {
+  tz: process.env.TZ || "America/Chicago",
+  scheduleHint: "09:00 America/Chicago — Render cron is 14:00 UTC while CDT",
+  canvas: { w: 1080, h: 1350 },
+  heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "1545437232142360599",
+  adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "",
+  igUserId: process.env.IG_USER_ID || "28902406756011804",
+  pinterestBoardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
+  publish: process.env.CAROUSEL_PUBLISH === "1",
+  sheetsId: process.env.GOOGLE_SHEETS_ID || "",
+  sheetsTab: process.env.GOOGLE_SHEETS_TAB || "carousel_log",
+  outroDriveId: process.env.OUTRO_DRIVE_ID || "1RXsoQs4N8OnBfNSnMM0ZykADdwA-n3Us",
+  fontDriveId: process.env.FONT_DRIVE_ID || "1m7Ev0SCglKj70M87QnsOpcLubXNAppzN",
+  templateDriveId: process.env.TEMPLATE_DRIVE_ID || "1SmfujfYpPF20OX-hBoozPPPXQl8EZ3pl",
+  usedSeed: ["karrahbooo", "not da 2", "lazer dim 700", "ld7"],
+  hashtags: [
+    "#808Dystopia #UndergroundRap #UndergroundHipHop #HipHopHistory",
+    "#RapNews #UnsignedArtist #IndieHipHop #ProducerLife",
+  ],
+  composio: {
+    apiKey: process.env.COMPOSIO_API_KEY || "",
+    userId: process.env.COMPOSIO_USER_ID || "",
+    aliases: {
+      instagram: "808 Instagram",
+      pinterest: "808 Pinterest",
+      discord: "808 Discord",
+      drive: "808 Drive",
+    },
+  },
+  geminiModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+};
