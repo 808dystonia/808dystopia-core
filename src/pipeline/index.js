@@ -1,7 +1,7 @@
-// Daily pipeline logic. Invoked by src/cron.js (the actual Render cron
-// entry point, which gates this to the 9 AM Chicago hour) — running this
-// file directly always runs immediately, which is useful for manual
-// testing regardless of the time of day.
+// Daily pipeline logic. Invoked by src/cron.js (the actual GitHub Actions
+// entry point, which gates the scheduled trigger to the 9 AM Chicago
+// hour) — running this file directly always runs immediately, which is
+// useful for manual testing regardless of the time of day.
 import "dotenv/config";
 import { getCandidates } from "./1-select-article.js";
 import { classifyArticle } from "./2-classify.js";
