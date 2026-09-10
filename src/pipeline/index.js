@@ -12,33 +12,37 @@ import { publishCarousel } from "./7-publish.js";
 import { logAndReport } from "./8-log-and-report.js";
 import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
 
-// Walks candidates newest-first, classifying each until one isn't a repeat
-// of an already-posted story (artist+title match against the Sheet log).
-export async function selectUnusedArticle() {
+// Walks candidates newest-first: classify, skip repeats of already-posted
+// stories (artist+title match against the Sheet log), skip anything with no
+// usable photo (Pinterest, then Google fallback — both live in getPhoto).
+// A candidate only "wins" once it clears both checks.
+export async function selectPublishableArticle() {
   const [candidates, logRows] = await Promise.all([getCandidates(), readLogRows()]);
 
   for (const candidate of candidates) {
     const classified = await classifyArticle(candidate);
-    if (!isAlreadyPosted(logRows, classified.artist, classified.title)) {
-      return { candidate, classified };
-    }
+    if (isAlreadyPosted(logRows, classified.artist, classified.title)) continue;
+
+    const photo = await getPhoto(classified.artist);
+    if (!photo.ok) continue;
+
+    return { candidate, classified, photo };
   }
   return null;
 }
 
 export async function runDailyFlow() {
-  const selected = await selectUnusedArticle();
+  const selected = await selectPublishableArticle();
   if (!selected) {
-    return { status: "skip", note: "No unused story in the Discord heat channel." };
+    return { status: "skip", note: "No unused story with a usable photo found." };
   }
-  const { candidate, classified } = selected;
+  const { candidate, classified, photo } = selected;
 
-  const photo = await getPhoto(candidate);
   const genius = classified.type === "diss" ? await getGeniusContent(candidate, classified.type) : null;
   const slides = await renderSlides({ candidate, classified, photo, genius });
   const caption = buildCaption({ candidate, classified, genius });
   const result = await publishCarousel({ slides, caption });
-  return logAndReport({ candidate, classified, result });
+  return logAndReport({ candidate, classified, photo, result });
 }
 
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith("index.js");

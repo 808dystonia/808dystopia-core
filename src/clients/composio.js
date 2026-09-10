@@ -21,7 +21,7 @@ export async function runTool(slug, args = {}, connectedAccountId) {
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.successful === false) {
-    const detail = json.error || JSON.stringify(json).slice(0, 300);
+    const detail = json.error?.message || json.error || JSON.stringify(json).slice(0, 300);
     throw new Error(`${slug} failed: ${res.status} ${detail}`);
   }
   return json.data ?? json;

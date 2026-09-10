@@ -13,7 +13,7 @@ export const config = {
   },
 
   pinterest: {
-    boardId: process.env.PINTEREST_BOARD_ID || "",
+    connectedAccountId: process.env.COMPOSIO_PINTEREST_ACCOUNT_ID || "",
   },
 
   sheets: {
