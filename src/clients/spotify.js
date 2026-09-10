@@ -1,6 +1,6 @@
 // Spotify Web API (Client Credentials flow — no user login) — authoritative
-// tracklist source for album_drop posts, instead of relying on Gemini to
-// infer track names from a two-sentence Discord blurb.
+// tracklist source for album_drop posts, instead of relying on the step 2
+// classifier to infer track names from a two-sentence Discord blurb.
 import { config } from "../config.js";
 
 let cachedToken = null;

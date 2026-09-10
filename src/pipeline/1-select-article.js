@@ -3,7 +3,7 @@
 // no source URL, so a candidate is one bullet, not one message.
 //
 // This step can no longer resolve "the next unused one" by itself: dedup
-// needs the artist/title Gemini extracts (step 2), which isn't known until
+// needs the artist/title step 2 extracts, which isn't known until
 // a candidate is classified. So this just returns the ordered candidate
 // list; index.js loops through it, classifying each and checking the log,
 // until one isn't a repeat (or the list runs out and the day is skipped).

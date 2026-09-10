@@ -32,9 +32,9 @@ export const config = {
     userId: process.env.COMPOSIO_USER_ID || "",
   },
 
-  gemini: {
-    apiKey: process.env.GEMINI_API_KEY || "",
-    model: process.env.GEMINI_MODEL || "gemini-3.6-flash",
+  deepseek: {
+    apiKey: process.env.DEEPSEEK_API_KEY || "",
+    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
   },
 
   genius: {

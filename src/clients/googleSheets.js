@@ -1,7 +1,7 @@
 // Google Sheets, via Composio — log of previously-posted articles.
 // Sheet layout (columns A:E, row 1 = header):
 //   timestamp | artist | title | status | note
-// artist/title are Gemini's extracted fields (step 2) — dedup happens on
+// artist/title are step 2's extracted fields — dedup happens on
 // these, not on raw Discord text, since the same story gets reworded across
 // different days' digests. status is one of:
 // posted / skipped / failed-and-retried (set by step 8).
