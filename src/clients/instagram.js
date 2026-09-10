@@ -1,0 +1,80 @@
+// Instagram publish (via Composio) — standard Graph API carousel flow:
+// create a media container per slide, combine into a carousel container,
+// then publish it. Video containers process asynchronously on Meta's side
+// (status_code starts IN_PROGRESS); publishing before a container reaches
+// FINISHED fails, so every container gets polled the same way regardless
+// of type (images are usually already done by the time they're checked).
+import { config } from "../config.js";
+import { runTool, runProxy } from "./composio.js";
+
+function accountId() {
+  return config.instagram.connectedAccountId || undefined;
+}
+
+export async function createImageContainer(imageUrl) {
+  const result = await runTool(
+    "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+    { ig_user_id: config.instagram.userId, image_url: imageUrl, is_carousel_item: true },
+    accountId()
+  );
+  return result.id;
+}
+
+// Composio's wrapper requires an explicit media_type override for video —
+// without it, the underlying Graph API call omits video_url entirely and
+// fails asking for image_url instead.
+export async function createVideoContainer(videoUrl) {
+  const result = await runTool(
+    "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+    { ig_user_id: config.instagram.userId, video_url: videoUrl, is_carousel_item: true, media_type: "VIDEO" },
+    accountId()
+  );
+  return result.id;
+}
+
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 120000;
+
+export async function waitForContainerReady(creationId) {
+  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const result = await runTool("INSTAGRAM_GET_POST_STATUS", { creation_id: creationId }, accountId());
+    if (result.status_code === "FINISHED") return;
+    if (result.status_code === "ERROR" || result.status_code === "EXPIRED") {
+      throw new Error(`container ${creationId} failed to process: ${result.status_code}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+  throw new Error(`container ${creationId} timed out waiting to process`);
+}
+
+export async function createCarouselContainer({ children, caption }) {
+  const result = await runTool(
+    "INSTAGRAM_CREATE_CAROUSEL_CONTAINER",
+    { ig_user_id: config.instagram.userId, children, caption },
+    accountId()
+  );
+  return result.id;
+}
+
+export async function publishContainer(creationId) {
+  const result = await runTool(
+    "INSTAGRAM_CREATE_POST",
+    { ig_user_id: config.instagram.userId, creation_id: creationId },
+    accountId()
+  );
+  return result.id;
+}
+
+// Composio's instagram toolkit only wraps "reply to an existing comment",
+// not "create a top-level comment on a media post" (POST /{media-id}/comments
+// with no comment_id) — the raw proxy call hits that Graph API endpoint
+// directly through the same connected account's token.
+export async function postComment(mediaId, message) {
+  return runProxy({
+    connectedAccountId: accountId(),
+    endpoint: `/${mediaId}/comments`,
+    method: "POST",
+    body: { message },
+  });
+}

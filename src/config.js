@@ -10,6 +10,11 @@ export const config = {
 
   instagram: {
     userId: process.env.IG_USER_ID || "",
+    connectedAccountId: process.env.COMPOSIO_INSTAGRAM_ACCOUNT_ID || "",
+  },
+
+  imgbb: {
+    apiKey: process.env.IMGBB_API_KEY || "",
   },
 
   pinterest: {
