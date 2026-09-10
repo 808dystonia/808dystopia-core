@@ -34,7 +34,7 @@ export async function selectPublishableArticle() {
 export async function runDailyFlow() {
   const selected = await selectPublishableArticle();
   if (!selected) {
-    return { status: "skip", note: "No unused story with a usable photo found." };
+    return logAndReport({ classified: null, status: "skipped", note: "No unused story with a usable photo found." });
   }
   const { candidate, classified, photo } = selected;
 
@@ -49,8 +49,14 @@ export async function runDailyFlow() {
   }
   const slides = await renderSlides({ candidate, classified, photo, genius });
   const caption = await buildCaption({ candidate, classified });
-  const result = await publishCarousel({ slides, caption });
-  return logAndReport({ candidate, classified, photo, result });
+
+  try {
+    const result = await publishCarousel({ slides, caption });
+    return logAndReport({ classified, status: "posted", note: result?.note || "" });
+  } catch (err) {
+    console.log("publishCarousel failed:", err.message);
+    return logAndReport({ classified, status: "failed-and-retried", note: err.message });
+  }
 }
 
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith("index.js");
