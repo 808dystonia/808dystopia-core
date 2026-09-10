@@ -1,14 +1,181 @@
 <!doctype html>
-<!-- Slide 2 (diss): lyric line + Genius annotation explaining it. Placeholder
-     — replace once STOKELY's Canva export + font file are in hand. -->
+<!-- Slide 2 (diss/cosign/shoutout/callout): lyric quote + Genius annotation.
+     First draft — no Drive reference yet, built to match the established
+     visual system (cover.html / slide-tracklist.html). Iterate on feedback. -->
 <html>
 <head>
-  <meta charset="utf-8" />
-  <style>
-    html, body { margin: 0; width: 1080px; height: 1350px; background: #000; }
-  </style>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Capture It";
+    src: url("assets/Capture_it.ttf") format("truetype");
+  }
+
+  html, body {
+    margin: 0;
+    width: 1080px;
+    height: 1350px;
+    background: #000;
+    overflow: hidden;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1080px;
+    height: 1350px;
+    color: #fff;
+  }
+
+  .badge {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 3px solid #fff;
+    border-bottom: 3px solid #fff;
+    border-left: 14px solid #fff;
+    border-right: 14px solid #fff;
+    box-sizing: border-box;
+  }
+  .badge span {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-style: italic;
+    color: #fff;
+  }
+  .news-badge {
+    left: 37.1%;
+    width: 25.56%;
+    top: 3.82%;
+    height: 3.76%;
+  }
+  .news-badge span { font-size: 40px; }
+
+  .glow {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
+  }
+
+  .lyric-tag {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 11%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    letter-spacing: 6px;
+    font-size: 40px;
+    color: #e01717;
+  }
+
+  .title {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    top: 15.5%;
+    height: 11%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: "Capture It", Impact, sans-serif;
+    text-transform: uppercase;
+    font-size: 96px;
+    line-height: 1;
+    color: #e01717;
+  }
+
+  .quote {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 30%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-style: italic;
+    font-size: 56px;
+    line-height: 1.25;
+  }
+
+  .explanation {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 58%;
+    bottom: 15.5%;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 32px;
+    line-height: 1.4;
+    color: #ddd;
+    overflow: hidden;
+  }
+
+  .rule {
+    position: absolute;
+    left: 14.12%;
+    right: 0.51%;
+    top: 92.9%;
+    height: 3px;
+    background: #fff;
+  }
+
+  .logo {
+    position: absolute;
+    left: 1.78%;
+    top: 88.61%;
+    width: 10.17%;
+  }
+
+  .swipe-badge {
+    left: 35.52%;
+    width: 29.04%;
+    top: 94.18%;
+    height: 4.78%;
+  }
+  .swipe-badge span { font-size: 44px; }
+
+  .chevrons {
+    position: absolute;
+    left: 77.57%;
+    width: 18.47%;
+    top: 94.72%;
+    height: 3.79%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .chevron {
+    width: 32px;
+    height: 32px;
+    border-top: 8px solid #fff;
+    border-right: 8px solid #fff;
+    transform: rotate(45deg);
+  }
+</style>
 </head>
 <body>
-  <!-- {{TITLE}} {{QUOTE}} {{SOURCE}} -->
+  <div class="canvas">
+    <div class="badge news-badge glow"><span>NEWS</span></div>
+    <div class="lyric-tag">{{LYRIC_TAG}}</div>
+    <div class="title">&ldquo;{{TITLE}}&rdquo;</div>
+
+    <div class="quote">&ldquo;{{QUOTE}}&rdquo;</div>
+    <div class="explanation">{{EXPLANATION}}</div>
+
+    <div class="rule glow"></div>
+    <img class="logo" src="assets/logo.png" />
+    <div class="badge swipe-badge glow"><span>SWIPE</span></div>
+    <div class="chevrons">
+      <div class="chevron glow"></div>
+      <div class="chevron glow"></div>
+      <div class="chevron glow"></div>
+    </div>
+  </div>
 </body>
 </html>
