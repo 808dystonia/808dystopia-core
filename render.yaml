@@ -4,6 +4,9 @@ services:
     runtime: node
     plan: free
     region: oregon
+    # Runs once daily. NOTE: this fixed UTC time does not shift for DST —
+    # revisit before launch so the job actually lands ~8:45 AM Central
+    # year-round (standard cron has no native timezone/DST awareness).
     schedule: "0 14 * * *"
     buildCommand: npm install
     startCommand: npm start

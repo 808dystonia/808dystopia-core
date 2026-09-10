@@ -1,33 +1,48 @@
+// Central config. Every value comes from env — no hardcoded IDs or secrets here.
+// See .env.example for the full list of credentials/IDs to gather.
 export const config = {
   tz: process.env.TZ || "America/Chicago",
-  scheduleHint: "09:00 America/Chicago — Render cron is 14:00 UTC while CDT",
-  canvas: { w: 1080, h: 1350 },
-  heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "1545437232142360599",
-  adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
-  igUserId: process.env.IG_USER_ID || "28902406756011804",
-  pinterestBoardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
-  publish: process.env.CAROUSEL_PUBLISH === "1",
-  sheetsId: process.env.GOOGLE_SHEETS_ID || "1-GLWkFoj5UX7rAyvw0IuSJ7UIYuspG-Swrtk_qqM7LE",
-  sheetsTab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
-  outroDriveId: process.env.OUTRO_DRIVE_ID || "1RXsoQs4N8OnBfNSnMM0ZykADdwA-n3Us",
-  outroIgDriveId: process.env.OUTRO_IG_DRIVE_ID || "1qDshAf0oa4eOjzZbZznYblokbe48rhKE",
-  jingleDriveId: process.env.JINGLE_DRIVE_ID || "1RR3uUJrdTYXwYnpT5sQ1trXEx6CBefae",
-  fontDriveId: process.env.FONT_DRIVE_ID || "1m7Ev0SCglKj70M87QnsOpcLubXNAppzN",
-  templateDriveId: process.env.TEMPLATE_DRIVE_ID || "1SmfujfYpPF20OX-hBoozPPPXQl8EZ3pl",
-  usedSeed: ["karrahbooo", "not da 2", "lazer dim 700", "ld7"],
-  hashtags: [
-    "#808Dystopia #UndergroundRap #UndergroundHipHop #HipHopHistory",
-    "#RapNews #UnsignedArtist #IndieHipHop #ProducerLife",
-  ],
+
+  discord: {
+    heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
+  },
+
+  instagram: {
+    userId: process.env.IG_USER_ID || "",
+  },
+
+  pinterest: {
+    boardId: process.env.PINTEREST_BOARD_ID || "",
+  },
+
+  sheets: {
+    id: process.env.GOOGLE_SHEETS_ID || "",
+    tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
+  },
+
   composio: {
     apiKey: process.env.COMPOSIO_API_KEY || "",
     userId: process.env.COMPOSIO_USER_ID || "",
-    aliases: {
-      instagram: "808 Instagram",
-      pinterest: "808 Pinterest",
-      discord: "808 Discord",
-      drive: "808 Drive",
-    },
   },
-  geminiModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY || "",
+    model: process.env.GEMINI_MODEL || "gemini-2.0-flash",
+  },
+
+  genius: {
+    accessToken: process.env.GENIUS_ACCESS_TOKEN || "",
+  },
+
+  googleSearch: {
+    cseId: process.env.GOOGLE_CSE_ID || "",
+    apiKey: process.env.GOOGLE_CSE_KEY || "",
+  },
+
+  hashtags: [],
+
+  // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.
+  publish: process.env.CAROUSEL_PUBLISH === "1",
+
+  canvas: { w: 1080, h: 1350 },
 };

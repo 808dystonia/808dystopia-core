@@ -1,29 +1,46 @@
 # 808 Dystopia Automation
 
-Daily 9:00 AM CT IG news carousel.
+Daily IG news carousel for @808dystopia, ~8:45 AM Central (before a 9:00 AM CT post).
+Pipeline: select article → classify → get photo → diss content (if applicable) →
+render slides → build caption → publish → log.
 
-`Pinterest photo \u2192 classify \u2192 Genius \u2192 HTML slides \u2192 Composio IG publish \u2192 Sheet log`
+This repo is currently a **skeleton** — folder structure and stub files only.
+No pipeline step has real logic yet; every client/pipeline function throws
+`not implemented`. That's intentional: build and test each step one at a
+time as credentials come in, rather than wiring the whole thing at once.
 
-Never generate cover art. If Pinterest and Google both miss, skip the article.
+## Layout
+
+- `src/pipeline/` — the 8 numbered steps + `index.js` orchestrator
+- `src/clients/` — thin wrappers around each external API
+- `src/templates/` — HTML slide templates (placeholders until STOKELY's
+  Canva export + font file are in hand) and `assets/` for static files
+  (font, closer video) once provided
+- `src/config.js` — reads all IDs/keys from env, no hardcoded values
+- `render.yaml` — Render free-tier cron job config
 
 ## Run
+
 ```bash
 cp .env.example .env
 npm install
-CAROUSEL_PUBLISH=0 npm start
+npm start
 ```
 
-Publish stays off until `CAROUSEL_PUBLISH=1`.
+## Credentials to gather
 
-## Render
-Cron in `render.yaml`: `0 14 * * *` = 9:00 AM CDT.
-Set env vars in the Render dashboard. Do not commit secrets.
+See `.env.example` for the full list: Composio API key, Discord channel ID,
+Instagram user ID, Pinterest board ID, Gemini API key, Genius access token,
+Google Custom Search (CSE id + key), Google Sheets ID.
 
-## Locked rules
-- Heat source: Discord `#underground-news` `1545437232142360599`
-- Slide 1 cover + real photo only
-- Album/EP/mixtape \u2192 tracklist slide, no album art on that slide
-- Diss \u2192 origin quote
-- Other \u2192 more info
-- Caption ends with credit + `Follow for more.`
-- First comments = 8-tag set split in two
+## Hard rules (from the project spec)
+
+- Never repeat a posted article unless the underlying story changed
+- Never use AI-generated images — real photos only (Pinterest, then Google
+  Custom Search fallback)
+- No manual override/kill switch — fully hands-off once built
+- 9 AM must be Central Time with correct DST handling — the current
+  `render.yaml` schedule is a fixed UTC cron and does **not** handle DST;
+  needs a real fix before launch
+- Publishing stays gated behind `CAROUSEL_PUBLISH=1` until the pipeline is
+  actually built and tested end-to-end

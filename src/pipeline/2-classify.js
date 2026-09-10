@@ -1,7 +1,7 @@
-import { classifyWithGemini } from "../clients/gemini.js";
+// Step 2: classify the article via Gemini into album_drop / diss / other,
+// plus extracted fields (artist, title, tracklist if present).
+// TODO: implement once GEMINI_API_KEY is available.
 
-export async function classifyArticle(item) {
-  const data = await classifyWithGemini(`Classify this underground rap news item.\nReturn JSON only:\n{\"type\":\"album\"|\"diss\"|\"other\",\"reason\":\"short\",\"hook\":\"DROPS \\"TITLE\\" style hook\"}\nRules:\n- album = album, EP, mixtape, tape, project with multiple tracks\n- diss = beef, diss, response track aimed at another artist\n- other = single, video, co-sign, festival, show, anything else\nNever invent facts.\n\nARTIST: ${item.artist}\nTITLE: ${item.title}\nLINE: ${item.line}`);
-  const type = ["album", "diss", "other"].includes(data.type) ? data.type : "other";
-  return { type, reason: data.reason || "", hook: data.hook || `DROPS \"${item.title}\"` };
+export async function classifyArticle(_item) {
+  throw new Error("not implemented: classifyArticle");
 }
