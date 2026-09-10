@@ -1,6 +1,10 @@
 // Step 2: classify a candidate story via Gemini into album_drop / diss /
-// other, plus extracted fields.
+// other, plus extracted fields. For album_drop, the tracklist is upgraded
+// to Spotify's authoritative track list when a confident match is found —
+// Gemini's inferred tracklist (from a two-sentence blurb) is only the
+// fallback.
 import { classifyWithGemini } from "../clients/gemini.js";
+import { getTracklist } from "../clients/spotify.js";
 
 const VALID_TYPES = new Set(["album_drop", "diss", "other"]);
 
@@ -25,11 +29,18 @@ export async function classifyArticle(candidate) {
   const result = await classifyWithGemini(buildPrompt(candidate.text));
 
   const type = VALID_TYPES.has(result.type) ? result.type : "other";
-  return {
-    type,
-    artist: result.artist || "",
-    title: result.title || "",
-    tracklist: type === "album_drop" && Array.isArray(result.tracklist) ? result.tracklist : [],
-    hook: result.hook || "",
-  };
+  const artist = result.artist || "";
+  const title = result.title || "";
+  let tracklist = type === "album_drop" && Array.isArray(result.tracklist) ? result.tracklist : [];
+
+  if (type === "album_drop") {
+    try {
+      const spotifyTracklist = await getTracklist(artist, title);
+      if (spotifyTracklist) tracklist = spotifyTracklist;
+    } catch (err) {
+      console.log("spotify tracklist:", err.message);
+    }
+  }
+
+  return { type, artist, title, tracklist, hook: result.hook || "" };
 }

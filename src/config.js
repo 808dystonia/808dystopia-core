@@ -36,6 +36,11 @@ export const config = {
     accessToken: process.env.GENIUS_ACCESS_TOKEN || "",
   },
 
+  spotify: {
+    clientId: process.env.SPOTIFY_CLIENT_ID || "",
+    clientSecret: process.env.SPOTIFY_CLIENT_SECRET || "",
+  },
+
   googleSearch: {
     cseId: process.env.GOOGLE_CSE_ID || "",
     apiKey: process.env.GOOGLE_CSE_KEY || "",
