@@ -47,6 +47,18 @@ function isPlaceholderAvatar(url) {
   return !url || url.includes("default_avatar");
 }
 
+// Finds the hit whose primary_artist name matches (case-insensitive) —
+// shared by getArtistPhoto and getArtistInstagramHandle so both key off the
+// same confident-match rule instead of just taking the top search hit
+// (which can be a different artist's collab track).
+function findConfidentArtistMatch(hits, artist) {
+  for (const hit of hits) {
+    const primaryArtist = hit?.result?.primary_artist;
+    if (primaryArtist?.name?.toLowerCase() === artist.toLowerCase()) return primaryArtist;
+  }
+  return null;
+}
+
 export async function getArtistPhoto(artist) {
   const hits = await searchGenius(artist);
   for (const hit of hits) {
@@ -56,4 +68,19 @@ export async function getArtistPhoto(artist) {
     if (!isPlaceholderAvatar(primaryArtist.image_url)) return primaryArtist.image_url;
   }
   return null;
+}
+
+// Genius artist profiles carry a self-reported Instagram handle
+// (instagram_name) for most working artists — this is the caption's only
+// source for @-mentioning the artist's IG, so a miss just means no mention,
+// never a guess.
+export async function getArtistInstagramHandle(artist) {
+  const hits = await searchGenius(artist);
+  const match = findConfidentArtistMatch(hits, artist);
+  if (!match) return null;
+
+  const res = await fetch(`${API}/artists/${match.id}`, { headers: authHeaders() });
+  const json = await res.json();
+  if (!res.ok) throw new Error(`genius artist ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+  return json?.response?.artist?.instagram_name || null;
 }

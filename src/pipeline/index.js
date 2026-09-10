@@ -48,7 +48,7 @@ export async function runDailyFlow() {
     }
   }
   const slides = await renderSlides({ candidate, classified, photo, genius });
-  const caption = buildCaption({ candidate, classified, genius });
+  const caption = await buildCaption({ candidate, classified });
   const result = await publishCarousel({ slides, caption });
   return logAndReport({ candidate, classified, photo, result });
 }
