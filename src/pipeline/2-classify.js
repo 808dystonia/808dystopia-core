@@ -8,9 +8,16 @@
 // inferred tracklist (from a two-sentence blurb) is only the fallback.
 // albumArtUrl also comes from that same Spotify lookup (null for
 // non-album_drop, or when Spotify has no confident match).
-// headlineLine1/2/Accent feed the cover slide's two-line headline for
-// diss/other — album_drop doesn't need them since the renderer builds
-// "ARTIST" / DROPS "TITLE" deterministically.
+//
+// The returned `type` can differ from DeepSeek's raw classification: an
+// album_drop with no confirmed tracklist (source text didn't list tracks
+// AND Spotify has no match — a release too new to be indexed anywhere)
+// downgrades to "other" rather than posting a half-empty carousel with no
+// tracklist or cover art. headlineLine2/Accent are synthesized
+// deterministically for that downgrade case (an "ARTIST DROPS TITLE"
+// headline, matching what a confirmed album_drop cover would have shown)
+// rather than requesting them from DeepSeek — they only depend on data
+// already in hand.
 import { classifyWithDeepSeek } from "../clients/deepseek.js";
 import { getAlbumInfo } from "../clients/spotify.js";
 
@@ -60,21 +67,35 @@ export async function classifyArticle(candidate) {
 
   const lyricTag = type === "diss" && VALID_LYRIC_TAGS.has(result.lyricTag) ? result.lyricTag : "DISS";
 
-  // album_drop only needs context as a fallback for when neither the
-  // source text nor Spotify has a tracklist (e.g. an unreleased/unlisted
-  // album) — otherwise the tracklist slide would render with no rows.
-  const needsContext = type === "other" || (type === "album_drop" && tracklist.length === 0);
+  // A real "album drop" carousel promises a tracklist and cover art — when
+  // neither the source text nor Spotify can confirm either (a release too
+  // new to be indexed anywhere yet), that promise can't be kept. Rather
+  // than post a half-empty album_drop carousel, this downgrades to the
+  // general-news treatment, which already has a complete format for a
+  // story with no confirmed tracklist/art. Deterministic, not an LLM
+  // field, since it only depends on whether Spotify/text came through.
+  const hasConfirmedTracklist = type === "album_drop" && tracklist.length > 0;
+  const effectiveType = type === "album_drop" && !hasConfirmedTracklist ? "other" : type;
+
+  const needsContext = effectiveType === "other";
+
+  const headlineLine2 =
+    effectiveType === "other" && type === "album_drop"
+      ? `DROPS "${title}"`
+      : result.headlineLine2 || "";
+  const headlineAccent =
+    effectiveType === "other" && type === "album_drop" ? `"${title}"` : result.headlineAccent || "";
 
   return {
-    type,
+    type: effectiveType,
     artist,
     title,
     tracklist,
     albumArtUrl,
     lyricTag,
     headlineLine1: result.headlineLine1 || artist,
-    headlineLine2: result.headlineLine2 || "",
-    headlineAccent: result.headlineAccent || "",
+    headlineLine2,
+    headlineAccent,
     context: needsContext ? result.context || "" : "",
   };
 }
