@@ -4,7 +4,7 @@
 // so nothing posts until the pipeline is actually built and tested — with
 // the flag off, this makes no external calls at all.
 import { config } from "../config.js";
-import { uploadImage } from "../clients/imgbb.js";
+import { publishImageToRepo } from "../clients/githubMedia.js";
 import {
   createImageContainer,
   createVideoContainer,
@@ -27,10 +27,12 @@ export async function publishCarousel({ slides, caption }) {
     return { published: false, note: "CAROUSEL_PUBLISH is off — dry run, nothing posted." };
   }
 
-  const [slide1Url, slide2Url] = await Promise.all([
-    uploadImage(slides.slide1Path),
-    uploadImage(slides.slide2Path),
-  ]);
+  // Sequential, not just for reliability against Instagram's fetcher (see
+  // below) but because two concurrent git commits against the same local
+  // working directory would corrupt each other's state.
+  const runId = Date.now();
+  const slide1Url = await publishImageToRepo(slides.slide1Path, `slide1-${runId}.png`);
+  const slide2Url = await publishImageToRepo(slides.slide2Path, `slide2-${runId}.png`);
 
   // Creating these concurrently (as this originally did) is unreliable —
   // confirmed by reproducing real, non-deterministic failures from
