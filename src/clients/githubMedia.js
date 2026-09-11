@@ -19,7 +19,7 @@ function git(args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
 }
 
-export async function publishImageToRepo(localPath, filename) {
+async function commitMediaToRepo(localPath, filename, commitLabel) {
   const relPath = path.posix.join(MEDIA_DIR, filename);
   const destPath = path.join(process.cwd(), MEDIA_DIR, filename);
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
@@ -29,9 +29,21 @@ export async function publishImageToRepo(localPath, filename) {
   git(["config", "user.name", "github-actions[bot]"]);
   git(["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"]);
   git(["add", relPath]);
-  git(["commit", "-m", `Add carousel media: ${filename}`]);
+  git(["commit", "-m", `${commitLabel}: ${filename}`]);
   git(["push", "origin", "HEAD:main"]);
 
   const sha = git(["rev-parse", "HEAD"]);
   return `https://raw.githubusercontent.com/${REPO}/${sha}/${relPath}`;
+}
+
+export async function publishImageToRepo(localPath, filename) {
+  return commitMediaToRepo(localPath, filename, "Add carousel media");
+}
+
+// Same approach, for the Reel pipeline's finished clip — Instagram needs a
+// publicly-fetchable video_url for Reels too, same constraint as the
+// carousel's images/closer video (see the file header for why this beats
+// a third-party host).
+export async function publishReelToRepo(localPath, filename) {
+  return commitMediaToRepo(localPath, filename, "Add reel media");
 }
