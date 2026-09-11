@@ -12,6 +12,14 @@ on:
     - cron: "0 * * * *"
   workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
 
+# Needed so the pipeline can commit each post's rendered slide images to
+# this repo (see src/clients/githubMedia.js) — Instagram's media fetcher
+# consistently rejected ImgBB-hosted URLs, so images are hosted the same
+# way the closer video already is: served from this repo's own commit
+# history via raw.githubusercontent.com.
+permissions:
+  contents: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -34,7 +42,6 @@ jobs:
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
-          IMGBB_API_KEY: ${{ secrets.IMGBB_API_KEY }}
           COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GENIUS_ACCESS_TOKEN: ${{ secrets.GENIUS_ACCESS_TOKEN }}

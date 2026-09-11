@@ -13,10 +13,6 @@ export const config = {
     connectedAccountId: process.env.COMPOSIO_INSTAGRAM_ACCOUNT_ID || "",
   },
 
-  imgbb: {
-    apiKey: process.env.IMGBB_API_KEY || "",
-  },
-
   pinterest: {
     connectedAccountId: process.env.COMPOSIO_PINTEREST_ACCOUNT_ID || "",
   },
