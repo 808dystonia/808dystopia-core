@@ -1,10 +1,11 @@
 // ffmpeg wrapper (spawned as a child process) -- formats a clip for 9:16
 // Reel output and overlays the brand watermark, top-left. Relies on the
-// system ffmpeg binary rather than a bundled static one: ubuntu-latest
-// GitHub Actions runners ship ffmpeg preinstalled, and this project
-// already leans on that for step 3 (yt-dlp's own audio extraction needs it
-// too, with no extra install step) -- confirmed working there, so no
-// separate ffmpeg provisioning is added here either.
+// system ffmpeg binary rather than a bundled static one -- installed via
+// apt in CI (see .github/workflows/daily-reel.yml). NOTE: ubuntu-latest
+// does NOT actually ship ffmpeg preinstalled, despite this file previously
+// assuming otherwise -- confirmed live when yt-dlp's own audio-extraction
+// postprocessing failed with "ffprobe and ffmpeg not found" on a run that
+// finally got far enough to need it.
 import { spawn } from "node:child_process";
 
 const OUTPUT_WIDTH = 1080;
