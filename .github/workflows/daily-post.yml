@@ -7,8 +7,8 @@ on:
   schedule:
     # Fires hourly (UTC). GitHub Actions cron has no timezone/DST
     # awareness, so src/cron.js checks the current America/Chicago hour
-    # on every firing and only runs the real pipeline during the 9 AM
-    # Chicago hour, year-round — same approach the Render setup used.
+    # on every firing and only runs the real pipeline during the 9 AM and
+    # 12 PM Chicago hours, year-round — same approach the Render setup used.
     - cron: "0 * * * *"
   workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
 
