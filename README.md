@@ -1,6 +1,6 @@
 # 808 Dystopia Automation
 
-Daily IG news carousel for @808dystopia, ~8:45 AM Central (before a 9:00 AM CT post).
+Daily IG news carousel for @808dystopia, posting twice daily around 9:00 AM and 12:00 PM Central.
 Pipeline: select article → classify → get photo → diss content (if applicable) →
 render slides → build caption → publish → log.
 

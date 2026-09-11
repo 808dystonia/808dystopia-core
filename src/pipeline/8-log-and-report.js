@@ -8,8 +8,8 @@
 import { appendLogRow } from "../clients/googleSheets.js";
 
 // The sheet is a human-readable log, not just dedup input — CT (with DST
-// handled by the IANA zone, not a fixed offset) matches the 9 AM CT posting
-// schedule the rest of the project runs on.
+// handled by the IANA zone, not a fixed offset) matches the 9 AM/12 PM CT
+// posting schedule the rest of the project runs on.
 function ctTimestamp() {
   return new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).replace(" ", "T");
 }
