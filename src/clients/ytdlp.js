@@ -2,18 +2,25 @@
 // process), authenticated with cookies from a real, logged-in Google
 // account.
 //
-// Validated live that every cookie-less approach fails: the default
-// client needs a JS runtime yt-dlp couldn't find, adding one (--js-runtimes
-// node) still got HTTP 403, and the "tv" client demands an interactive
-// OAuth device-linking flow. All three point at the same thing -- YouTube
-// now bot-checks anonymous/datacenter-IP requests, which is exactly what
-// both this sandbox and GitHub Actions runners are. Real account cookies
-// are the standard, reliable fix for this in practice. See YOUTUBE_COOKIES
-// in .env.example for how to export them.
+// Validated live end-to-end (real download, real transcription, real
+// DeepSeek highlight pick) after working through two separate blockers:
+//   1. Every cookie-less approach fails -- the default client needs a JS
+//      runtime yt-dlp couldn't find, adding one (--js-runtimes node) still
+//      got HTTP 403, and the "tv" client demands an interactive OAuth
+//      device-linking flow. YouTube bot-checks anonymous/datacenter-IP
+//      requests, which is exactly what GitHub Actions runners are. Real
+//      account cookies (see YOUTUBE_COOKIES in .env.example) fix this.
+//   2. Cookies alone still aren't enough -- YouTube also throws a JS-based
+//      "n challenge" at every request. yt-dlp needs both a JS runtime to
+//      solve it AND the solver script distribution (the yt-dlp-ejs pip
+//      package). Node was detected but reported "unsupported"; deno (yt-dlp's
+//      own top-priority, best-supported runtime) worked immediately once
+//      yt-dlp-ejs was installed alongside it -- no extra flag needed, deno
+//      is picked automatically when present.
 //
-// Requires the yt-dlp binary on PATH (installed via pip in CI -- see
-// .github/workflows/daily-reel.yml) and ffmpeg on PATH (used by yt-dlp
-// itself for the audio extraction/format conversion).
+// Requires on PATH: the yt-dlp binary, the yt-dlp-ejs pip package, deno,
+// and ffmpeg (used by yt-dlp itself for the audio extraction/format
+// conversion) -- all installed in CI, see .github/workflows/daily-reel.yml.
 import { spawn } from "node:child_process";
 import { writeFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

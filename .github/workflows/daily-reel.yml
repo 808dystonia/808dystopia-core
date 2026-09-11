@@ -31,7 +31,18 @@ jobs:
       # account's cookies to get past YouTube's bot detection on datacenter
       # IPs (validated live: every cookie-less approach gets blocked). ffmpeg
       # itself ships preinstalled on ubuntu-latest runners.
-      - run: pip install --quiet yt-dlp
+      #
+      # Cookies alone aren't enough, though — YouTube also throws a
+      # JS-based "n challenge" at every request, which needs a JS runtime
+      # yt-dlp can solve it with plus the actual solver script distribution
+      # (yt-dlp-ejs). Validated live: Node was detected but reported
+      # "unsupported" by yt-dlp's solver; deno (yt-dlp's own top-priority,
+      # best-supported runtime) worked immediately once yt-dlp-ejs was
+      # installed alongside it.
+      - run: pip install --quiet yt-dlp yt-dlp-ejs
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - run: npm run reel
         env:
           TZ: America/Chicago
