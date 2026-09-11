@@ -103,16 +103,24 @@ const TITLE_FONT_TIERS = [
 // Keyed by track count, not text length — same idea (shrink instead of
 // overflow) but for row count. Tiers are tuned so the largest tier's
 // count times its row height (font-size * ~1.2 + gap) still fits the
-// tracklist container's actual height; MAX_TRACK_ROWS is the hard cap
-// for anything beyond that, so a very long list truncates instead of
-// ever overflowing regardless of tier math.
+// tracklist container's actual height — verified by rendering the
+// worst case at each boundary. Column count only affects width, not
+// this vertical fit, so the same tiers apply per-column in two-column
+// mode (see buildTracklistHtml) — a column's available height is
+// identical to the single-column case.
 const TRACKLIST_FONT_TIERS = [
   { maxLength: 8, size: 46, gap: 20 },
   { maxLength: 12, size: 36, gap: 12 },
   { maxLength: 16, size: 28, gap: 6 },
   { maxLength: Infinity, size: 22, gap: 4 },
 ];
-const MAX_TRACK_ROWS = 18;
+// Above this many rows, a single column stops being comfortably
+// readable — switch to two side-by-side columns instead of shrinking
+// further. MAX_TOTAL_ROWS is the hard cap across both columns combined;
+// beyond that, the list truncates with a "+N MORE" row rather than ever
+// overflowing.
+const SINGLE_COLUMN_MAX_ROWS = 18;
+const MAX_TOTAL_ROWS = SINGLE_COLUMN_MAX_ROWS * 2;
 
 // No reliable linguistic rule exists for which part of an arbitrary
 // release title to highlight — matches the approved reference (NOT DA 2
@@ -162,27 +170,49 @@ function buildTrackRow(name, index, fontSize) {
   }</div>`;
 }
 
+function buildSummaryRow(text, fontSize) {
+  return `<div class="track-row" style="font-size: ${fontSize}px;"><span class="name">${escapeHtml(text)}</span></div>`;
+}
+
+function buildTracklistColumn(rowsHtml, gap) {
+  return `<div class="tracklist-col" style="gap: ${gap}px;">${rowsHtml}</div>`;
+}
+
 function buildTracklistHtml({ classified }) {
-  const { tracklist } = classified;
-  const overflowCount = tracklist.length - MAX_TRACK_ROWS;
+  const { tracklist, title } = classified;
+
   // A list within the cap shows every track; one over it truncates to
   // make room for the "+N MORE" row rather than showing N-1 tracks plus
   // a row saying "+1 more" for a single track.
-  const visible = overflowCount > 0 ? tracklist.slice(0, MAX_TRACK_ROWS - 1) : tracklist;
-  const shownRows = overflowCount > 0 ? MAX_TRACK_ROWS : tracklist.length;
+  const overflowCount = tracklist.length - MAX_TOTAL_ROWS;
+  const shown = overflowCount > 0 ? tracklist.slice(0, MAX_TOTAL_ROWS - 1) : tracklist;
+  const summaryText = overflowCount > 0 ? `+ ${tracklist.length - shown.length} MORE` : null;
+  const totalRows = shown.length + (summaryText ? 1 : 0);
 
-  const tier = pickTier(shownRows, TRACKLIST_FONT_TIERS);
-  const rows = visible.map((name, i) => buildTrackRow(name, i, tier.size));
-  if (overflowCount > 0) {
-    const remaining = tracklist.length - visible.length;
-    rows.push(`<div class="track-row" style="font-size: ${tier.size}px;"><span class="name">+ ${remaining} MORE</span></div>`);
+  let bodyHtml;
+  if (totalRows <= SINGLE_COLUMN_MAX_ROWS) {
+    const tier = pickTier(totalRows, TRACKLIST_FONT_TIERS);
+    const rows = shown.map((name, i) => buildTrackRow(name, i, tier.size));
+    if (summaryText) rows.push(buildSummaryRow(summaryText, tier.size));
+    bodyHtml = buildTracklistColumn(rows.join("\n"), tier.gap);
+  } else {
+    // Numbering continues across the split (left holds 1..k, right
+    // continues k+1..n) rather than restarting, matching how a person
+    // would naturally read a two-column list.
+    const leftCount = Math.ceil(totalRows / 2);
+    const tier = pickTier(Math.max(leftCount, totalRows - leftCount), TRACKLIST_FONT_TIERS);
+
+    const leftRows = shown.slice(0, leftCount).map((name, i) => buildTrackRow(name, i, tier.size));
+    const rightRows = shown.slice(leftCount).map((name, i) => buildTrackRow(name, leftCount + i, tier.size));
+    if (summaryText) rightRows.push(buildSummaryRow(summaryText, tier.size));
+
+    bodyHtml = `<div class="tracklist-cols">${buildTracklistColumn(leftRows.join("\n"), tier.gap)}${buildTracklistColumn(rightRows.join("\n"), tier.gap)}</div>`;
   }
 
   return readTemplate("slide-tracklist.html")
-    .replace("{{TITLE_FONT_SIZE}}", pickFontSize(classified.title, TITLE_FONT_TIERS))
-    .replace("{{TITLE_HTML}}", splitTitleAccent(classified.title))
-    .replace("{{TRACKLIST_GAP}}", tier.gap)
-    .replace("{{TRACKLIST_ROWS_HTML}}", rows.join("\n"));
+    .replace("{{TITLE_FONT_SIZE}}", pickFontSize(title, TITLE_FONT_TIERS))
+    .replace("{{TITLE_HTML}}", splitTitleAccent(title))
+    .replace("{{TRACKLIST_ROWS_HTML}}", bodyHtml);
 }
 
 function buildDissHtml({ classified, genius }) {

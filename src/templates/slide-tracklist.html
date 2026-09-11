@@ -92,9 +92,23 @@
     right: 4%;
     top: 32%;
     bottom: 13.5%;
+  }
+  /* Wraps one or two .tracklist-col children side by side — built
+     entirely in JS (column count, per-column gap) since it depends on
+     track count; this class just lays out whatever it's given. */
+  .tracklist-cols {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100%;
+    gap: 4%;
+  }
+  .tracklist-col {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    flex: 1;
+    min-width: 0;
   }
   .track-row {
     display: flex;
@@ -102,10 +116,17 @@
     font-family: Arial, Helvetica, sans-serif;
     font-weight: 900;
     white-space: nowrap;
+    min-width: 0;
   }
   .track-row .num {
     width: 90px;
     flex-shrink: 0;
+  }
+  .track-row .name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .track-row .feat {
     margin-left: 0.3em;
@@ -161,10 +182,16 @@
   <div class="canvas">
     <div class="badge news-badge glow"><span>NEWS</span></div>
 
-    <div class="title" style="font-size: {{TITLE_FONT_SIZE}}px;">{{TITLE_HTML}}</div>
+    <!-- The inner span matters: a flex container (.title) treats each
+         direct text-node/element child as its own independent anonymous
+         flex item, so bare "text <span>accent</span>" would wrap as two
+         separate boxes side by side instead of one flowing line. Wrapping
+         it all in one span makes it a single flex item that wraps
+         normally as one block. -->
+    <div class="title" style="font-size: {{TITLE_FONT_SIZE}}px;"><span>{{TITLE_HTML}}</span></div>
     <div class="subtitle">TRACKLIST</div>
 
-    <div class="tracklist" style="gap: {{TRACKLIST_GAP}}px;">
+    <div class="tracklist">
       {{TRACKLIST_ROWS_HTML}}
     </div>
 
