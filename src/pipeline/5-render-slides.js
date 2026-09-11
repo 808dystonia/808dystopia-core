@@ -54,13 +54,17 @@ function withAccent(text, accent) {
   return `${before}<span class="accent">${mid}</span>${after}`;
 }
 
-// Picks a font size from a list of {maxLength, size} tiers (ascending),
-// scaling text down as it gets longer instead of letting it overflow its
-// fixed-height box. Falls back to the smallest tier for anything longer.
-function pickFontSize(text, tiers) {
-  const length = (text || "").length;
+// Picks a tier from a list of {maxLength, ...} tiers (ascending) by a
+// length count, scaling down as that count grows instead of letting
+// content overflow its fixed-size box. Falls back to the smallest tier
+// for anything longer. `length` can be text length or an item count.
+function pickTier(length, tiers) {
   const tier = tiers.find((t) => length <= t.maxLength);
-  return (tier || tiers[tiers.length - 1]).size;
+  return tier || tiers[tiers.length - 1];
+}
+
+function pickFontSize(text, tiers) {
+  return pickTier((text || "").length, tiers).size;
 }
 
 const QUOTE_FONT_TIERS = [
@@ -83,6 +87,32 @@ const CONTEXT_FONT_TIERS = [
   { maxLength: 500, size: 28 },
   { maxLength: Infinity, size: 24 },
 ];
+
+// Most titles are a few words and comfortable at the original 140px. A
+// title with no spaces at all (e.g. a filename-style "FREE_METHODS.zip")
+// has nothing to wrap on, so it also gets `overflow-wrap: anywhere` in
+// the template as a backstop — the tier keeps that backstop from ever
+// being needed in the common case.
+const TITLE_FONT_TIERS = [
+  { maxLength: 14, size: 140 },
+  { maxLength: 20, size: 100 },
+  { maxLength: 28, size: 76 },
+  { maxLength: Infinity, size: 58 },
+];
+
+// Keyed by track count, not text length — same idea (shrink instead of
+// overflow) but for row count. Tiers are tuned so the largest tier's
+// count times its row height (font-size * ~1.2 + gap) still fits the
+// tracklist container's actual height; MAX_TRACK_ROWS is the hard cap
+// for anything beyond that, so a very long list truncates instead of
+// ever overflowing regardless of tier math.
+const TRACKLIST_FONT_TIERS = [
+  { maxLength: 8, size: 46, gap: 20 },
+  { maxLength: 12, size: 36, gap: 12 },
+  { maxLength: 16, size: 28, gap: 6 },
+  { maxLength: Infinity, size: 22, gap: 4 },
+];
+const MAX_TRACK_ROWS = 18;
 
 // No reliable linguistic rule exists for which part of an arbitrary
 // release title to highlight — matches the approved reference (NOT DA 2
@@ -122,21 +152,37 @@ function buildCoverHtml({ classified, photoUrl, albumArtLocalUrl }) {
 
 // A track name like "PATCHED IT UP (FEAT. LIL YACHTY)" gets its feature
 // credit pulled into its own smaller span; plain names pass through as-is.
-function buildTrackRow(name, index) {
+function buildTrackRow(name, index, fontSize) {
   const num = String(index + 1).padStart(2, "0");
   const match = name.match(/^(.*?)\s*(\((?:feat\.?|ft\.?|with)\s*[^)]+\))\s*$/i);
   const trackName = match ? match[1].trim() : name;
   const feat = match ? match[2].trim().toUpperCase() : "";
-  return `<div class="track-row"><span class="num">${num}</span><span class="name">${escapeHtml(trackName)}</span>${
+  return `<div class="track-row" style="font-size: ${fontSize}px;"><span class="num">${num}</span><span class="name">${escapeHtml(trackName)}</span>${
     feat ? `<span class="feat">${escapeHtml(feat)}</span>` : ""
   }</div>`;
 }
 
 function buildTracklistHtml({ classified }) {
-  const rowsHtml = classified.tracklist.map(buildTrackRow).join("\n");
+  const { tracklist } = classified;
+  const overflowCount = tracklist.length - MAX_TRACK_ROWS;
+  // A list within the cap shows every track; one over it truncates to
+  // make room for the "+N MORE" row rather than showing N-1 tracks plus
+  // a row saying "+1 more" for a single track.
+  const visible = overflowCount > 0 ? tracklist.slice(0, MAX_TRACK_ROWS - 1) : tracklist;
+  const shownRows = overflowCount > 0 ? MAX_TRACK_ROWS : tracklist.length;
+
+  const tier = pickTier(shownRows, TRACKLIST_FONT_TIERS);
+  const rows = visible.map((name, i) => buildTrackRow(name, i, tier.size));
+  if (overflowCount > 0) {
+    const remaining = tracklist.length - visible.length;
+    rows.push(`<div class="track-row" style="font-size: ${tier.size}px;"><span class="name">+ ${remaining} MORE</span></div>`);
+  }
+
   return readTemplate("slide-tracklist.html")
+    .replace("{{TITLE_FONT_SIZE}}", pickFontSize(classified.title, TITLE_FONT_TIERS))
     .replace("{{TITLE_HTML}}", splitTitleAccent(classified.title))
-    .replace("{{TRACKLIST_ROWS_HTML}}", rowsHtml);
+    .replace("{{TRACKLIST_GAP}}", tier.gap)
+    .replace("{{TRACKLIST_ROWS_HTML}}", rows.join("\n"));
 }
 
 function buildDissHtml({ classified, genius }) {
