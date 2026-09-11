@@ -46,7 +46,7 @@ jobs:
       - run: npm run reel
         env:
           TZ: America/Chicago
-          REEL_PUBLISH: "0" # flip to "1" once this pipeline is built and tested
+          REEL_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
           GOOGLE_SHEETS_REELS_TAB: Reels
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
