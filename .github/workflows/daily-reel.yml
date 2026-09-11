@@ -1,0 +1,45 @@
+name: Daily Reel Post
+
+# Genuinely free — same reasoning as daily-post.yml (GitHub Actions has
+# no minutes cap on public repos; Render's cron jobs carry a $1/month
+# minimum despite being labeled "free").
+on:
+  schedule:
+    # Fires hourly (UTC). src/reel-cron.js gates the real run to the 7 PM
+    # Chicago hour, year-round — DST-safe, same approach as daily-post.yml.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+permissions:
+  contents: write # placeholder — only needed if step 4 ends up committing
+                   # clip files the same way githubMedia.js hosts carousel
+                   # slides; revisit once that step is actually built.
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Video download + ffmpeg processing needs more headroom than the
+    # carousel's render-and-publish; revisit once step 4 exists for real.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run reel
+        env:
+          TZ: America/Chicago
+          REEL_PUBLISH: "0" # flip to "1" once this pipeline is built and tested
+          DEEPSEEK_MODEL: deepseek-chat
+          GOOGLE_SHEETS_REELS_TAB: Reels
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}
