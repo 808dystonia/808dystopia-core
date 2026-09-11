@@ -18,15 +18,20 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Video download + ffmpeg processing needs more headroom than the
-    # carousel's render-and-publish; revisit once step 4 exists for real.
-    timeout-minutes: 20
+    # Video/audio download + local Whisper transcription + ffmpeg processing
+    # needs real headroom, unlike the carousel's render-and-publish.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
+      # yt-dlp downloads the candidate video's audio (step 3) — needs a real
+      # account's cookies to get past YouTube's bot detection on datacenter
+      # IPs (validated live: every cookie-less approach gets blocked). ffmpeg
+      # itself ships preinstalled on ubuntu-latest runners.
+      - run: pip install --quiet yt-dlp
       - run: npm run reel
         env:
           TZ: America/Chicago
@@ -40,6 +45,7 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}

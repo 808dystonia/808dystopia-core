@@ -33,7 +33,11 @@ const CONTENT_TYPE_QUERIES = [
 ];
 
 const MIN_DURATION_SECONDS = 45;
-const MAX_DURATION_SECONDS = 45 * 60;
+// Kept modest (not the 45 min originally planned) because step 3 transcribes
+// the entire video locally with CPU-only Whisper inside a time-boxed GitHub
+// Actions job -- a much longer video risks blowing the job timeout just to
+// pick one highlight.
+const MAX_DURATION_SECONDS = 20 * 60;
 
 function isUsable(details) {
   return (
