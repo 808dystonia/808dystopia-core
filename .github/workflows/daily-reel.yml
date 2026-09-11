@@ -29,8 +29,7 @@ jobs:
       - run: npm ci
       # yt-dlp downloads the candidate video's audio (step 3) — needs a real
       # account's cookies to get past YouTube's bot detection on datacenter
-      # IPs (validated live: every cookie-less approach gets blocked). ffmpeg
-      # itself ships preinstalled on ubuntu-latest runners.
+      # IPs (validated live: every cookie-less approach gets blocked).
       #
       # Cookies alone aren't enough, though — YouTube also throws a
       # JS-based "n challenge" at every request, which needs a JS runtime
@@ -43,6 +42,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      # Confirmed live this is NOT actually preinstalled on this runner
+      # image despite ubuntu-latest's own docs suggesting otherwise --
+      # yt-dlp's own audio-extraction postprocessing failed with "ffprobe
+      # and ffmpeg not found" once a run finally got far enough to need it.
+      - run: sudo apt-get update -qq && sudo apt-get install -qq -y ffmpeg
       - run: npm run reel
         env:
           TZ: America/Chicago
