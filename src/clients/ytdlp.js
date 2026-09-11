@@ -22,7 +22,7 @@
 // and ffmpeg (used by yt-dlp itself for the audio extraction/format
 // conversion) -- all installed in CI, see .github/workflows/daily-reel.yml.
 import { spawn } from "node:child_process";
-import { writeFile, mkdtemp, rm } from "node:fs/promises";
+import { writeFile, mkdtemp, rm, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { config } from "../config.js";
@@ -42,19 +42,30 @@ function run(cmd, args) {
   });
 }
 
-// Downloads the best available audio track for a video, converts it to WAV
-// (what the local Whisper transcription step needs), and returns the path.
-// outputDir must already exist; the caller owns cleaning it up.
-export async function downloadAudio(videoId, outputDir) {
+// Writes cookies to a temp file for the duration of a single yt-dlp call
+// and always removes it afterward, success or failure -- narrows how long
+// the plaintext cookie file sits on disk, which matters more for step 4's
+// output dir than step 3's (that one's whole temp dir is wiped immediately
+// after use, but step 4's has to survive until publishing, so its cookies
+// file would otherwise linger for the rest of the run).
+async function runYtDlpWithCookies(outputDir, args) {
   if (!config.youtube.cookies) throw new Error("YOUTUBE_COOKIES missing");
 
   const cookiesPath = path.join(outputDir, "cookies.txt");
   await writeFile(cookiesPath, config.youtube.cookies);
+  try {
+    await run("yt-dlp", ["--cookies", cookiesPath, ...args]);
+  } finally {
+    await unlink(cookiesPath).catch(() => {});
+  }
+}
 
+// Downloads the best available audio track for a video, converts it to WAV
+// (what the local Whisper transcription step needs), and returns the path.
+// outputDir must already exist; the caller owns cleaning it up.
+export async function downloadAudio(videoId, outputDir) {
   const outputTemplate = path.join(outputDir, "audio");
-  await run("yt-dlp", [
-    "--cookies",
-    cookiesPath,
+  await runYtDlpWithCookies(outputDir, [
     "-f",
     "bestaudio[ext=m4a]/bestaudio/best",
     "--extract-audio",
@@ -71,8 +82,35 @@ export async function downloadAudio(videoId, outputDir) {
   return `${outputTemplate}.wav`;
 }
 
+// Downloads only the highlight's time range (not the whole video) as an
+// MP4 -- step 3 already downloaded this video once for audio-only
+// transcription and discarded it, so step 4 deliberately doesn't re-fetch
+// the full thing a second time. --download-sections does the range
+// selection during download; --force-keyframes-at-cuts re-encodes around
+// the cut points so it lands on the actual requested timestamps instead of
+// snapping to the nearest keyframe (our highlight window comes from
+// Whisper timestamps, not keyframe-aligned ones).
+export async function downloadVideoSection(videoId, startSeconds, endSeconds, outputDir) {
+  const outputTemplate = path.join(outputDir, "clip.%(ext)s");
+  await runYtDlpWithCookies(outputDir, [
+    "-f",
+    "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+    "--download-sections",
+    `*${startSeconds}-${endSeconds}`,
+    "--force-keyframes-at-cuts",
+    "--merge-output-format",
+    "mp4",
+    "--no-playlist",
+    "-o",
+    outputTemplate,
+    `https://www.youtube.com/watch?v=${videoId}`,
+  ]);
+
+  return path.join(outputDir, "clip.mp4");
+}
+
 export async function withTempDir(fn) {
-  const dir = await mkdtemp(path.join(tmpdir(), "reel-audio-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "reel-"));
   try {
     return await fn(dir);
   } finally {
