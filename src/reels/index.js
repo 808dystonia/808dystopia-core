@@ -5,14 +5,20 @@
 //
 // Steps 2+ are currently stubs — see the individual files in this folder.
 //
+// #reels turned out to be a static artist/producer watchlist, not a
+// manual day-by-day request queue (see 1-get-watchlist.js) — so this
+// still needs to pick which watchlist artist to feature today (checking
+// the Sheet log so one isn't immediately re-featured) before running the
+// rest of the pipeline for that pick.
+//
 // Failure handling (per spec): if any step fails for the selected
-// request — no video found, no transcript available, video flagged,
-// etc. — that's not a whole-day failure. Fall back to the next request
-// in the #reels queue and retry the pipeline for that one instead. If
-// every queued request fails, skip posting for the day entirely — no
-// error alert, fully hands-off.
+// artist — no video found, no transcript available, video flagged, etc.
+// — that's not a whole-day failure. Fall back to the next artist in the
+// watchlist and retry the pipeline for that one instead. If every
+// candidate fails, skip posting for the day entirely — no error alert,
+// fully hands-off.
 import "dotenv/config";
-import { getReelRequests } from "./1-select-request.js";
+import { getArtistWatchlist } from "./1-get-watchlist.js";
 import { findVideo } from "./2-find-video.js";
 import { selectHighlight } from "./3-select-highlight.js";
 import { processClip } from "./4-process-clip.js";
