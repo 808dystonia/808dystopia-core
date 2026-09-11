@@ -14,15 +14,7 @@
 // trigger, so only the actual schedule is gated; a manual run and a
 // direct `node src/pipeline/index.js` both always run immediately.
 import { runDailyFlow } from "./pipeline/index.js";
-
-function currentChicagoHour() {
-  const hourString = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Chicago",
-    hour: "numeric",
-    hour12: false,
-  }).format(new Date());
-  return Number(hourString);
-}
+import { currentChicagoHour } from "./util/chicagoHour.js";
 
 const isScheduledRun = process.env.GITHUB_EVENT_NAME === "schedule";
 const hour = currentChicagoHour();

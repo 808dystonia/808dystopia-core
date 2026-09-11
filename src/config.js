@@ -5,6 +5,7 @@ export const config = {
 
   discord: {
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
+    reelsChannelId: process.env.DISCORD_REELS_CHANNEL_ID || "",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -20,6 +21,8 @@ export const config = {
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
+    // Reel dedup log lives in a separate tab of the same spreadsheet.
+    reelsTab: process.env.GOOGLE_SHEETS_REELS_TAB || "Reels",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -42,10 +45,17 @@ export const config = {
     clientSecret: process.env.SPOTIFY_CLIENT_SECRET || "",
   },
 
+  youtube: {
+    apiKey: process.env.YOUTUBE_API_KEY || "",
+  },
+
   hashtags: [],
 
   // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.
   publish: process.env.CAROUSEL_PUBLISH === "1",
+  // Same gate, for the Reel pipeline — independent so one pipeline can go
+  // live while the other stays in dry-run.
+  reelPublish: process.env.REEL_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };
