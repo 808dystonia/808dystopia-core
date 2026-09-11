@@ -14,13 +14,14 @@ function ctTimestamp() {
   return new Date().toLocaleString("sv-SE", { timeZone: "America/Chicago" }).replace(" ", "T");
 }
 
-export async function logAndReport({ classified, status, note }) {
+export async function logAndReport({ candidate, classified, status, note }) {
   const row = {
     timestamp: ctTimestamp(),
     artist: classified?.artist || "",
     title: classified?.title || "",
     status,
     note: note || "",
+    sourceText: candidate?.text || "",
   };
   await appendLogRow(row);
   return row;

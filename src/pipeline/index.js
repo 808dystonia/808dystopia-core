@@ -22,7 +22,8 @@ export async function selectPublishableArticle() {
 
   for (const candidate of candidates) {
     const classified = await classifyArticle(candidate);
-    if (isAlreadyPosted(logRows, classified.artist, classified.title)) continue;
+    if (isAlreadyPosted(logRows, { artist: classified.artist, title: classified.title, sourceText: candidate.text }))
+      continue;
 
     const photo = await getPhoto(classified.artist);
     if (!photo.ok) continue;
@@ -57,10 +58,10 @@ export async function runDailyFlow() {
     // status is what isAlreadyPosted checks for dedup, so logging a dry
     // run that way would permanently block the real post later.
     const status = result.published ? "posted" : "skipped";
-    return logAndReport({ classified, status, note: result?.note || "" });
+    return logAndReport({ candidate, classified, status, note: result?.note || "" });
   } catch (err) {
     console.log("publishCarousel failed:", err.message);
-    return logAndReport({ classified, status: "failed-and-retried", note: err.message });
+    return logAndReport({ candidate, classified, status: "failed-and-retried", note: err.message });
   }
 }
 

@@ -1,10 +1,9 @@
 // Google Sheets, via Composio — log of previously-posted articles.
-// Sheet layout (columns A:E, row 1 = header):
-//   timestamp | artist | title | status | note
-// artist/title are step 2's extracted fields — dedup happens on
-// these, not on raw Discord text, since the same story gets reworded across
-// different days' digests. status is one of:
-// posted / skipped / failed-and-retried (set by step 8).
+// Sheet layout (columns A:F, row 1 = header):
+//   timestamp | artist | title | status | note | sourceText
+// artist/title are step 2's extracted fields; sourceText is the raw
+// Discord candidate text (see isAlreadyPosted for why both are needed).
+// status is one of: posted / skipped / failed-and-retried (set by step 8).
 import { config } from "../config.js";
 import { runTool } from "./composio.js";
 
@@ -13,7 +12,7 @@ export async function readLogRows() {
 
   const result = await runTool(
     "GOOGLESHEETS_BATCH_GET",
-    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.tab}!A:E`] },
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.tab}!A:F`] },
     config.sheets.connectedAccountId || undefined
   );
   const values = result?.valueRanges?.[0]?.values || [];
@@ -23,6 +22,7 @@ export async function readLogRows() {
     title: row[2] || "",
     status: row[3] || "",
     note: row[4] || "",
+    sourceText: row[5] || "",
   }));
 }
 
@@ -33,21 +33,32 @@ export async function appendLogRow(row) {
     "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
     {
       spreadsheetId: config.sheets.id,
-      range: `${config.sheets.tab}!A:E`,
+      range: `${config.sheets.tab}!A:F`,
       valueInputOption: "USER_ENTERED",
-      values: [[row.timestamp, row.artist, row.title, row.status, row.note || ""]],
+      values: [[row.timestamp, row.artist, row.title, row.status, row.note || "", row.sourceText || ""]],
     },
     config.sheets.connectedAccountId || undefined
   );
 }
 
-// Case-insensitive artist+title match against previously-posted rows.
-export function isAlreadyPosted(logRows, artist, title) {
-  const norm = (s) => (s || "").trim().toLowerCase();
+// Case-insensitive artist+title match against previously-posted rows, OR an
+// exact match on the raw source text. Confirmed live: relying on artist+title
+// alone let the same karrahbooo story post twice in one day (9 AM and 12 PM)
+// with two different headlines — the Discord digest bullet was byte-identical
+// both times, but DeepSeek's classification (temperature 0.1, not 0) phrased
+// the title differently between the two separate calls, so the exact-string
+// title match missed it. sourceText matching is the same-day safety net for
+// that; artist+title still carries the original cross-day case, where a
+// story that's genuinely reworded in a later digest has different raw text
+// but should still classify to a recognizably similar artist+title.
+export function isAlreadyPosted(logRows, { artist, title, sourceText }) {
+  const norm = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
   const a = norm(artist);
   const t = norm(title);
-  if (!a && !t) return false;
-  return logRows.some(
-    (row) => row.status === "posted" && norm(row.artist) === a && norm(row.title) === t
-  );
+  const src = norm(sourceText);
+  return logRows.some((row) => {
+    if (row.status !== "posted") return false;
+    if (src && norm(row.sourceText) === src) return true;
+    return (a || t) && norm(row.artist) === a && norm(row.title) === t;
+  });
 }
