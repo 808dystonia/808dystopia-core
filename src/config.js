@@ -47,6 +47,11 @@ export const config = {
 
   youtube: {
     apiKey: process.env.YOUTUBE_API_KEY || "",
+    // Netscape-format cookies.txt content from a real, logged-in Google
+    // account — needed to download video/audio past YouTube's bot
+    // detection on datacenter IPs (search/videos.list don't need this,
+    // only actual media download in step 3+). See .env.example.
+    cookies: process.env.YOUTUBE_COOKIES || "",
   },
 
   hashtags: [],
