@@ -1,5 +1,25 @@
 // Central config. Every value comes from env — no hardcoded IDs or secrets here.
 // See .env.example for the full list of credentials/IDs to gather.
+
+// YOUTUBE_COOKIES is expected base64-encoded, not raw — confirmed live that
+// a raw cookies.txt paste got corrupted in transit through a text editor
+// and GitHub's secret box: tabs between cookie fields silently became
+// non-breaking spaces, breaking exactly the session-auth cookies that made
+// authenticated download work at all. Base64 is plain alphanumeric text,
+// immune to that class of whitespace mangling. Falls back to using the
+// value as-is if it doesn't decode to a real cookies file, so an old-style
+// raw paste still works rather than silently breaking.
+function decodeCookies(raw) {
+  if (!raw) return "";
+  try {
+    const decoded = Buffer.from(raw, "base64").toString("utf8");
+    if (decoded.includes("Netscape HTTP Cookie File")) return decoded;
+  } catch {
+    // fall through to raw
+  }
+  return raw;
+}
+
 export const config = {
   tz: process.env.TZ || "America/Chicago",
 
@@ -50,8 +70,9 @@ export const config = {
     // Netscape-format cookies.txt content from a real, logged-in Google
     // account — needed to download video/audio past YouTube's bot
     // detection on datacenter IPs (search/videos.list don't need this,
-    // only actual media download in step 3+). See .env.example.
-    cookies: process.env.YOUTUBE_COOKIES || "",
+    // only actual media download in step 3+). See .env.example, and
+    // decodeCookies above for why this is base64.
+    cookies: decodeCookies(process.env.YOUTUBE_COOKIES),
   },
 
   hashtags: [],
