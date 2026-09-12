@@ -39,7 +39,7 @@ Return ONLY the JSON object.`;
 
 export async function selectHighlight(video) {
   const transcript = await withTempDir(async (dir) => {
-    const audioPath = await downloadAudio(video.videoId, dir);
+    const audioPath = await downloadAudio(video.url, dir);
     return transcribeAudio(audioPath);
   });
 
