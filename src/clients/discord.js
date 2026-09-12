@@ -85,6 +85,50 @@ export function parseTvBoard(messages) {
   return [...names.values()];
 }
 
+// Trending Tuesdays' data source: the most recent RAPPERS board message
+// only (not every one in the fetched window -- the board refreshes
+// daily, so anything older is stale and would mix names into a chart
+// that's supposed to be "right now"). Only lines that carry a real
+// listener figure Grok already researched (e.g. "9M monthly", "840k")
+// are usable -- this never invents a number, so a rapper whose line has
+// none is simply not eligible for the chart, not estimated.
+const NUMBERED_LINE = /^\d+\.\s*(.+?)\s+[—-]\s+(.+)$/;
+const STREAMS_TOKEN = /(\d+(?:\.\d+)?)\s*([MmKk])\b/;
+
+export function parseTvRapperStreams(messages) {
+  const rapperMessage = messages.find((m) => /\*\*RAPPERS\*\*/.test(m.content || ""));
+  if (!rapperMessage) return [];
+
+  const content = rapperMessage.content;
+  const afterHeader = content.slice(content.search(/\*\*RAPPERS\*\*/));
+
+  const results = [];
+  for (const line of afterHeader.split("\n")) {
+    const lineMatch = line.match(NUMBERED_LINE);
+    if (!lineMatch) continue;
+    const [, namePart, reason] = lineMatch;
+
+    const streamsMatch = reason.match(STREAMS_TOKEN);
+    if (!streamsMatch) continue;
+    const [, num, unit] = streamsMatch;
+    const multiplier = unit.toUpperCase() === "M" ? 1_000_000 : 1_000;
+
+    // A "/"-grouped line ("A / B / C — reason") rarely carries a figure
+    // that's genuinely shared across all of them in practice -- if one
+    // ever does, credit the first name rather than guessing it applies
+    // to the others too.
+    const name = namePart.split("/")[0].trim();
+    if (!name) continue;
+
+    results.push({
+      name,
+      streamsLabel: `${num}${unit.toUpperCase()}`,
+      streamsValue: parseFloat(num) * multiplier,
+    });
+  }
+  return results;
+}
+
 // Posts a message (plain content and/or embeds) to a channel. Validated
 // live via Composio's DISCORDBOT_CREATE_MESSAGE against the real
 // #admin-general channel.

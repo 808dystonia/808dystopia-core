@@ -19,3 +19,10 @@ export function currentChicagoHour() {
 export function chicagoDateString(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(date);
 }
+
+// Current day of week in America/Chicago, e.g. "Tuesday" -- for pipelines
+// gated to a specific weekday (Trending Tuesdays) rather than just an
+// hour, on top of the same hourly-firing GitHub Actions schedule.
+export function currentChicagoWeekday() {
+  return new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", weekday: "long" }).format(new Date());
+}

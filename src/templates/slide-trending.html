@@ -1,0 +1,185 @@
+<!doctype html>
+<!-- Trending Tuesdays: single-image top-10 chart. Same canvas/brand
+     system as the news carousel's templates (Capture It font, red accent,
+     logo + rule footer) -- built from scratch for this since there's no
+     STOKELY reference image yet, closest analog is slide-tracklist.html's
+     numbered-row layout. -->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face {
+    font-family: "Capture It";
+    src: url("assets/Capture_it.ttf") format("truetype");
+  }
+
+  html, body {
+    margin: 0;
+    width: 1080px;
+    height: 1350px;
+    background: #000;
+    overflow: hidden;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1080px;
+    height: 1350px;
+    color: #fff;
+  }
+
+  .glow {
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
+  }
+
+  .badge {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-top: 3px solid #fff;
+    border-bottom: 3px solid #fff;
+    border-left: 14px solid #fff;
+    border-right: 14px solid #fff;
+    box-sizing: border-box;
+  }
+  .badge span {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-style: italic;
+    color: #fff;
+  }
+  .news-badge {
+    left: 30%;
+    width: 40%;
+    top: 3.82%;
+    height: 3.76%;
+  }
+  .news-badge span { font-size: 36px; }
+
+  .title {
+    position: absolute;
+    left: 3%;
+    right: 3%;
+    top: 10%;
+    height: 13%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: "Capture It", Impact, sans-serif;
+    text-transform: uppercase;
+    line-height: 1;
+    font-size: 88px;
+  }
+  .title .accent { color: #e01717; }
+
+  .subtitle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 22.5%;
+    height: 5%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    letter-spacing: 2px;
+    font-size: 38px;
+    color: #ccc;
+  }
+
+  .chart {
+    position: absolute;
+    left: 6%;
+    right: 6%;
+    top: 29%;
+    bottom: 13.5%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+    padding-bottom: 8px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .rank {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    color: #e01717;
+    font-size: 44px;
+    width: 110px;
+    flex-shrink: 0;
+  }
+  .row .name {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: 44px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .row .streams {
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 34px;
+    color: #fff;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+  .row .arrow {
+    color: #e01717;
+    font-size: 32px;
+    margin-left: 10px;
+    flex-shrink: 0;
+  }
+
+  .rule {
+    position: absolute;
+    left: 14.12%;
+    right: 0.51%;
+    top: 92.9%;
+    height: 3px;
+    background: #fff;
+  }
+
+  .logo {
+    position: absolute;
+    left: 1.78%;
+    top: 88.61%;
+    width: 10.17%;
+  }
+
+  .footer-badge {
+    left: 30%;
+    width: 40%;
+    top: 94.18%;
+    height: 4.78%;
+  }
+  .footer-badge span { font-size: 32px; }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="badge news-badge glow"><span>TRENDING</span></div>
+
+    <div class="title"><span class="accent">808</span> TRENDING TUESDAY</div>
+    <div class="subtitle">{{SUBTITLE}}</div>
+
+    <div class="chart">
+      {{ROWS_HTML}}
+    </div>
+
+    <div class="rule glow"></div>
+    <img class="logo" src="assets/logo.png" />
+    <div class="badge footer-badge glow"><span>@808DYSTOPIA</span></div>
+  </div>
+</body>
+</html>
