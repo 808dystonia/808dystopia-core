@@ -59,8 +59,8 @@ export async function publishCarousel({ slides, caption }) {
   const mediaId = await publishContainer(carouselContainerId);
   await postComment(mediaId, caption.hashtags);
 
-  // slide1Url is returned alongside mediaId so a downstream cross-post
-  // (Facebook) can reuse the exact same already-uploaded cover image
-  // instead of uploading it a second time.
-  return { published: true, mediaId, slide1Url, note: `Published as IG media ${mediaId}` };
+  // slide1Url/slide2Url are returned alongside mediaId so a downstream
+  // cross-post (Facebook) can reuse the exact same already-uploaded
+  // slides instead of uploading them a second time.
+  return { published: true, mediaId, slide1Url, slide2Url, note: `Published as IG media ${mediaId}` };
 }
