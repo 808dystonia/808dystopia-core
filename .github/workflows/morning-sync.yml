@@ -1,21 +1,20 @@
-name: News Brief
+name: Morning Site Sync
 
-# Genuinely free — same reasoning as the other workflows (GitHub Actions
-# has no minutes cap on public repos). No API key needed for the RSS
-# sources themselves either — only DeepSeek (already used elsewhere) and
-# Composio (Discord post).
+# Mirrors Grok's own morning #underground-news drop onto 808dystopia.win's
+# Morning news box. Doesn't post anything to Discord -- Grok's own
+# scheduled task already did that -- just reads it and writes it into the
+# site's Netlify Blobs store.
 on:
   schedule:
-    # Fires hourly (UTC). src/news-cron.js gates the real run to the
-    # 12 PM and 6 PM Chicago hours, year-round — DST-safe, same approach
-    # as the other pipelines.
+    # Fires hourly (UTC). src/morning-sync-cron.js gates the real run to
+    # 10 AM Chicago time, year-round -- DST-safe, same approach as the
+    # other pipelines.
     - cron: "0 * * * *"
   workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Just RSS fetches + one DeepSeek call + one Discord post.
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -23,16 +22,13 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run news-brief
+      - run: npm run morning-sync
         env:
           TZ: America/Chicago
-          NEWS_BRIEF_PUBLISH: "1"
-          SITE_SYNC_PUBLISH: "0" # flip to "1" once the site-sync side of this is tested
-          DEEPSEEK_MODEL: deepseek-chat
+          SITE_SYNC_PUBLISH: "0" # flip to "1" once this pipeline is tested
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

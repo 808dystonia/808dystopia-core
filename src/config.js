@@ -26,6 +26,14 @@ export const config = {
   discord: {
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
     reelsChannelId: process.env.DISCORD_REELS_CHANNEL_ID || "",
+    // Grok's own webhook identity in #underground-news -- confirmed live
+    // by comparing message authors: Grok's daily posts always come
+    // through this author id (display name varies -- "DT NEWS BOT", "DT
+    // Bot", "808 Dystonia" have all been seen), while this repo's own
+    // posts (News Brief, carousel) come through the shared Composio bot
+    // account instead. morning-sync uses this to find Grok's actual
+    // morning drop and never mistake one of our own posts for it.
+    grokAuthorId: process.env.DISCORD_GROK_AUTHOR_ID || "1545433897074950264",
     // #admin-general in the 808 Dystopia Discord ("FRZA + STOKELY only.
     // EOD briefs, ops, connector tests.") -- found directly via a live
     // Composio call (DISCORDBOT_LIST_GUILD_CHANNELS) rather than asked
@@ -97,6 +105,16 @@ export const config = {
     repo: process.env.GITHUB_REPO || "808dystonia/808dystopia-core",
   },
 
+  // Site sync — mirrors morning/midday/night news onto 808dystopia.win's
+  // three news boxes via a Netlify Blobs store the site's own serverless
+  // function reads from. Blobs written from outside Netlify's own runtime
+  // (this repo's GitHub Actions jobs) need an explicit siteID + access
+  // token — see .env.example for how to generate the token.
+  netlify: {
+    siteId: process.env.NETLIFY_SITE_ID || "f809ce21-5a80-4332-83df-3cf7a5752c30",
+    token: process.env.NETLIFY_AUTH_TOKEN || "",
+  },
+
   hashtags: [],
 
   // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.
@@ -111,6 +129,8 @@ export const config = {
   eodBriefPublish: process.env.EOD_BRIEF_PUBLISH === "1",
   // Same gate, for the 12 PM/6 PM news brief.
   newsBriefPublish: process.env.NEWS_BRIEF_PUBLISH === "1",
+  // Same gate, for writing morning/midday/night news onto 808dystopia.win.
+  siteSyncPublish: process.env.SITE_SYNC_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

@@ -11,3 +11,11 @@ export function currentChicagoHour() {
   }).format(new Date());
   return Number(hourString);
 }
+
+// en-CA is just a convenient locale that happens to format as YYYY-MM-DD.
+// Shared by any pipeline that needs to compare "which Chicago calendar day
+// is this timestamp from" (e.g. the EOD brief's analytics window, morning
+// sync's "did today's drop already land" check).
+export function chicagoDateString(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(date);
+}
