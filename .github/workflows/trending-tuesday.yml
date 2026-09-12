@@ -1,0 +1,36 @@
+name: Trending Tuesday
+
+# Genuinely free — same reasoning as the other workflows (GitHub Actions
+# has no minutes cap on public repos).
+on:
+  schedule:
+    # Fires hourly (UTC). src/trending-cron.js gates the real run to
+    # Tuesday 5 PM Chicago time, year-round — DST-safe, same approach as
+    # the other pipelines.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+permissions:
+  contents: write # needed to commit the rendered chart image (see
+                   # src/clients/githubMedia.js), same as the carousel/Reel.
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run trending-tuesday
+        env:
+          TZ: America/Chicago
+          TRENDING_TUESDAY_PUBLISH: "0" # flip to "1" once this is tested
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}

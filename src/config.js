@@ -154,6 +154,8 @@ export const config = {
   // independent of the carousel's gate above so the (new, unvalidated)
   // video cross-post can be tested on its own before going live.
   reelFacebookCrosspostPublish: process.env.REEL_FACEBOOK_CROSSPOST_PUBLISH === "1",
+  // Same gate, for the Tuesday 5 PM CT trending chart post.
+  trendingTuesdayPublish: process.env.TRENDING_TUESDAY_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };
