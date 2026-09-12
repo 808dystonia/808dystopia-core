@@ -50,6 +50,10 @@ export const config = {
 
   pinterest: {
     connectedAccountId: process.env.COMPOSIO_PINTEREST_ACCOUNT_ID || "",
+    // "Underground Hiphop album cover art" board on the connected 808
+    // Dystopia Pinterest account -- found directly via a live
+    // PINTEREST_LIST_BOARDS call rather than asked for.
+    boardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
   },
 
   sheets: {
@@ -57,6 +61,8 @@ export const config = {
     tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
     // Reel dedup log lives in a separate tab of the same spreadsheet.
     reelsTab: process.env.GOOGLE_SHEETS_REELS_TAB || "Reels",
+    // Pin pipeline's own dedup log, same spreadsheet, its own tab.
+    pinsTab: process.env.GOOGLE_SHEETS_PINS_TAB || "Pins",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -131,6 +137,8 @@ export const config = {
   newsBriefPublish: process.env.NEWS_BRIEF_PUBLISH === "1",
   // Same gate, for writing morning/midday/night news onto 808dystopia.win.
   siteSyncPublish: process.env.SITE_SYNC_PUBLISH === "1",
+  // Same gate, for the 9 AM/1 PM/5 PM Pinterest album-art pins.
+  pinPublish: process.env.PIN_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };
