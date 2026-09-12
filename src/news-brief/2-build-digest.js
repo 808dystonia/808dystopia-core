@@ -19,13 +19,13 @@ function buildPrompt(articles) {
     .map((a, i) => `${i + 1}. [${a.source}] ${a.title}`)
     .join("\n");
 
-  return `You are selecting news for 808 Dystopia, an UNDERGROUND hip-hop and producer-focused news page — not a mainstream chart/celebrity outlet. Read the list of real, recently-published article titles below and return ONLY a JSON object (no markdown, no other text) with this field:
+  return `You are selecting news for 808 Dystopia, a hip-hop news page focused mostly on UNDERGROUND artists and producers, but not exclusively — mainstream news is welcome too, just as the minority of the mix. Read the list of real, recently-published article titles below and return ONLY a JSON object (no markdown, no other text) with this field:
 
 - stories: an array of up to ${MAX_STORIES} objects, each {"summary": string, "source": string}. "summary" is a short, factual one-sentence description based ONLY on the article's title — do not invent details the title doesn't support. "source" is the exact source name from the list (e.g. "XXL").
 
-Prioritize: independent/underground rappers and producers, mixtape and underground album/EP drops, beat/production culture, underground scene news (local scenes, indie labels, emerging artists). Deprioritize and generally EXCLUDE mainstream A-list celebrity gossip, legal/court news about already-famous major-label artists, mainstream award shows (Grammys, Billboard Honors, and similar), and generic pop-culture crossover stories — unless the title gives it a clear, direct underground/producer angle. When in doubt, exclude rather than include.
+Favor independent/underground rappers and producers, mixtape and underground album/EP drops, beat/production culture, and underground scene news (local scenes, indie labels, emerging artists). Aim for roughly 2 out of every 3 selected stories to be underground — mainstream stories (major-label artists, chart news, award shows, celebrity coverage) can fill the remaining third, especially when a day is light on underground news, but should stay the minority. If there aren't enough underground stories in the pool to hit that ratio, it's fine to lean more mainstream rather than pad with filler — just don't let mainstream crowd out underground stories that are actually there. Purely tabloid-style filler (celebrity gossip with no real music-news substance) can still be skipped in favor of a more substantive story, mainstream or underground.
 
-Multiple articles about the exact same real-world event (e.g. the same court case, the same release) should become ONE story, not one per source — pick the clearest title and cite that source. Skip anything that isn't genuinely rap/hip-hop news at all (unrelated topics, festival ads with no real news value). It's fine to return fewer stories, or an empty array, on a day with little genuine underground news — never pad with mainstream filler just to fill the count.
+Multiple articles about the exact same real-world event (e.g. the same court case, the same release) should become ONE story, not one per source — pick the clearest title and cite that source. Skip anything that isn't genuinely rap/hip-hop news at all (unrelated topics, festival ads with no real news value). It's fine to return fewer stories, or an empty array, on a slow news day — never pad with filler just to fill the count.
 
 Articles:
 ${list}
