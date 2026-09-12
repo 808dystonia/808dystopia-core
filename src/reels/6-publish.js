@@ -32,5 +32,8 @@ export async function publishReel({ clipPath, caption }) {
   const mediaId = await publishContainer(containerId);
   await postComment(mediaId, caption.hashtags);
 
-  return { published: true, mediaId, note: `Published as IG media ${mediaId}` };
+  // videoUrl is returned alongside mediaId so a downstream cross-post
+  // (Facebook) can reuse the exact same already-uploaded clip instead of
+  // uploading it a second time.
+  return { published: true, mediaId, videoUrl, note: `Published as IG media ${mediaId}` };
 }

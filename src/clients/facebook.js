@@ -33,3 +33,16 @@ export async function createPhotoPost({ imageUrl, message }) {
     body: { url: imageUrl, message, access_token: pageAccessToken },
   });
 }
+
+// Posts a video with a caption from a public video URL -- same
+// fetch-it-yourself shape as photos, but the Graph API's video endpoint
+// takes file_url/description instead of url/message.
+export async function createVideoPost({ videoUrl, message }) {
+  const pageAccessToken = await getPageAccessToken();
+  return runProxy({
+    connectedAccountId: config.facebook.connectedAccountId || undefined,
+    endpoint: `/${config.facebook.pageId}/videos`,
+    method: "POST",
+    body: { file_url: videoUrl, description: message, access_token: pageAccessToken },
+  });
+}

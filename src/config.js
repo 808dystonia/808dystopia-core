@@ -150,6 +150,10 @@ export const config = {
   pinPublish: process.env.PIN_PUBLISH === "1",
   // Same gate, for cross-posting the daily carousel to the Facebook Page.
   facebookCrosspostPublish: process.env.FACEBOOK_CROSSPOST_PUBLISH === "1",
+  // Same gate, for cross-posting the daily Reel to the Facebook Page --
+  // independent of the carousel's gate above so the (new, unvalidated)
+  // video cross-post can be tested on its own before going live.
+  reelFacebookCrosspostPublish: process.env.REEL_FACEBOOK_CROSSPOST_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };
