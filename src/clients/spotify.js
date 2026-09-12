@@ -29,14 +29,16 @@ async function getAccessToken() {
   return cachedToken;
 }
 
-async function spotifyGet(path) {
+async function spotifyGetUrl(url) {
   const token = await getAccessToken();
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   const json = await res.json();
-  if (!res.ok) throw new Error(`spotify ${path} ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+  if (!res.ok) throw new Error(`spotify ${url} ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
   return json;
+}
+
+async function spotifyGet(path) {
+  return spotifyGetUrl(`https://api.spotify.com/v1${path}`);
 }
 
 async function searchAlbum(artist, title) {
@@ -61,4 +63,50 @@ export async function getAlbumInfo(artist, title) {
     tracklist: tracks.length ? tracks : null,
     albumArtUrl: album.images?.[0]?.url || null,
   };
+}
+
+// Spotify's artist search returns several same-named results for lesser-
+// known artists (confirmed live against real underground names) -- an
+// exact case-insensitive name match is the only confident signal
+// available without another identifier to disambiguate with, so a miss
+// here just means "skip this artist this cycle," never a guess at the
+// wrong same-named artist.
+async function searchArtist(name) {
+  const json = await spotifyGet(`/search?q=${encodeURIComponent(name)}&type=artist&limit=10`);
+  const items = json.artists?.items || [];
+  return items.find((a) => a.name.toLowerCase() === name.toLowerCase()) || null;
+}
+
+// Every album/single release for an artist, newest first, each with its
+// cover art URL -- the Pin pipeline's source of candidate cover art.
+// Releases with no art at all (rare, but real) are dropped rather than
+// pinning a blank/placeholder image.
+//
+// This endpoint's max `limit` is 10, not the 50 its own docs describe --
+// confirmed live (values above 10 return a 400 "Invalid limit"), so
+// anything beyond one page needs its `next` cursor followed. Capped at 5
+// pages (50 releases) -- plenty for the "lesser known artists" this
+// pipeline is actually about, and most watchlist artists won't have
+// anywhere near that many releases to begin with.
+export async function getArtistReleases(name) {
+  const artist = await searchArtist(name);
+  if (!artist) return [];
+
+  const items = [];
+  let url = `https://api.spotify.com/v1/artists/${artist.id}/albums?include_groups=album,single&limit=10&market=US`;
+  for (let page = 0; page < 5 && url; page++) {
+    const json = await spotifyGetUrl(url);
+    items.push(...(json.items || []));
+    url = json.next || null;
+  }
+
+  return items
+    .map((a) => ({
+      name: a.name,
+      releaseDate: a.release_date || "",
+      imageUrl: a.images?.[0]?.url || null,
+      spotifyUrl: a.external_urls?.spotify || null,
+    }))
+    .filter((a) => a.imageUrl)
+    .sort((a, b) => b.releaseDate.localeCompare(a.releaseDate));
 }
