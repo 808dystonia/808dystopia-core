@@ -4,3 +4,6 @@ node_modules/
 *.log
 tmp/
 dist/
+# Netlify CLI's local deploy state/cache -- not user code, per Netlify's
+# own guidance.
+site/.netlify/
