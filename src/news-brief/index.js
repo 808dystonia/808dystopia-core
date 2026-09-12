@@ -14,11 +14,22 @@ import "dotenv/config";
 import { getRecentArticles } from "./1-fetch-articles.js";
 import { buildDigest } from "./2-build-digest.js";
 import { postDigest } from "./3-post-digest.js";
+import { syncSite } from "./4-sync-site.js";
+import { currentChicagoHour } from "../util/chicagoHour.js";
+
+// The 12 PM run lands in the site's Midday box, the 6 PM run in Night —
+// a manual/test run outside those two hours still needs a slot, so this
+// just splits the day down the middle between them.
+function inferSlot() {
+  return currentChicagoHour() < 15 ? "midday" : "night";
+}
 
 export async function runNewsBrief() {
   const articles = await getRecentArticles();
   const stories = await buildDigest(articles);
-  return postDigest(stories);
+  const postResult = await postDigest(stories);
+  const siteResult = await syncSite(inferSlot(), stories);
+  return { ...postResult, site: siteResult };
 }
 
 const invokedDirectly = process.argv[1] && process.argv[1].endsWith("index.js");
