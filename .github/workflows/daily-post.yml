@@ -34,7 +34,7 @@ jobs:
         env:
           TZ: America/Chicago
           CAROUSEL_PUBLISH: "1"
-          FACEBOOK_CROSSPOST_PUBLISH: "0" # flip to "1" once this is tested
+          FACEBOOK_CROSSPOST_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
           GOOGLE_SHEETS_TAB: News
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
