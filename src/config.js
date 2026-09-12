@@ -58,7 +58,7 @@ export const config = {
 
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
-    tab: process.env.GOOGLE_SHEETS_TAB || "Sheet1",
+    tab: process.env.GOOGLE_SHEETS_TAB || "News",
     // Reel dedup log lives in a separate tab of the same spreadsheet.
     reelsTab: process.env.GOOGLE_SHEETS_REELS_TAB || "Reels",
     // Pin pipeline's own dedup log, same spreadsheet, its own tab.
