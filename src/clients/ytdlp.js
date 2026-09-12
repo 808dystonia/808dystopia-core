@@ -1,6 +1,10 @@
-// Downloads audio from a YouTube video via yt-dlp (spawned as a child
-// process), authenticated with cookies from a real, logged-in Google
-// account.
+// Downloads audio/video via yt-dlp (spawned as a child process),
+// authenticated with cookies from a real, logged-in Google account. Takes
+// a full URL rather than assuming YouTube specifically -- also used for
+// Twitch clips (clients/twitch.js's secondary-source fallback), which
+// don't need the cookies at all (Twitch's CDN serves clips as plain
+// public MP4s), but passing the YouTube cookies file along anyway is
+// harmless since yt-dlp only applies cookies to the domains they match.
 //
 // Validated live end-to-end (real download, real transcription, real
 // DeepSeek highlight pick) after working through two separate blockers:
@@ -63,7 +67,7 @@ async function runYtDlpWithCookies(outputDir, args) {
 // Downloads the best available audio track for a video, converts it to WAV
 // (what the local Whisper transcription step needs), and returns the path.
 // outputDir must already exist; the caller owns cleaning it up.
-export async function downloadAudio(videoId, outputDir) {
+export async function downloadAudio(url, outputDir) {
   const outputTemplate = path.join(outputDir, "audio");
   await runYtDlpWithCookies(outputDir, [
     "-f",
@@ -76,7 +80,7 @@ export async function downloadAudio(videoId, outputDir) {
     "--no-playlist",
     "-o",
     outputTemplate,
-    `https://www.youtube.com/watch?v=${videoId}`,
+    url,
   ]);
 
   return `${outputTemplate}.wav`;
@@ -90,7 +94,7 @@ export async function downloadAudio(videoId, outputDir) {
 // the cut points so it lands on the actual requested timestamps instead of
 // snapping to the nearest keyframe (our highlight window comes from
 // Whisper timestamps, not keyframe-aligned ones).
-export async function downloadVideoSection(videoId, startSeconds, endSeconds, outputDir) {
+export async function downloadVideoSection(url, startSeconds, endSeconds, outputDir) {
   const outputTemplate = path.join(outputDir, "clip.%(ext)s");
   await runYtDlpWithCookies(outputDir, [
     "-f",
@@ -103,7 +107,7 @@ export async function downloadVideoSection(videoId, startSeconds, endSeconds, ou
     "--no-playlist",
     "-o",
     outputTemplate,
-    `https://www.youtube.com/watch?v=${videoId}`,
+    url,
   ]);
 
   return path.join(outputDir, "clip.mp4");

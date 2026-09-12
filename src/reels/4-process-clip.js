@@ -23,10 +23,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const WATERMARK_PATH = path.join(__dirname, "../templates/assets/logo.png");
 
 export async function processClip(video) {
-  const { videoId, highlight } = video;
+  const { url, highlight } = video;
   const dir = await mkdtemp(path.join(tmpdir(), "reel-clip-"));
 
-  const rawClipPath = await downloadVideoSection(videoId, highlight.startSeconds, highlight.endSeconds, dir);
+  const rawClipPath = await downloadVideoSection(url, highlight.startSeconds, highlight.endSeconds, dir);
   const finalClipPath = path.join(dir, "final.mp4");
   await formatForReel(rawClipPath, WATERMARK_PATH, finalClipPath);
 

@@ -75,6 +75,13 @@ export const config = {
     cookies: decodeCookies(process.env.YOUTUBE_COOKIES),
   },
 
+  // Secondary video source, tried when YouTube yields nothing for an
+  // artist — see clients/twitch.js.
+  twitch: {
+    clientId: process.env.TWITCH_CLIENT_ID || "",
+    clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
+  },
+
   hashtags: [],
 
   // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.

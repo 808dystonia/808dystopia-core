@@ -17,6 +17,7 @@ const CONTENT_TYPE_HASHTAGS = {
   performance: ["#liveperformance"],
   freestyle: ["#freestyle"],
   "studio session": ["#studiosession"],
+  "livestream clip": ["#livestream", "#twitchclip"],
 };
 
 function artistHashtag(artist) {
