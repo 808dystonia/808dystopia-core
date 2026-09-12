@@ -41,11 +41,6 @@ export async function listReelsChannelMessages(limit = 25) {
   return listChannelMessages(config.discord.reelsChannelId, limit);
 }
 
-export async function listTvChannelMessages(limit = 25) {
-  if (!config.discord.tvChannelId) throw new Error("DISCORD_TV_CHANNEL_ID missing");
-  return listChannelMessages(config.discord.tvChannelId, limit);
-}
-
 // #reels' watchlist is posted as backtick-quoted handles under category
 // headers (e.g. "**Producers**", "**Artists A-L**") — parsed generically
 // (any backtick-quoted token, regardless of header) so a new category
@@ -63,8 +58,11 @@ export function parseWatchlist(messages) {
   return [...handles.values()];
 }
 
-// #tv holds Grok's own "808 TV // UNDERGROUND HEAT" board -- external to
-// this repo, refreshed daily, in numbered RAPPERS/PRODUCERS lists like:
+// This same channel (config.discord.reelsChannelId -- FRZA's Discord UI
+// labels it #tv, confirmed live it's the identical channel id, not a
+// second one) also carries Grok's own "808 TV // UNDERGROUND HEAT" board,
+// external to this repo, refreshed daily, in numbered RAPPERS/PRODUCERS
+// lists like:
 //   1. Rico Ace — 9M monthly, opening EsDeeKid Council House Rat tour
 // A line can group several names with "/" (e.g. "diamond* / sk8star /
 // Pz'"), confirmed live -- each becomes its own candidate. Only the name
