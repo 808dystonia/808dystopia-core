@@ -1,36 +1,22 @@
 // Step 1: get the pool of artists/producers the Reel pipeline can
-// feature. #reels turned out to hold a running watchlist (who's
-// currently followed on the 808dystopia IG account), not a manual
-// day-by-day "Artist — content type" queue as originally planned —
-// confirmed live: the channel had a bot-posted handle dump, not
-// requests. So there's nothing to dedup or pick from yet at this step
-// (mirrors the news pipeline's step 1, which is also just a raw fetch) —
-// which artist to feature today (checking the Sheet log so one isn't
-// immediately re-featured) and what content type to look for is decided
-// later, in reels/index.js and step 2, since the watchlist only names
-// who, not what.
-//
-// #tv is a second, fresher pool: Grok's own "808 TV // UNDERGROUND HEAT"
-// board (numbered RAPPERS/PRODUCERS lists, refreshed daily), external to
-// this repo like the Grok morning drop in #underground-news. Merged in
-// case-insensitively alongside #reels' watchlist -- more current-name
-// coverage for findVideo (step 2) to search against, not a replacement
-// for the curated IG-following list. Best-effort: if #tv is ever
-// unreadable (permissions, channel renamed), that's not a whole-pipeline
-// failure -- just falls back to the #reels watchlist alone.
-import { listReelsChannelMessages, listTvChannelMessages, parseWatchlist, parseTvBoard } from "../clients/discord.js";
+// feature. This channel (still named #reels in config -- FRZA's own
+// Discord UI now labels it #tv, same channel id, confirmed live) carries
+// two different message formats from two different bots:
+//   - a running watchlist (who's currently followed on the 808dystopia
+//     IG account), backtick-quoted handles under category headers
+//   - Grok's own "808 TV // UNDERGROUND HEAT" board, numbered
+//     RAPPERS/PRODUCERS lists refreshed daily
+// parseWatchlist and parseTvBoard each pull their own shape out of the
+// same fetched messages -- not two separate channels/fetches, just two
+// parsers over one message list. Merged case-insensitively: more
+// current-name coverage for findVideo (step 2) to search against, not a
+// replacement for the curated IG-following list.
+import { listReelsChannelMessages, parseWatchlist, parseTvBoard } from "../clients/discord.js";
 
 export async function getArtistWatchlist() {
-  const reelsMessages = await listReelsChannelMessages();
-  const watchlist = parseWatchlist(reelsMessages);
-
-  let tvNames = [];
-  try {
-    const tvMessages = await listTvChannelMessages();
-    tvNames = parseTvBoard(tvMessages);
-  } catch (err) {
-    console.log("tv board fetch failed:", err.message);
-  }
+  const messages = await listReelsChannelMessages();
+  const watchlist = parseWatchlist(messages);
+  const tvNames = parseTvBoard(messages);
 
   const merged = new Map(); // lowercase -> as-written casing
   for (const name of watchlist) merged.set(name.toLowerCase(), name);
