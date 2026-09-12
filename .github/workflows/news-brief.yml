@@ -1,0 +1,35 @@
+name: News Brief
+
+# Genuinely free — same reasoning as the other workflows (GitHub Actions
+# has no minutes cap on public repos). No API key needed for the RSS
+# sources themselves either — only DeepSeek (already used elsewhere) and
+# Composio (Discord post).
+on:
+  schedule:
+    # Fires hourly (UTC). src/news-cron.js gates the real run to the
+    # 12 PM and 6 PM Chicago hours, year-round — DST-safe, same approach
+    # as the other pipelines.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # Just RSS fetches + one DeepSeek call + one Discord post.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run news-brief
+        env:
+          TZ: America/Chicago
+          NEWS_BRIEF_PUBLISH: "0" # flip to "1" once this pipeline is tested
+          DEEPSEEK_MODEL: deepseek-chat
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
