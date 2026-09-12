@@ -46,3 +46,22 @@ export async function createPin({ boardId, title, description, imageUrl, link })
     config.pinterest.connectedAccountId || undefined
   );
 }
+
+const ACCOUNT_METRICS = ["IMPRESSION", "SAVE", "ENGAGEMENT", "OUTBOUND_CLICK", "PIN_CLICK"];
+
+// Aggregate account analytics over a date range -- for the EOD brief.
+// Unlike Instagram's insights (which omit a metric entirely when there's
+// no data for a small/new account), Pinterest always returns a real 0 for
+// each requested metric, so there's no "no data available" case to
+// special-case here -- 0 saves/impressions is itself real, meaningful
+// data, confirmed live against the actual (currently low-volume) account.
+// Recent days can carry data_status "PROCESSING" (Pinterest's own
+// analytics lag), which summary_metrics already accounts for.
+export async function getDailyAnalytics(sinceDate, untilDate) {
+  const res = await runTool(
+    "PINTEREST_GET_ACCOUNT_ANALYTICS",
+    { start_date: sinceDate, end_date: untilDate, metric_types: ACCOUNT_METRICS },
+    config.pinterest.connectedAccountId || undefined
+  );
+  return res?.analytics?.all?.summary_metrics || {};
+}
