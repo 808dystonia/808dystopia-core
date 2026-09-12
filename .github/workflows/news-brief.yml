@@ -27,7 +27,7 @@ jobs:
         env:
           TZ: America/Chicago
           NEWS_BRIEF_PUBLISH: "1"
-          SITE_SYNC_PUBLISH: "0" # flip to "1" once the site-sync side of this is tested
+          SITE_SYNC_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}

@@ -25,7 +25,7 @@ jobs:
       - run: npm run morning-sync
         env:
           TZ: America/Chicago
-          SITE_SYNC_PUBLISH: "0" # flip to "1" once this pipeline is tested
+          SITE_SYNC_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
