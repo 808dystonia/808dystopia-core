@@ -56,6 +56,15 @@ export const config = {
     boardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
   },
 
+  facebook: {
+    connectedAccountId: process.env.COMPOSIO_FACEBOOK_ACCOUNT_ID || "",
+    // The "808 Dystopia" Facebook Page -- found directly via a live
+    // FACEBOOK_LIST_MANAGED_PAGES call. Distinct from the connected
+    // account's own user id (that's the person managing the Page, not
+    // the Page itself) -- FACEBOOK_CREATE_PHOTO_POST needs this one.
+    pageId: process.env.FACEBOOK_PAGE_ID || "1326786480516977",
+  },
+
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "News",
@@ -139,6 +148,8 @@ export const config = {
   siteSyncPublish: process.env.SITE_SYNC_PUBLISH === "1",
   // Same gate, for the 9 AM/1 PM/5 PM Pinterest album-art pins.
   pinPublish: process.env.PIN_PUBLISH === "1",
+  // Same gate, for cross-posting the daily carousel to the Facebook Page.
+  facebookCrosspostPublish: process.env.FACEBOOK_CROSSPOST_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

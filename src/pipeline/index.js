@@ -11,6 +11,7 @@ import { renderSlides } from "./5-render-slides.js";
 import { buildCaption } from "./6-build-caption.js";
 import { publishCarousel } from "./7-publish.js";
 import { logAndReport } from "./8-log-and-report.js";
+import { crosspostToFacebook } from "./9-crosspost-facebook.js";
 import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
 
 // Walks candidates newest-first: classify, skip repeats of already-posted
@@ -58,7 +59,15 @@ export async function runDailyFlow() {
     // status is what isAlreadyPosted checks for dedup, so logging a dry
     // run that way would permanently block the real post later.
     const status = result.published ? "posted" : "skipped";
-    return logAndReport({ candidate, classified, status, note: result?.note || "" });
+    const logReport = await logAndReport({ candidate, classified, status, note: result?.note || "" });
+
+    // Only cross-post once the real IG post has actually gone out — a
+    // dry run never uploads slide1Url in the first place.
+    const facebook = result.published
+      ? await crosspostToFacebook({ slide1Url: result.slide1Url, message: caption.caption })
+      : { published: false, note: "Not attempted (carousel didn't publish)." };
+
+    return { ...logReport, facebook };
   } catch (err) {
     console.log("publishCarousel failed:", err.message);
     return logAndReport({ candidate, classified, status: "failed-and-retried", note: err.message });
