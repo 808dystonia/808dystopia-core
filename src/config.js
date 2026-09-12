@@ -26,6 +26,12 @@ export const config = {
   discord: {
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
     reelsChannelId: process.env.DISCORD_REELS_CHANNEL_ID || "",
+    // #admin-general in the 808 Dystopia Discord ("FRZA + STOKELY only.
+    // EOD briefs, ops, connector tests.") -- found directly via a live
+    // Composio call (DISCORDBOT_LIST_GUILD_CHANNELS) rather than asked
+    // for, since its own channel topic confirmed it's exactly the
+    // intended target.
+    adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -82,6 +88,15 @@ export const config = {
     clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
   },
 
+  // GitHub REST API — source of the EOD brief's "accomplishments" section
+  // (merged PRs for the day). In CI, GITHUB_TOKEN is automatically
+  // provided by the workflow itself (no secret to set up); for local
+  // testing, a personal access token with repo read access works too.
+  github: {
+    token: process.env.GITHUB_TOKEN || "",
+    repo: process.env.GITHUB_REPO || "808dystonia/808dystopia-core",
+  },
+
   hashtags: [],
 
   // Gate on live IG publishing. Stays off until this pipeline is actually built and tested.
@@ -89,6 +104,11 @@ export const config = {
   // Same gate, for the Reel pipeline — independent so one pipeline can go
   // live while the other stays in dry-run.
   reelPublish: process.env.REEL_PUBLISH === "1",
+  // Same gate, for the EOD brief -- lower-stakes than the other two (it
+  // posts to a private admin channel, not a public account) but kept
+  // consistent with the project's posture of nothing posting until
+  // tested.
+  eodBriefPublish: process.env.EOD_BRIEF_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

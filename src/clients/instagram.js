@@ -87,6 +87,48 @@ export async function publishContainer(creationId) {
   return result.id;
 }
 
+// Account-level insights for the EOD brief -- validated live (real reach
+// data returned for @808dystopia) via this session's interactive Composio
+// MCP connection, NOT yet confirmed against this project's own runTool
+// path (its stored API key is stale in this sandbox, same limitation as
+// several other clients here) -- so the exact unwrapping below matches
+// the established pattern from e.g. googleSheets.js's readLogRows
+// (runTool's return value is the tool result object directly, e.g.
+// {valueRanges: [...]} or here {data: [...]}, matching Meta's own Graph
+// API shape) rather than the extra diagnostic wrapper the interactive
+// MCP meta-tool added on top for my own benefit. Confirm on first real
+// run. Instagram silently OMITS a metric from the response instead of
+// erroring when there's no data for the period, or (specifically for
+// follower_count/online_followers) when the account is under 100
+// followers -- this returns a plain {metricName: value} map with omitted
+// metrics simply absent, so the caller can tell "no data" from an actual
+// zero rather than guessing/zero-filling.
+const DAILY_METRICS = [
+  "reach",
+  "accounts_engaged",
+  "total_interactions",
+  "likes",
+  "comments",
+  "shares",
+  "saves",
+  "profile_views",
+  "follower_count",
+];
+
+export async function getDailyInsights(sinceDate, untilDate) {
+  const result = await runTool(
+    "INSTAGRAM_GET_USER_INSIGHTS",
+    { ig_user_id: config.instagram.userId, metric: DAILY_METRICS, period: "day", since: sinceDate, until: untilDate },
+    accountId()
+  );
+  const metrics = {};
+  for (const entry of result?.data || []) {
+    const latest = entry.values?.[entry.values.length - 1];
+    metrics[entry.name] = latest?.value ?? null;
+  }
+  return metrics;
+}
+
 // Composio's instagram toolkit only wraps "reply to an existing comment",
 // not "create a top-level comment on a media post" (POST /{media-id}/comments
 // with no comment_id) — the raw proxy call hits that Graph API endpoint
