@@ -27,7 +27,7 @@ jobs:
       - run: npm run trending-tuesday
         env:
           TZ: America/Chicago
-          TRENDING_TUESDAY_PUBLISH: "0" # flip to "1" once this is tested
+          TRENDING_TUESDAY_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
