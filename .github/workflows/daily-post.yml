@@ -35,7 +35,7 @@ jobs:
           TZ: America/Chicago
           CAROUSEL_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
-          GOOGLE_SHEETS_TAB: Sheet1
+          GOOGLE_SHEETS_TAB: News
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
