@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/cron.js",
     "reel": "node src/reel-cron.js",
-    "eod-brief": "node src/eod-cron.js"
+    "eod-brief": "node src/eod-cron.js",
+    "news-brief": "node src/news-cron.js"
   },
   "engines": {
     "node": ">=20"
@@ -16,6 +17,7 @@
     "@huggingface/transformers": "^4.2.0",
     "dotenv": "^16.4.5",
     "puppeteer": "^23.6.0",
+    "rss-parser": "^3.13.0",
     "wavefile": "^11.0.0"
   }
 }

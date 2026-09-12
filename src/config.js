@@ -109,6 +109,8 @@ export const config = {
   // consistent with the project's posture of nothing posting until
   // tested.
   eodBriefPublish: process.env.EOD_BRIEF_PUBLISH === "1",
+  // Same gate, for the 12 PM/6 PM news brief.
+  newsBriefPublish: process.env.NEWS_BRIEF_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };
