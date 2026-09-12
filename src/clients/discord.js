@@ -41,6 +41,11 @@ export async function listReelsChannelMessages(limit = 25) {
   return listChannelMessages(config.discord.reelsChannelId, limit);
 }
 
+export async function listTvChannelMessages(limit = 25) {
+  if (!config.discord.tvChannelId) throw new Error("DISCORD_TV_CHANNEL_ID missing");
+  return listChannelMessages(config.discord.tvChannelId, limit);
+}
+
 // #reels' watchlist is posted as backtick-quoted handles under category
 // headers (e.g. "**Producers**", "**Artists A-L**") — parsed generically
 // (any backtick-quoted token, regardless of header) so a new category
@@ -56,6 +61,30 @@ export function parseWatchlist(messages) {
     }
   }
   return [...handles.values()];
+}
+
+// #tv holds Grok's own "808 TV // UNDERGROUND HEAT" board -- external to
+// this repo, refreshed daily, in numbered RAPPERS/PRODUCERS lists like:
+//   1. Rico Ace — 9M monthly, opening EsDeeKid Council House Rat tour
+// A line can group several names with "/" (e.g. "diamond* / sk8star /
+// Pz'"), confirmed live -- each becomes its own candidate. Only the name
+// before the first " — "/" - " is kept; everything after is Grok's own
+// reasoning text, not part of the name.
+const TV_BOARD_LINE = /^\d+\.\s*(.+?)\s+[—-]\s+.+$/;
+
+export function parseTvBoard(messages) {
+  const names = new Map(); // lowercase -> as-written casing
+  for (const message of messages) {
+    for (const line of (message.content || "").split("\n")) {
+      const match = line.match(TV_BOARD_LINE);
+      if (!match) continue;
+      for (const part of match[1].split("/")) {
+        const trimmed = part.trim();
+        if (trimmed) names.set(trimmed.toLowerCase(), trimmed);
+      }
+    }
+  }
+  return [...names.values()];
 }
 
 // Posts a message (plain content and/or embeds) to a channel. Validated

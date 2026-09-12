@@ -40,6 +40,12 @@ export const config = {
     // for, since its own channel topic confirmed it's exactly the
     // intended target.
     adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
+    // #tv -- Grok's own "808 TV // UNDERGROUND HEAT" board (numbered
+    // RAPPERS/PRODUCERS lists, refreshed daily), a second artist pool for
+    // the Reel pipeline alongside the #reels watchlist. Found by
+    // resolving the webhook FRZA shared (GET the webhook URL returns its
+    // channel_id) rather than asked for.
+    tvChannelId: process.env.DISCORD_TV_CHANNEL_ID || "1547805205620592700",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
