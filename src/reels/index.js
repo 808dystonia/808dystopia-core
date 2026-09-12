@@ -32,6 +32,7 @@ import { processClip } from "./4-process-clip.js";
 import { buildReelCaption } from "./5-build-caption.js";
 import { publishReel } from "./6-publish.js";
 import { logReelOutcome } from "./7-log-and-report.js";
+import { crosspostReelToFacebook } from "./8-crosspost-facebook.js";
 import { readReelLogRows, isVideoAlreadyUsed } from "../clients/googleSheets.js";
 
 function shuffle(items) {
@@ -103,7 +104,15 @@ export async function runDailyReelFlow() {
     // status is what isVideoAlreadyUsed checks for dedup, so logging a
     // dry run that way would permanently block the real post later.
     const status = result.published ? "posted" : "skipped";
-    return logReelOutcome({ video, status, note: result?.note || "" });
+    const logReport = await logReelOutcome({ video, status, note: result?.note || "" });
+
+    // Only cross-post once the real IG post has actually gone out — a
+    // dry run never uploads videoUrl in the first place.
+    const facebook = result.published
+      ? await crosspostReelToFacebook({ videoUrl: result.videoUrl, message: caption.caption })
+      : { published: false, note: "Not attempted (Reel didn't publish)." };
+
+    return { ...logReport, facebook };
   } catch (err) {
     console.log("publishReel failed:", err.message);
     return logReelOutcome({ video, status: "failed-and-retried", note: err.message });
