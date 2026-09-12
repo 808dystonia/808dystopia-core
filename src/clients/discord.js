@@ -1,6 +1,8 @@
-// Discord read, via Composio's Discordbot toolkit. Two channels feed two
-// separate pipelines: #underground-news (the Grok scraper's story digest,
-// news carousel) and #reels (the Reel pipeline's artist watchlist).
+// Discord read/write, via Composio's Discordbot toolkit. Three channels
+// feed three separate pipelines: #underground-news (the Grok scraper's
+// story digest, news carousel), #reels (the Reel pipeline's artist
+// watchlist), and #admin-general (the EOD brief posts here — the only
+// pipeline that writes to Discord rather than just reading from it).
 import { config } from "../config.js";
 import { runTool } from "./composio.js";
 
@@ -54,6 +56,22 @@ export function parseWatchlist(messages) {
     }
   }
   return [...handles.values()];
+}
+
+// Posts a message (plain content and/or embeds) to a channel. Validated
+// live via Composio's DISCORDBOT_CREATE_MESSAGE against the real
+// #admin-general channel.
+export async function postMessage(channelId, { content, embeds } = {}) {
+  return runTool(
+    "DISCORDBOT_CREATE_MESSAGE",
+    { channel_id: channelId, ...(content ? { content } : {}), ...(embeds ? { embeds } : {}) },
+    config.discord.connectedAccountId || undefined
+  );
+}
+
+export async function postToAdminChannel(message) {
+  if (!config.discord.adminChannelId) throw new Error("DISCORD_ADMIN_CHANNEL_ID missing");
+  return postMessage(config.discord.adminChannelId, message);
 }
 
 // Flattens recent digest messages into individual story candidates, ordered

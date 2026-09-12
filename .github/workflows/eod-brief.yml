@@ -1,0 +1,38 @@
+name: EOD Brief
+
+# Genuinely free — same reasoning as the other two workflows (GitHub
+# Actions has no minutes cap on public repos).
+on:
+  schedule:
+    # Fires hourly (UTC). src/eod-cron.js gates the real run to the 9 PM
+    # Chicago hour, year-round — DST-safe, same approach as the other two
+    # pipelines.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # No video/audio work here — just API calls and one Discord post.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run eod-brief
+        env:
+          TZ: America/Chicago
+          EOD_BRIEF_PUBLISH: "0" # flip to "1" once this pipeline is tested
+          DEEPSEEK_MODEL: deepseek-chat
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # Automatically provided by GitHub Actions for this repo — no
+          # secret to set up, unlike every other credential in this
+          # project (see clients/github.js).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

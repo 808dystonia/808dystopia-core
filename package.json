@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "808 Dystopia daily IG news carousel + history Reel pipelines",
+  "description": "808 Dystopia daily IG news carousel + history Reel pipelines + EOD Discord brief",
   "scripts": {
     "start": "node src/cron.js",
-    "reel": "node src/reel-cron.js"
+    "reel": "node src/reel-cron.js",
+    "eod-brief": "node src/eod-cron.js"
   },
   "engines": {
     "node": ">=20"
