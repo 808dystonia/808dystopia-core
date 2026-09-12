@@ -20,6 +20,18 @@ export async function createImageContainer(imageUrl) {
   return result.id;
 }
 
+// A standalone single-image post, not a carousel item -- no
+// is_carousel_item, and the caption goes directly on this container
+// (same reasoning as createReelContainer below, just for a still image).
+export async function createStandaloneImageContainer(imageUrl, caption) {
+  const result = await runTool(
+    "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+    { ig_user_id: config.instagram.userId, image_url: imageUrl, caption },
+    accountId()
+  );
+  return result.id;
+}
+
 // Composio's wrapper requires an explicit media_type override for video —
 // without it, the underlying Graph API call omits video_url entirely and
 // fails asking for image_url instead.
