@@ -6,7 +6,7 @@
 import { config } from "../config.js";
 import { postToAdminChannel } from "../clients/discord.js";
 
-const METRIC_LABELS = {
+const INSTAGRAM_METRIC_LABELS = {
   reach: "Reach",
   accounts_engaged: "Accounts engaged",
   total_interactions: "Total interactions",
@@ -18,13 +18,31 @@ const METRIC_LABELS = {
   follower_count: "New followers",
 };
 
-function formatAnalyticsField(instagram) {
-  const lines = Object.entries(METRIC_LABELS)
+function formatInstagramField(instagram) {
+  const lines = Object.entries(INSTAGRAM_METRIC_LABELS)
     .filter(([key]) => instagram[key] != null)
     .map(([key, label]) => `${label}: ${instagram[key]}`);
   return lines.length
     ? lines.join("\n")
     : "No data available yet (small/new account — some metrics need 100+ followers or actual activity in the window).";
+}
+
+const PINTEREST_METRIC_LABELS = {
+  IMPRESSION: "Impressions",
+  SAVE: "Saves",
+  ENGAGEMENT: "Engagements",
+  PIN_CLICK: "Pin clicks",
+  OUTBOUND_CLICK: "Outbound clicks",
+};
+
+// Pinterest always returns a real 0 for each requested metric (unlike
+// Instagram, which omits a metric entirely when there's no data for a
+// small account) -- so every line always renders, no "no data" fallback
+// needed here.
+function formatPinterestField(pinterest) {
+  return Object.entries(PINTEREST_METRIC_LABELS)
+    .map(([key, label]) => `${label}: ${pinterest[key] ?? 0}`)
+    .join("\n");
 }
 
 function buildEmbed({ accomplishments, analytics, recommendations }) {
@@ -41,7 +59,11 @@ function buildEmbed({ accomplishments, analytics, recommendations }) {
       },
       {
         name: "Instagram (@808dystopia)",
-        value: formatAnalyticsField(analytics.instagram).slice(0, 1024),
+        value: formatInstagramField(analytics.instagram).slice(0, 1024),
+      },
+      {
+        name: "Pinterest (Underground Hiphop album cover art)",
+        value: formatPinterestField(analytics.pinterest).slice(0, 1024),
       },
       {
         name: "Recommendations",
