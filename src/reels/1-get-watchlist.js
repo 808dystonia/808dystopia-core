@@ -9,9 +9,33 @@
 // immediately re-featured) and what content type to look for is decided
 // later, in reels/index.js and step 2, since the watchlist only names
 // who, not what.
-import { listReelsChannelMessages, parseWatchlist } from "../clients/discord.js";
+//
+// #tv is a second, fresher pool: Grok's own "808 TV // UNDERGROUND HEAT"
+// board (numbered RAPPERS/PRODUCERS lists, refreshed daily), external to
+// this repo like the Grok morning drop in #underground-news. Merged in
+// case-insensitively alongside #reels' watchlist -- more current-name
+// coverage for findVideo (step 2) to search against, not a replacement
+// for the curated IG-following list. Best-effort: if #tv is ever
+// unreadable (permissions, channel renamed), that's not a whole-pipeline
+// failure -- just falls back to the #reels watchlist alone.
+import { listReelsChannelMessages, listTvChannelMessages, parseWatchlist, parseTvBoard } from "../clients/discord.js";
 
 export async function getArtistWatchlist() {
-  const messages = await listReelsChannelMessages();
-  return parseWatchlist(messages);
+  const reelsMessages = await listReelsChannelMessages();
+  const watchlist = parseWatchlist(reelsMessages);
+
+  let tvNames = [];
+  try {
+    const tvMessages = await listTvChannelMessages();
+    tvNames = parseTvBoard(tvMessages);
+  } catch (err) {
+    console.log("tv board fetch failed:", err.message);
+  }
+
+  const merged = new Map(); // lowercase -> as-written casing
+  for (const name of watchlist) merged.set(name.toLowerCase(), name);
+  for (const name of tvNames) {
+    if (!merged.has(name.toLowerCase())) merged.set(name.toLowerCase(), name);
+  }
+  return [...merged.values()];
 }
