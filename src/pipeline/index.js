@@ -62,9 +62,12 @@ export async function runDailyFlow() {
     const logReport = await logAndReport({ candidate, classified, status, note: result?.note || "" });
 
     // Only cross-post once the real IG post has actually gone out — a
-    // dry run never uploads slide1Url in the first place.
+    // dry run never uploads slide1Url/slide2Url in the first place.
     const facebook = result.published
-      ? await crosspostToFacebook({ slide1Url: result.slide1Url, message: caption.caption })
+      ? await crosspostToFacebook({
+          imageUrls: [result.slide1Url, result.slide2Url],
+          message: caption.caption,
+        })
       : { published: false, note: "Not attempted (carousel didn't publish)." };
 
     return { ...logReport, facebook };

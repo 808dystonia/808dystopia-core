@@ -22,15 +22,32 @@ async function getPageAccessToken() {
   return page.access_token;
 }
 
-// Posts an image with a caption from a public image URL (Facebook fetches
-// it itself -- no upload needed).
-export async function createPhotoPost({ imageUrl, message }) {
+// Posts multiple images as one swipeable multi-photo Page post (matches
+// the IG carousel's multiple slides, instead of only ever cross-posting
+// the cover). Confirmed live: a single photos-endpoint call only makes a
+// single-image post -- an actual multi-photo post needs each image
+// uploaded unpublished first (published: false, no post created yet),
+// then one /feed call referencing all of them via attached_media.
+export async function createMultiPhotoPost({ imageUrls, message }) {
   const pageAccessToken = await getPageAccessToken();
+
+  const photoIds = [];
+  for (const url of imageUrls) {
+    const res = await runProxy({
+      connectedAccountId: config.facebook.connectedAccountId || undefined,
+      endpoint: `/${config.facebook.pageId}/photos`,
+      method: "POST",
+      body: { url, published: false, access_token: pageAccessToken },
+    });
+    photoIds.push(res.id);
+  }
+
+  const attachedMedia = JSON.stringify(photoIds.map((id) => ({ media_fbid: id })));
   return runProxy({
     connectedAccountId: config.facebook.connectedAccountId || undefined,
-    endpoint: `/${config.facebook.pageId}/photos`,
+    endpoint: `/${config.facebook.pageId}/feed`,
     method: "POST",
-    body: { url: imageUrl, message, access_token: pageAccessToken },
+    body: { message, attached_media: attachedMedia, access_token: pageAccessToken },
   });
 }
 
