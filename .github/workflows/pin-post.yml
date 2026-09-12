@@ -27,7 +27,7 @@ jobs:
       - run: npm run pin-post
         env:
           TZ: America/Chicago
-          PIN_PUBLISH: "0" # flip to "1" once this pipeline is tested
+          PIN_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
