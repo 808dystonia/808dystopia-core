@@ -51,7 +51,7 @@ jobs:
         env:
           TZ: America/Chicago
           REEL_PUBLISH: "1"
-          REEL_FACEBOOK_CROSSPOST_PUBLISH: "0" # flip to "1" once this is tested
+          REEL_FACEBOOK_CROSSPOST_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
           GOOGLE_SHEETS_REELS_TAB: Reels
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
