@@ -40,6 +40,9 @@ export const config = {
     // for, since its own channel topic confirmed it's exactly the
     // intended target.
     adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
+    // #raptoonz -- Grok posts one AI-generated rapper x cartoon-style
+    // mashup image per message here (src/raptoonz/).
+    raptoonzChannelId: process.env.DISCORD_RAPTOONZ_CHANNEL_ID || "",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -54,6 +57,9 @@ export const config = {
     // Dystopia Pinterest account -- found directly via a live
     // PINTEREST_LIST_BOARDS call rather than asked for.
     boardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
+    // "RapToonz" board -- created live via PINTEREST_CREATE_BOARD for the
+    // rapper x cartoon-art-style pipeline (src/raptoonz/).
+    raptoonzBoardId: process.env.PINTEREST_RAPTOONZ_BOARD_ID || "1099230290240923848",
   },
 
   facebook: {
@@ -85,6 +91,8 @@ export const config = {
     reelsTab: process.env.GOOGLE_SHEETS_REELS_TAB || "Reels",
     // Pin pipeline's own dedup log, same spreadsheet, its own tab.
     pinsTab: process.env.GOOGLE_SHEETS_PINS_TAB || "Pins",
+    // RapToonz's own dedup log, same spreadsheet, its own tab.
+    raptoonzTab: process.env.GOOGLE_SHEETS_RAPTOONZ_TAB || "RapToonz",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -173,6 +181,9 @@ export const config = {
   reelTikTokCrosspostPublish: process.env.REEL_TIKTOK_CROSSPOST_PUBLISH === "1",
   // Same gate, for the Tuesday 5 PM CT trending chart post.
   trendingTuesdayPublish: process.env.TRENDING_TUESDAY_PUBLISH === "1",
+  // Same gate, for the 10 AM/2 PM/6 PM RapToonz pin (AI-generated rapper x
+  // cartoon-art-style mashups).
+  raptoonzPublish: process.env.RAPTOONZ_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

@@ -191,3 +191,53 @@ export function isAlbumAlreadyPinned(logRows, { artist, album }) {
   const t = norm(album);
   return logRows.some((row) => row.status === "posted" && norm(row.artist) === a && norm(row.album) === t);
 }
+
+// RapToonz's dedup/outcome log -- a separate tab (config.sheets.raptoonzTab)
+// in the same spreadsheet, its own column schema (row 1 = header):
+//   timestamp | rapper | style | messageId | pinId | status | note
+// Identity is the Discord message id (the generated image Grok posted) --
+// like the Reel pipeline's videoId, a stable non-drifting dedup key,
+// rather than the rapper+style text pair (which can't tell two distinct
+// Grok generations of the same pairing apart, and isn't this pipeline's
+// actual "never repost the same image" rule anyway).
+export async function readRaptoonzLogRows() {
+  if (!config.sheets.id) return [];
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.raptoonzTab}!A:G`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    timestamp: row[0] || "",
+    rapper: row[1] || "",
+    style: row[2] || "",
+    messageId: row[3] || "",
+    pinId: row[4] || "",
+    status: row[5] || "",
+    note: row[6] || "",
+  }));
+}
+
+export async function appendRaptoonzLogRow(row) {
+  if (!config.sheets.id) return null;
+
+  return runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.raptoonzTab}!A:G`,
+      valueInputOption: "USER_ENTERED",
+      values: [
+        [row.timestamp, row.rapper, row.style, row.messageId || "", row.pinId || "", row.status, row.note || ""],
+      ],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+}
+
+export function isRaptoonzMessageAlreadyPosted(logRows, messageId) {
+  if (!messageId) return false;
+  return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
+}
