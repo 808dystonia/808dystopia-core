@@ -11,11 +11,12 @@
 // Sheet, so their dashboard status comes from the latest GitHub Actions
 // run's conclusion instead, fetched separately at refresh time.
 import "dotenv/config";
-import { readLogRows, readReelLogRows, readPinLogRows } from "../src/clients/googleSheets.js";
+import { readLogRows, readReelLogRows, readPinLogRows, readRaptoonzLogRows } from "../src/clients/googleSheets.js";
 
 const CAROUSEL_TARGET = 2;
 const REEL_TARGET = 5;
 const PIN_TARGET = 3;
+const RAPTOONZ_TARGET = 3;
 
 // Sheets reformats the timestamp logAndReport writes ("YYYY-MM-DD HH:MM:SS",
 // CT wall clock) on read-back: space separator, unpadded hour. Pad it so
@@ -69,6 +70,7 @@ function weeklySeries(parsed) {
 const news = summarize(await readLogRows(), parseCarouselTs);
 const reels = summarize(await readReelLogRows(), parseCarouselTs);
 const pins = summarize(await readPinLogRows(), parseUtcTs);
+const raptoonz = summarize(await readRaptoonzLogRows(), parseUtcTs);
 
 const dates = Array.from({ length: 7 }, (_, i) => ctDaysAgo(6 - i));
 
@@ -76,6 +78,7 @@ const merged = [
   ...news.filter((r) => r.status === "posted").map((r) => ({ pipeline: "carousel", platform: "IG + FB", artist: r.artist, title: r.title, status: r.status, atIso: r._t.iso })),
   ...reels.filter((r) => r.status === "posted").map((r) => ({ pipeline: "reel", platform: "IG + FB", artist: r.artist, title: reelTitle(r), status: r.status, atIso: r._t.iso })),
   ...pins.filter((r) => r.status === "posted").map((r) => ({ pipeline: "pin", platform: "Pinterest", artist: r.artist, title: r.album, status: r.status, atIso: r._t.iso })),
+  ...raptoonz.filter((r) => r.status === "posted").map((r) => ({ pipeline: "raptoonz", platform: "Pinterest", artist: r.rapper, title: r.style, status: r.status, atIso: r._t.iso })),
 ]
   .sort((a, b) => Date.parse(b.atIso) - Date.parse(a.atIso))
   .slice(0, 20);
@@ -85,6 +88,7 @@ const payload = {
     carousel: pipelineSummary(news, CAROUSEL_TARGET, "artist", (r) => r.title),
     reel: pipelineSummary(reels, REEL_TARGET, "artist", reelTitle),
     pin: pipelineSummary(pins, PIN_TARGET, "artist", (r) => r.album),
+    raptoonz: pipelineSummary(raptoonz, RAPTOONZ_TARGET, "rapper", (r) => r.style),
   },
   weekly: {
     dates,
