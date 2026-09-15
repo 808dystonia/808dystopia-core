@@ -1,0 +1,35 @@
+name: Deploy Site
+
+# 808dystopia.win isn't linked to this repo through Netlify's own Git
+# integration (that needs an interactive OAuth authorization only a human
+# can grant in Netlify's dashboard) -- this achieves the same "push to
+# main updates the live site" result via the Netlify CLI + API instead,
+# authenticated with the same NETLIFY_AUTH_TOKEN/NETLIFY_SITE_ID secrets
+# the site-sync workflows already use. Confirmed live this was a real gap:
+# site/netlify/functions/tiktok-oauth-callback.mjs sat merged on main for
+# hours returning 404s in production until a manual deploy actually
+# shipped it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+  workflow_dispatch: {} # lets a human trigger a deploy manually, e.g. for testing
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx netlify-cli deploy --prod --dir=.
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
