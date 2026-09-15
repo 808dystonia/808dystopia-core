@@ -1,9 +1,9 @@
 name: RapToonz
 
 # Genuinely free — same reasoning as the other workflows (GitHub Actions
-# has no minutes cap on public repos). Needs its own REPLICATE_API_TOKEN
-# secret (the one paid dependency in this pipeline -- Replicate bills
-# per image generated) on top of the usual Composio/Sheets ones.
+# has no minutes cap on public repos). No paid API needed: Grok generates
+# the images and posts them to #raptoonz; this pipeline just picks up the
+# newest one and pins it.
 on:
   schedule:
     # Fires hourly (UTC). src/raptoonz-cron.js gates the real run to the
@@ -15,8 +15,7 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
-    # A watchlist read, one Replicate image generation (can take up to
-    # ~90s), a Sheets read/append, and one Pinterest pin.
+    # Just a Discord read, a Sheets read/append, and one Pinterest pin.
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -30,9 +29,8 @@ jobs:
           RAPTOONZ_PUBLISH: "0" # off until validated live -- see the other pipelines' own history for why
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
-          DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
+          DISCORD_RAPTOONZ_CHANNEL_ID: ${{ secrets.DISCORD_RAPTOONZ_CHANNEL_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
-          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}

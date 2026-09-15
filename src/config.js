@@ -40,6 +40,9 @@ export const config = {
     // for, since its own channel topic confirmed it's exactly the
     // intended target.
     adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
+    // #raptoonz -- Grok posts one AI-generated rapper x cartoon-style
+    // mashup image per message here (src/raptoonz/).
+    raptoonzChannelId: process.env.DISCORD_RAPTOONZ_CHANNEL_ID || "",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -57,12 +60,6 @@ export const config = {
     // "RapToonz" board -- created live via PINTEREST_CREATE_BOARD for the
     // rapper x cartoon-art-style pipeline (src/raptoonz/).
     raptoonzBoardId: process.env.PINTEREST_RAPTOONZ_BOARD_ID || "1099230290240923848",
-  },
-
-  // AI image generation for RapToonz (src/raptoonz/) -- see
-  // clients/replicate.js for why Replicate over OpenAI's image models.
-  replicate: {
-    apiToken: process.env.REPLICATE_API_TOKEN || "",
   },
 
   facebook: {

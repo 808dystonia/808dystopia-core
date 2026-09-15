@@ -41,6 +41,14 @@ export async function listReelsChannelMessages(limit = 25) {
   return listChannelMessages(config.discord.reelsChannelId, limit);
 }
 
+// #raptoonz: Grok posts one AI-generated rapper x cartoon-style mashup
+// image per message (image attached, caption "RAPTOONZ: {rapper} —
+// {style}") -- see parseRaptoonzPost().
+export async function listRaptoonzChannelMessages(limit = 25) {
+  if (!config.discord.raptoonzChannelId) throw new Error("DISCORD_RAPTOONZ_CHANNEL_ID missing");
+  return listChannelMessages(config.discord.raptoonzChannelId, limit);
+}
+
 // #reels' watchlist is posted as backtick-quoted handles under category
 // headers (e.g. "**Producers**", "**Artists A-L**") — parsed generically
 // (any backtick-quoted token, regardless of header) so a new category
@@ -145,6 +153,35 @@ export function parseTikTokUrls(messages) {
     for (const url of matches) urls.add(url);
   }
   return [...urls];
+}
+
+// #raptoonz: each usable message has an attached image and a caption of
+// the form "RAPTOONZ: {rapper} — {cartoon style}" (em dash or hyphen).
+// The style is freeform -- whatever show Grok names -- not checked
+// against a fixed list, so a new one never needs a code change. Messages
+// missing either the caption format or an attachment are skipped rather
+// than guessed at. Returns candidates newest-first (messages are already
+// sorted that way); dedup against the Sheet log happens by messageId in
+// raptoonz/1-get-candidate.js, same shape as the Reel pipeline's own
+// videoId dedup.
+//
+// NOT yet confirmed live: this assumes Discord's standard message
+// attachment shape (message.attachments[].url) passes through
+// DISCORDBOT_LIST_MESSAGES unchanged, matching how this file's other
+// parsers already found the raw REST shape preserved rather than
+// remapped. Confirm against Grok's first real post.
+const RAPTOONZ_CAPTION = /^RAPTOONZ:\s*(.+?)\s*[—-]\s*(.+)$/i;
+
+export function parseRaptoonzPosts(messages) {
+  const results = [];
+  for (const message of messages) {
+    const match = (message.content || "").trim().match(RAPTOONZ_CAPTION);
+    if (!match) continue;
+    const imageUrl = message.attachments?.[0]?.url;
+    if (!imageUrl) continue;
+    results.push({ messageId: message.id, rapper: match[1].trim(), style: match[2].trim(), imageUrl });
+  }
+  return results;
 }
 
 // Posts a message (plain content and/or embeds) to a channel. Validated
