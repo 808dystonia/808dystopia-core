@@ -32,6 +32,22 @@ function buildHashtags(video) {
   return tags.join(" ");
 }
 
+const PLATFORM_LABELS = { tiktok: "TikTok", twitch: "Twitch" };
+
+// A credit line naming BOTH the featured artist/producer and whoever
+// actually posted the clip (video.channelTitle -- the YouTube channel,
+// Twitch broadcaster, or TikTok uploader step 2/tiktok.js already
+// captured, just never surfaced here before). Deliberately independent
+// of highlight.reason's phrasing -- that's a description of the moment,
+// not reliably a byline, so this is the one line guaranteed to always
+// name who's featured and where the footage came from, regardless of
+// how the reason sentence happens to be worded.
+function creditLine(video) {
+  const platform = PLATFORM_LABELS[video.source] || "YouTube";
+  const source = video.channelTitle || platform;
+  return `🎤 ${video.artist} · 🎥 via ${source} (${platform})`;
+}
+
 export async function buildReelCaption(video) {
   const contextLine = video.highlight?.reason || `${video.artist} — ${video.contentType} highlight.`;
 
@@ -42,7 +58,7 @@ export async function buildReelCaption(video) {
     console.log("genius instagram handle lookup:", err.message);
   }
 
-  const lines = [contextLine];
+  const lines = [contextLine, creditLine(video)];
   if (instagramHandle) lines.push(`@${instagramHandle}`);
   lines.push("Follow for more.");
 
