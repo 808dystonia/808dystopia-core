@@ -26,7 +26,7 @@ jobs:
       - run: npm run raptoonz
         env:
           TZ: America/Chicago
-          RAPTOONZ_PUBLISH: "0" # off until validated live -- see the other pipelines' own history for why
+          RAPTOONZ_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_RAPTOONZ_CHANNEL_ID: ${{ secrets.DISCORD_RAPTOONZ_CHANNEL_ID }}
