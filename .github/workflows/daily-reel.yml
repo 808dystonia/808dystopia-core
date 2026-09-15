@@ -39,7 +39,11 @@ jobs:
       # "unsupported" by yt-dlp's solver; deno (yt-dlp's own top-priority,
       # best-supported runtime) worked immediately once yt-dlp-ejs was
       # installed alongside it.
-      - run: pip install --quiet yt-dlp yt-dlp-ejs
+      # curl_cffi lets yt-dlp impersonate a real browser's TLS fingerprint --
+      # needed for TikTok's extractor (clients/tiktok.js's curated-link
+      # source): validated live as part of getting single-video TikTok
+      # extraction working.
+      - run: pip install --quiet yt-dlp yt-dlp-ejs curl_cffi
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

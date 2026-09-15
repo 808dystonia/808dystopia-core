@@ -46,6 +46,37 @@ function run(cmd, args) {
   });
 }
 
+function runCapture(cmd, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args);
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code === 0) resolve(stdout);
+      else reject(new Error(`${cmd} exited ${code}: ${stderr.slice(-2000)}`));
+    });
+  });
+}
+
+// Metadata only, no download -- no cookies needed (used for TikTok's
+// public video pages, which don't need YouTube's bot-check cookies).
+// Confirmed live: TikTok blocks this same approach against a profile/
+// listing URL (its user-videos endpoint returns empty even with browser
+// impersonation installed) even though the profile page itself loads
+// fine, but a single already-known video URL extracts and downloads
+// cleanly -- see clients/tiktok.js for why sourcing is curated-URL-only.
+export async function getVideoInfo(url) {
+  const stdout = await runCapture("yt-dlp", ["--dump-json", "--no-warnings", "--no-playlist", url]);
+  return JSON.parse(stdout);
+}
+
 // Writes cookies to a temp file for the duration of a single yt-dlp call
 // and always removes it afterward, success or failure -- narrows how long
 // the plaintext cookie file sits on disk, which matters more for step 4's

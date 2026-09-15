@@ -129,6 +129,24 @@ export function parseTvRapperStreams(messages) {
   return results;
 }
 
+// Any TikTok video link pasted anywhere in #tv (no fixed section/format --
+// scans every message) -- a curated pool for the Reel pipeline (see
+// reels/2-find-video.js's own doc comment for why this exists: TikTok
+// blocks automated per-artist search/profile listing, so sourcing here
+// relies on someone -- Grok or a human -- pasting a specific video link
+// instead). Stripped of query params so the same clip re-shared with
+// different tracking params still dedupes to one URL.
+const TIKTOK_VIDEO_URL = /https?:\/\/(?:www\.)?tiktok\.com\/@[\w.-]+\/video\/\d+/gi;
+
+export function parseTikTokUrls(messages) {
+  const urls = new Set();
+  for (const message of messages) {
+    const matches = (message.content || "").match(TIKTOK_VIDEO_URL) || [];
+    for (const url of matches) urls.add(url);
+  }
+  return [...urls];
+}
+
 // Posts a message (plain content and/or embeds) to a channel. Validated
 // live via Composio's DISCORDBOT_CREATE_MESSAGE against the real
 // #admin-general channel.

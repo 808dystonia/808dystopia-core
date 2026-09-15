@@ -25,7 +25,7 @@
 // re-transcribe, re-render the clip) for what's likely a transient
 // publish/network issue isn't worth it inside a time-boxed job.
 import "dotenv/config";
-import { getArtistWatchlist } from "./1-get-watchlist.js";
+import { getWatchlistAndTikTokUrls } from "./1-get-watchlist.js";
 import { findVideo } from "./2-find-video.js";
 import { selectHighlight } from "./3-select-highlight.js";
 import { processClip } from "./4-process-clip.js";
@@ -34,6 +34,7 @@ import { publishReel } from "./6-publish.js";
 import { logReelOutcome } from "./7-log-and-report.js";
 import { crosspostReelToFacebook } from "./8-crosspost-facebook.js";
 import { readReelLogRows, isVideoAlreadyUsed } from "../clients/googleSheets.js";
+import { getTikTokClip } from "../clients/tiktok.js";
 
 function shuffle(items) {
   const result = [...items];
@@ -50,18 +51,49 @@ function shuffle(items) {
 // mid-transcription on some later candidate.
 const TIME_BUDGET_MS = 25 * 60 * 1000;
 
-// Walks watchlist artists in random order: find a video, skip it if
-// already posted before, transcribe + pick a highlight, process the clip,
-// build the caption. A candidate only "wins" once all of that succeeds —
-// mirrors the carousel's selectPublishableArticle, which also silently
-// skips failed candidates rather than logging each attempt (only the
-// final winning selection, or a final "nothing worked" outcome, gets a
-// log row).
+// Shared tail of the pipeline once a candidate video is in hand (curated
+// TikTok link or watchlist-artist search result alike): transcribe, pick
+// a highlight, process the clip, build the caption. Returns null on any
+// failure so the caller can fall through to the next candidate, same as
+// the carousel's selectPublishableArticle.
+async function finishCandidate(video, label) {
+  try {
+    const highlighted = await selectHighlight(video);
+    const processed = await processClip(highlighted);
+    const caption = await buildReelCaption(processed);
+    return { video: processed, caption };
+  } catch (err) {
+    console.log(`pipeline failed for ${label} (${video.videoId}):`, err.message);
+    return null;
+  }
+}
+
+// Curated TikTok links (pasted into #tv) go first: a human or Grok
+// already picked these as worth featuring, a stronger signal than the
+// keyword-search fallback below -- then walks watchlist artists in
+// random order, finding a video per artist. A candidate only "wins" once
+// the whole tail (transcribe/highlight/process/caption) succeeds.
 export async function selectReelCandidate() {
   const startedAt = Date.now();
-  const [watchlist, logRows] = await Promise.all([getArtistWatchlist(), readReelLogRows()]);
-  const candidates = shuffle(watchlist);
+  const [{ artists, tiktokUrls }, logRows] = await Promise.all([getWatchlistAndTikTokUrls(), readReelLogRows()]);
 
+  for (const url of tiktokUrls) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+
+    let video;
+    try {
+      video = await getTikTokClip(url);
+    } catch (err) {
+      console.log(`getTikTokClip(${url}) failed:`, err.message);
+      continue;
+    }
+    if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
+
+    const result = await finishCandidate(video, url);
+    if (result) return result;
+  }
+
+  const candidates = shuffle(artists);
   for (const artist of candidates) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
 
@@ -74,15 +106,8 @@ export async function selectReelCandidate() {
     }
     if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
 
-    try {
-      const highlighted = await selectHighlight(video);
-      const processed = await processClip(highlighted);
-      const caption = await buildReelCaption(processed);
-      return { video: processed, caption };
-    } catch (err) {
-      console.log(`pipeline failed for ${artist} (${video.videoId}):`, err.message);
-      continue;
-    }
+    const result = await finishCandidate(video, artist);
+    if (result) return result;
   }
   return null;
 }
