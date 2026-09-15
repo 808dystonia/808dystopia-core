@@ -24,3 +24,34 @@ export async function writeNewsSlot(slot, stories) {
   await store.setJSON(slot, { stories, postedAt: new Date().toISOString() });
   return { synced: true, note: `Wrote ${stories.length} stories to the "${slot}" slot.` };
 }
+
+// TikTok's OAuth tokens live in their own Netlify Blobs store ("tiktok-auth"),
+// written once by site/netlify/functions/tiktok-oauth-callback.mjs (running
+// inside Netlify's own runtime, auto-provisioned config) when the login flow
+// completes, then read/refreshed from here (a GitHub Actions job, external
+// runtime -- same explicit siteID+token as writeNewsSlot above). Kept out of
+// GitHub secrets entirely since the access token rotates on every refresh
+// and a refreshed refresh_token must be persisted too -- a secret would need
+// a human to update it by hand each time; Blobs lets the pipeline update its
+// own credential.
+export async function readTikTokTokens() {
+  if (!config.netlify.token) throw new Error("NETLIFY_AUTH_TOKEN missing");
+
+  const store = getStore({
+    name: "tiktok-auth",
+    siteID: config.netlify.siteId,
+    token: config.netlify.token,
+  });
+  return store.get("tokens", { type: "json" });
+}
+
+export async function writeTikTokTokens(tokens) {
+  if (!config.netlify.token) throw new Error("NETLIFY_AUTH_TOKEN missing");
+
+  const store = getStore({
+    name: "tiktok-auth",
+    siteID: config.netlify.siteId,
+    token: config.netlify.token,
+  });
+  await store.setJSON("tokens", tokens);
+}

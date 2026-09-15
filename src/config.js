@@ -65,6 +65,19 @@ export const config = {
     pageId: process.env.FACEBOOK_PAGE_ID || "1326786480516977",
   },
 
+  // Custom (non-Composio) TikTok integration -- Composio's own custom-auth
+  // token exchange for TikTok failed live (its server-side call to
+  // TikTok's token endpoint never came back with an access_token; TikTok's
+  // OAuth quirk of naming the field "client_key" rather than the standard
+  // "client_id" is the likely cause, but that's on Composio's side to fix,
+  // not something an auth_config parameter could work around). See
+  // clients/tiktokAuth.js/tiktokPost.js and
+  // site/netlify/functions/tiktok-oauth-callback.mjs for the rest of this.
+  tiktok: {
+    clientKey: process.env.TIKTOK_CLIENT_KEY || "",
+    clientSecret: process.env.TIKTOK_CLIENT_SECRET || "",
+  },
+
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "News",
@@ -154,6 +167,10 @@ export const config = {
   // independent of the carousel's gate above so the (new, unvalidated)
   // video cross-post can be tested on its own before going live.
   reelFacebookCrosspostPublish: process.env.REEL_FACEBOOK_CROSSPOST_PUBLISH === "1",
+  // Same gate, for cross-posting the daily Reel to TikTok -- independent
+  // for the same reason as the Facebook one above, and additionally
+  // blocked until the TikTok connection itself exists (see tiktokAuth.js).
+  reelTikTokCrosspostPublish: process.env.REEL_TIKTOK_CROSSPOST_PUBLISH === "1",
   // Same gate, for the Tuesday 5 PM CT trending chart post.
   trendingTuesdayPublish: process.env.TRENDING_TUESDAY_PUBLISH === "1",
 
