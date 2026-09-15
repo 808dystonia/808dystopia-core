@@ -41,6 +41,21 @@ export async function appendLogRow(row) {
   );
 }
 
+// Sheets reformats the ISO-ish timestamp logAndReport writes into its own
+// display format on read-back (USER_ENTERED recognizes it as a date/time) —
+// space separator, no zero-padding on the hour ("2026-09-13 8:14:22") — so
+// plain Date.parse rejects it. Pad the hour and treat as UTC; a same-day/
+// same-artist window only needs day-level precision, not exact offset.
+function parseTimestampMs(ts) {
+  if (!ts) return NaN;
+  const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})/);
+  if (!m) return NaN;
+  const [, y, mo, d, h, mi, s] = m;
+  return Date.parse(`${y}-${mo}-${d}T${h.padStart(2, "0")}:${mi}:${s}Z`);
+}
+
+const SENSITIVE_SAME_ARTIST_WINDOW_MS = 72 * 60 * 60 * 1000;
+
 // Case-insensitive artist+title match against previously-posted rows, OR an
 // exact match on the raw source text. Confirmed live: relying on artist+title
 // alone let the same karrahbooo story post twice in one day (9 AM and 12 PM)
@@ -51,7 +66,19 @@ export async function appendLogRow(row) {
 // that; artist+title still carries the original cross-day case, where a
 // story that's genuinely reworded in a later digest has different raw text
 // but should still classify to a recognizably similar artist+title.
-export function isAlreadyPosted(logRows, { artist, title, sourceText }) {
+//
+// `sensitive: true` adds a third, stricter check for claims of death/
+// violence/arrest/hospitalization: ANY posted row for the same artist within
+// the last 72h is treated as a duplicate, regardless of title/sourceText
+// match. Confirmed live: a "Bloodhound Q50 allegedly shot" post was
+// followed under an hour later by a differently-worded "reportedly shot and
+// killed" story from a separately-phrased digest bullet — different title,
+// different sourceText, so neither existing check caught it, and an
+// unconfirmed escalation went out on the real account with no human
+// review. This is deliberately artist-only (no title/sourceText match
+// required) since the whole failure mode is two DIFFERENT tellings of what
+// may be the same event.
+export function isAlreadyPosted(logRows, { artist, title, sourceText, sensitive }) {
   const norm = (s) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
   const a = norm(artist);
   const t = norm(title);
@@ -59,7 +86,12 @@ export function isAlreadyPosted(logRows, { artist, title, sourceText }) {
   return logRows.some((row) => {
     if (row.status !== "posted") return false;
     if (src && norm(row.sourceText) === src) return true;
-    return (a || t) && norm(row.artist) === a && norm(row.title) === t;
+    if ((a || t) && norm(row.artist) === a && norm(row.title) === t) return true;
+    if (sensitive && a && norm(row.artist) === a) {
+      const rowMs = parseTimestampMs(row.timestamp);
+      if (!isNaN(rowMs) && Date.now() - rowMs < SENSITIVE_SAME_ARTIST_WINDOW_MS) return true;
+    }
+    return false;
   });
 }
 

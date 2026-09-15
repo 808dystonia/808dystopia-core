@@ -13,6 +13,7 @@ import { publishCarousel } from "./7-publish.js";
 import { logAndReport } from "./8-log-and-report.js";
 import { crosspostToFacebook } from "./9-crosspost-facebook.js";
 import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
+import { isSensitiveClaim } from "../util/sensitiveContent.js";
 
 // Walks candidates newest-first: classify, skip repeats of already-posted
 // stories (artist+title match against the Sheet log), skip anything with no
@@ -23,7 +24,15 @@ export async function selectPublishableArticle() {
 
   for (const candidate of candidates) {
     const classified = await classifyArticle(candidate);
-    if (isAlreadyPosted(logRows, { artist: classified.artist, title: classified.title, sourceText: candidate.text }))
+    const sensitive = isSensitiveClaim(candidate.text) || isSensitiveClaim(classified.context);
+    if (
+      isAlreadyPosted(logRows, {
+        artist: classified.artist,
+        title: classified.title,
+        sourceText: candidate.text,
+        sensitive,
+      })
+    )
       continue;
 
     const photo = await getPhoto(classified.artist);
