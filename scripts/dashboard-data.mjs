@@ -14,7 +14,7 @@ import "dotenv/config";
 import { readLogRows, readReelLogRows, readPinLogRows } from "../src/clients/googleSheets.js";
 
 const CAROUSEL_TARGET = 2;
-const REEL_TARGET = 2;
+const REEL_TARGET = 5;
 const PIN_TARGET = 3;
 
 // Sheets reformats the timestamp logAndReport writes ("YYYY-MM-DD HH:MM:SS",
