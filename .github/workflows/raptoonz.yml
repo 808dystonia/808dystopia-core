@@ -1,0 +1,38 @@
+name: RapToonz
+
+# Genuinely free — same reasoning as the other workflows (GitHub Actions
+# has no minutes cap on public repos). Needs its own REPLICATE_API_TOKEN
+# secret (the one paid dependency in this pipeline -- Replicate bills
+# per image generated) on top of the usual Composio/Sheets ones.
+on:
+  schedule:
+    # Fires hourly (UTC). src/raptoonz-cron.js gates the real run to the
+    # 10 AM/2 PM/6 PM Chicago hours, year-round — DST-safe, same approach
+    # as the other pipelines.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    # A watchlist read, one Replicate image generation (can take up to
+    # ~90s), a Sheets read/append, and one Pinterest pin.
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run raptoonz
+        env:
+          TZ: America/Chicago
+          RAPTOONZ_PUBLISH: "0" # off until validated live -- see the other pipelines' own history for why
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          DISCORD_REELS_CHANNEL_ID: ${{ secrets.DISCORD_REELS_CHANNEL_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
+          COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+          COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}

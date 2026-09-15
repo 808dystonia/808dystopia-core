@@ -191,3 +191,50 @@ export function isAlbumAlreadyPinned(logRows, { artist, album }) {
   const t = norm(album);
   return logRows.some((row) => row.status === "posted" && norm(row.artist) === a && norm(row.album) === t);
 }
+
+// RapToonz's dedup/outcome log -- a separate tab (config.sheets.raptoonzTab)
+// in the same spreadsheet, its own column schema (row 1 = header):
+//   timestamp | rapper | style | pinId | status | note
+// A mashup's identity is the rapper+cartoon-style pair (there's no third-
+// party release ID the way an album has one), same dedup shape as the
+// Pin pipeline's own artist+album pair above.
+export async function readRaptoonzLogRows() {
+  if (!config.sheets.id) return [];
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.raptoonzTab}!A:F`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    timestamp: row[0] || "",
+    rapper: row[1] || "",
+    style: row[2] || "",
+    pinId: row[3] || "",
+    status: row[4] || "",
+    note: row[5] || "",
+  }));
+}
+
+export async function appendRaptoonzLogRow(row) {
+  if (!config.sheets.id) return null;
+
+  return runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.raptoonzTab}!A:F`,
+      valueInputOption: "USER_ENTERED",
+      values: [[row.timestamp, row.rapper, row.style, row.pinId || "", row.status, row.note || ""]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+}
+
+export function isRaptoonzAlreadyPosted(logRows, { rapper, style }) {
+  const norm = (s) => (s || "").trim().toLowerCase();
+  const r = norm(rapper);
+  const s = norm(style);
+  return logRows.some((row) => row.status === "posted" && norm(row.rapper) === r && norm(row.style) === s);
+}
