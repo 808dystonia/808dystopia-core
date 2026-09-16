@@ -241,3 +241,47 @@ export function isRaptoonzMessageAlreadyPosted(logRows, messageId) {
   if (!messageId) return false;
   return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
 }
+
+// BoxArt's dedup/outcome log -- a separate tab (config.sheets.boxartTab) in
+// the same spreadsheet, its own column schema (row 1 = header):
+//   timestamp | artist | messageId | pinId | status | note
+// Identity is the Discord message id (the curated photo drop), same
+// reasoning as RapToonz's own messageId dedup.
+export async function readBoxArtLogRows() {
+  if (!config.sheets.id) return [];
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.boxartTab}!A:F`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    timestamp: row[0] || "",
+    artist: row[1] || "",
+    messageId: row[2] || "",
+    pinId: row[3] || "",
+    status: row[4] || "",
+    note: row[5] || "",
+  }));
+}
+
+export async function appendBoxArtLogRow(row) {
+  if (!config.sheets.id) return null;
+
+  return runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.boxartTab}!A:F`,
+      valueInputOption: "USER_ENTERED",
+      values: [[row.timestamp, row.artist, row.messageId || "", row.pinId || "", row.status, row.note || ""]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+}
+
+export function isBoxArtMessageAlreadyPosted(logRows, messageId) {
+  if (!messageId) return false;
+  return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
+}

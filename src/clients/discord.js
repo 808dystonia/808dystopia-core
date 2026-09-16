@@ -49,6 +49,13 @@ export async function listRaptoonzChannelMessages(limit = 25) {
   return listChannelMessages(config.discord.raptoonzChannelId, limit);
 }
 
+// #boxart: a curated photo of a female rapper/artist per message (image
+// attached, caption "BOXART: {Artist Name}") -- see parseBoxArtPosts().
+export async function listBoxArtChannelMessages(limit = 25) {
+  if (!config.discord.boxartChannelId) throw new Error("DISCORD_BOXART_CHANNEL_ID missing");
+  return listChannelMessages(config.discord.boxartChannelId, limit);
+}
+
 // #reels' watchlist is posted as backtick-quoted handles under category
 // headers (e.g. "**Producers**", "**Artists A-L**") — parsed generically
 // (any backtick-quoted token, regardless of header) so a new category
@@ -180,6 +187,25 @@ export function parseRaptoonzPosts(messages) {
     const imageUrl = message.attachments?.[0]?.url;
     if (!imageUrl) continue;
     results.push({ messageId: message.id, rapper: match[1].trim(), style: match[2].trim(), imageUrl });
+  }
+  return results;
+}
+
+// #boxart: each usable message has an attached photo and a caption of the
+// form "BOXART: {Artist Name}" -- one variable (no second dimension like
+// RapToonz's art style), so a simpler match. Dedup against the Sheet log
+// happens by messageId in boxart/1-get-candidate.js, same shape as
+// RapToonz's own messageId dedup.
+const BOXART_CAPTION = /^BOXART:\s*(.+)$/i;
+
+export function parseBoxArtPosts(messages) {
+  const results = [];
+  for (const message of messages) {
+    const match = (message.content || "").trim().match(BOXART_CAPTION);
+    if (!match) continue;
+    const imageUrl = message.attachments?.[0]?.url;
+    if (!imageUrl) continue;
+    results.push({ messageId: message.id, artist: match[1].trim(), imageUrl });
   }
   return results;
 }
