@@ -1,8 +1,6 @@
-// Step 2: composite the candidate's photo into the PS1/PS2-style
-// game-case template (src/templates/boxart.html) via Puppeteer, same
-// HTML-to-PNG approach the news carousel's renderer uses (see
-// pipeline/5-render-slides.js) -- just one flat cover image here instead
-// of a multi-slide carousel.
+// Step 2: composite the candidate's photo into the PS1 jewel-case template
+// (src/templates/boxart.html) via Puppeteer, same HTML-to-PNG approach the
+// news carousel's renderer uses (see pipeline/5-render-slides.js).
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -10,33 +8,41 @@ import { fileURLToPath } from "node:url";
 import puppeteer from "puppeteer";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TEMPLATE_PATH = path.join(__dirname, "..", "templates", "boxart.html");
-const CANVAS = { width: 1000, height: 1400 };
+const TEMPLATES_DIR = path.join(__dirname, "..", "templates");
+const TEMPLATE_PATH = path.join(TEMPLATES_DIR, "boxart.html");
+// Matches the reference cover the frame asset was cut from.
+const CANVAS = { width: 1200, height: 1200 };
 
-// Longer artist names shrink instead of overflowing the cover's ~774px-wide
-// title box (870px cover minus 24px padding each side), same idea as the
-// carousel's own TITLE_FONT_TIERS -- tuned against the "PINKPANTHERESS"
-// (14 chars) test render, which nearly filled the box at 88px.
-const TITLE_FONT_TIERS = [
-  { maxLength: 8, size: 116 },
-  { maxLength: 12, size: 96 },
-  { maxLength: 16, size: 78 },
-  { maxLength: 20, size: 62 },
-  { maxLength: Infinity, size: 48 },
-];
+// Type size is fixed rather than stretched to fill, so every cover in the
+// board's grid carries the same logotype weight — the reference's own
+// "GLARE" only filled ~615px of the available width. Long names step down
+// from there until they fit the space the frame leaves between the sidebar
+// and the Sony lockup. Measured in the page after layout rather than
+// tiered against guessed font metrics, so it holds for any name.
+// 748px is the gap between the sidebar and the Sony lockup; the trailing
+// "TM" sits outside the measured text, so it's budgeted out of that.
+const TITLE_MAX_WIDTH = 690;
+const TITLE_START_SIZE = 118;
+const TITLE_MIN_SIZE = 30;
 
-function pickTitleFontSize(name) {
-  const tier = TITLE_FONT_TIERS.find((t) => name.length <= t.maxLength);
-  return (tier || TITLE_FONT_TIERS[TITLE_FONT_TIERS.length - 1]).size;
-}
-
-// Fake catalog number, cosmetic only (matches the reference template's
-// "SLUS-00888" corner detail) -- derived from the artist name so the same
-// artist always gets the same number rather than a random one each run.
-function catalogNumberFor(artist) {
-  let hash = 0;
-  for (const ch of artist) hash = (hash * 31 + ch.charCodeAt(0)) % 100000;
-  return String(hash).padStart(5, "0");
+async function fitTitle(page) {
+  return page.evaluate(
+    (maxWidth, startSize, minSize) => {
+      const stack = document.getElementById("title-stack");
+      const spans = stack.querySelectorAll("span:not(.tm)");
+      for (let size = startSize; size >= minSize; size -= 2) {
+        spans.forEach((el) => {
+          el.style.fontSize = `${size}px`;
+        });
+        // The face layer is the only in-flow one, so it drives the width.
+        if (stack.querySelector(".face").getBoundingClientRect().width <= maxWidth) return size;
+      }
+      return minSize;
+    },
+    TITLE_MAX_WIDTH,
+    TITLE_START_SIZE,
+    TITLE_MIN_SIZE
+  );
 }
 
 async function downloadToFile(url, destPath) {
@@ -53,12 +59,12 @@ export async function renderCover({ artist, imageUrl }) {
 
   const html = fs
     .readFileSync(TEMPLATE_PATH, "utf8")
-    .replace("{{PHOTO_URL}}", photoLocalUrl)
-    .replace("{{ARTIST_NAME}}", artist.toUpperCase())
-    .replace("{{TITLE_FONT_SIZE}}", String(pickTitleFontSize(artist)))
-    .replace("{{CATALOG_NUMBER}}", catalogNumberFor(artist));
+    .replaceAll("{{PHOTO_URL}}", photoLocalUrl)
+    .replaceAll("{{ARTIST_NAME}}", artist.toUpperCase());
 
-  const tmpHtmlPath = path.join(path.dirname(TEMPLATE_PATH), `_render-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
+  // Written into the templates dir so the template's relative asset paths
+  // ("assets/boxart-frame.png") resolve, same as the carousel's renderer.
+  const tmpHtmlPath = path.join(TEMPLATES_DIR, `_render-${Date.now()}-${Math.random().toString(36).slice(2)}.html`);
   fs.writeFileSync(tmpHtmlPath, html);
 
   const outPath = path.join(outDir, "cover.png");
@@ -67,6 +73,8 @@ export async function renderCover({ artist, imageUrl }) {
     const page = await browser.newPage();
     await page.setViewport(CANVAS);
     await page.goto(`file://${tmpHtmlPath}`, { waitUntil: "networkidle0" });
+    await page.evaluate(() => document.fonts.ready);
+    await fitTitle(page);
     await page.screenshot({ path: outPath });
   } finally {
     await browser.close();
