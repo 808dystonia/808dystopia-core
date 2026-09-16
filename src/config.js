@@ -49,10 +49,6 @@ export const config = {
     // DISCORDBOT_LIST_GUILD_CHANNELS call; a channel id isn't a secret, so
     // it's defaulted here rather than needing its own Actions secret.
     boxartChannelId: process.env.DISCORD_BOXART_CHANNEL_ID || "1549573920800116826",
-    // Budget alert channel -- lives in a separate personal Discord server
-    // (not the 808 Dystopia one), so unlike every other channel id above
-    // this has no default and must be set once the channel exists.
-    budgetChannelId: process.env.DISCORD_BUDGET_CHANNEL_ID || "",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -108,12 +104,6 @@ export const config = {
     raptoonzTab: process.env.GOOGLE_SHEETS_RAPTOONZ_TAB || "RapToonz",
     // BoxArt's own dedup log, same spreadsheet, its own tab.
     boxartTab: process.env.GOOGLE_SHEETS_BOXART_TAB || "BoxArt",
-    // Budget pipeline's transaction log, same spreadsheet, its own tab --
-    // appended to by an external Grok automation, not this repo.
-    financeTab: process.env.GOOGLE_SHEETS_FINANCE_TAB || "Finances",
-    // Budget pipeline's monthly limits table, same spreadsheet, its own
-    // tab -- hand-edited by the user in Sheets whenever a limit changes.
-    budgetTab: process.env.GOOGLE_SHEETS_BUDGET_TAB || "Budget",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -208,9 +198,6 @@ export const config = {
   // Same gate, for the 11 AM/3 PM/7 PM BoxArt pin (PS1/PS2-style game-case
   // covers of female rappers/artists).
   boxartPublish: process.env.BOXART_PUBLISH === "1",
-  // Same gate, for the daily budget alert. Off until DISCORD_BUDGET_CHANNEL_ID
-  // exists and the Finances/Budget tabs have real data to check against.
-  budgetPublish: process.env.BUDGET_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

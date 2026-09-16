@@ -8,7 +8,6 @@
     "start": "node src/cron.js",
     "reel": "node src/reel-cron.js",
     "eod-brief": "node src/eod-cron.js",
-    "budget": "node src/budget-cron.js",
     "news-brief": "node src/news-cron.js",
     "morning-sync": "node src/morning-sync-cron.js",
     "pin-post": "node src/pin-cron.js",
