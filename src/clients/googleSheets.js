@@ -278,7 +278,13 @@ async function ensureBoxArtTab() {
     { spreadsheet_id: config.sheets.id },
     config.sheets.connectedAccountId || undefined
   );
-  const sheetId = added?.replies?.[0]?.addSheet?.properties?.sheetId;
+  // Confirmed failing live with the `.properties.sheetId` path this
+  // originally used ("could not find new sheetId in ADD_SHEET response") --
+  // Composio's own tool docs put it directly at `.sheetId`, not nested
+  // under `.properties`. Checking both rather than committing to a second
+  // guess.
+  const addSheet = added?.replies?.[0]?.addSheet;
+  const sheetId = addSheet?.sheetId ?? addSheet?.properties?.sheetId;
   if (sheetId === undefined) throw new Error("BoxArt tab setup: could not find new sheetId in ADD_SHEET response");
 
   await runTool(
