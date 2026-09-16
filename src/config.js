@@ -43,10 +43,12 @@ export const config = {
     // #raptoonz -- Grok posts one AI-generated rapper x cartoon-style
     // mashup image per message here (src/raptoonz/).
     raptoonzChannelId: process.env.DISCORD_RAPTOONZ_CHANNEL_ID || "",
-    // #boxart -- a curated photo of a female rapper/artist per message
-    // (caption "BOXART: {Artist Name}"), composited into a PS1/PS2-style
-    // game-case cover (src/boxart/).
-    boxartChannelId: process.env.DISCORD_BOXART_CHANNEL_ID || "",
+    // #ps2 -- a curated photo of a female rapper/artist per message
+    // (caption "**{ARTIST}** {vibe} — {look}"), composited into a PS1-style
+    // game-case cover (src/boxart/). Found via a live
+    // DISCORDBOT_LIST_GUILD_CHANNELS call; a channel id isn't a secret, so
+    // it's defaulted here rather than needing its own Actions secret.
+    boxartChannelId: process.env.DISCORD_BOXART_CHANNEL_ID || "1549573920800116826",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 

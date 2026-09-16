@@ -49,8 +49,9 @@ export async function listRaptoonzChannelMessages(limit = 25) {
   return listChannelMessages(config.discord.raptoonzChannelId, limit);
 }
 
-// #boxart: a curated photo of a female rapper/artist per message (image
-// attached, caption "BOXART: {Artist Name}") -- see parseBoxArtPosts().
+// #ps2: a curated photo of a female rapper/artist per message (image
+// attached, caption "**{ARTIST}** {vibe} — {look}") -- see
+// parseBoxArtPosts().
 export async function listBoxArtChannelMessages(limit = 25) {
   if (!config.discord.boxartChannelId) throw new Error("DISCORD_BOXART_CHANNEL_ID missing");
   return listChannelMessages(config.discord.boxartChannelId, limit);
@@ -191,12 +192,21 @@ export function parseRaptoonzPosts(messages) {
   return results;
 }
 
-// #boxart: each usable message has an attached photo and a caption of the
-// form "BOXART: {Artist Name}" -- one variable (no second dimension like
-// RapToonz's art style), so a simpler match. Dedup against the Sheet log
-// happens by messageId in boxart/1-get-candidate.js, same shape as
-// RapToonz's own messageId dedup.
-const BOXART_CAPTION = /^BOXART:\s*(.+)$/i;
+// #ps2: confirmed live against the real channel -- each usable message is
+// one photo with a caption whose leading **bold** span is the artist name,
+// followed by the vibe and a short description of the look:
+//   **COI LERAY** Y2K — white crop + pink LV bag
+//   **CARDI B** SEXY — red jewels + feathers + tongue
+// Only the name is used; the rest is the curator's own note about the
+// photo, not part of the cover.
+//
+// Each batch is also announced with a header message carrying the same
+// bold-first-span shape but no attachment ("**PS2 BATCH 2026-09-15
+// FRESH** — 6 artists, Y2K/sexy only, pool lock"), so requiring an
+// attachment is what keeps the header out rather than a special case for
+// it. Dedup against the Sheet log happens by messageId in
+// boxart/1-get-candidate.js, same shape as RapToonz's own messageId dedup.
+const BOXART_CAPTION = /^\*\*(.+?)\*\*/;
 
 export function parseBoxArtPosts(messages) {
   const results = [];
@@ -205,7 +215,9 @@ export function parseBoxArtPosts(messages) {
     if (!match) continue;
     const imageUrl = message.attachments?.[0]?.url;
     if (!imageUrl) continue;
-    results.push({ messageId: message.id, artist: match[1].trim(), imageUrl });
+    const artist = match[1].trim();
+    if (!artist) continue;
+    results.push({ messageId: message.id, artist, imageUrl });
   }
   return results;
 }
