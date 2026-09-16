@@ -19,6 +19,35 @@ function git(args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Confirmed live: the carousel (9 AM/12 PM) and Reel (10 AM/12 PM/2 PM/4
+// PM/7 PM) pipelines share the noon hour, and each commits straight to
+// main from its own checkout with no coordination between them -- a
+// second pipeline's push (or, as happened live, a PR merge) landing on
+// main between this one's checkout and its own push is a real, recurring
+// race, not a one-off. `git push` rejects with a plain "fetch first" in
+// that case; every filename here already carries a timestamp/runId, so
+// the added file can never conflict with what moved main underneath it --
+// a fetch + rebase always applies cleanly, making a bare retry safe.
+const PUSH_RETRIES = 5;
+
+async function pushWithRetry() {
+  for (let attempt = 1; attempt <= PUSH_RETRIES; attempt++) {
+    try {
+      git(["push", "origin", "HEAD:main"]);
+      return;
+    } catch (err) {
+      if (attempt === PUSH_RETRIES) throw err;
+      git(["fetch", "origin", "main"]);
+      git(["rebase", "origin/main"]);
+      await sleep(1000 * attempt);
+    }
+  }
+}
+
 async function commitMediaToRepo(localPath, filename, commitLabel) {
   const relPath = path.posix.join(MEDIA_DIR, filename);
   const destPath = path.join(process.cwd(), MEDIA_DIR, filename);
@@ -30,7 +59,7 @@ async function commitMediaToRepo(localPath, filename, commitLabel) {
   git(["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"]);
   git(["add", relPath]);
   git(["commit", "-m", `${commitLabel}: ${filename}`]);
-  git(["push", "origin", "HEAD:main"]);
+  await pushWithRetry();
 
   const sha = git(["rev-parse", "HEAD"]);
   return `https://raw.githubusercontent.com/${REPO}/${sha}/${relPath}`;
