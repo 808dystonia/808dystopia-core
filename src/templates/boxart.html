@@ -208,6 +208,49 @@
     color: #e9eef6;
     transform: skewX(12deg);
   }
+
+  /* The case's own glossy plastic finish, over the whole cover (frame,
+     photo and title alike) -- distinct from .gloss-streak/.gloss-top
+     above, which are just the photo's own wet-highlight look and stay
+     inside the window. A real jewel case photo reads as one glossy object
+     photographed under a light, not a matte case with a shiny picture
+     glued to it, so this pass sits above everything, screen-blended so it
+     brightens rather than flattens what's under it. */
+  .case-gloss {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background:
+      linear-gradient(128deg,
+        rgba(255,255,255,0) 8%,
+        rgba(255,255,255,0.05) 16%,
+        rgba(220,240,255,0.16) 22%,
+        rgba(255,255,255,0.26) 26%,
+        rgba(220,240,255,0.10) 30%,
+        rgba(255,255,255,0) 40%),
+      linear-gradient(128deg,
+        rgba(255,255,255,0) 55%,
+        rgba(210,235,255,0.05) 64%,
+        rgba(255,255,255,0.10) 68%,
+        rgba(210,235,255,0.04) 72%,
+        rgba(255,255,255,0) 80%);
+  }
+  /* A crisper glint along the top-left edge, like a case corner catching
+     direct light -- real product shots almost always have this even when
+     the broad sheen above is subtle. */
+  .case-edge-glint {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background: radial-gradient(ellipse 620px 340px at -4% -6%,
+      rgba(255,255,255,0.55) 0%,
+      rgba(255,255,255,0.18) 34%,
+      rgba(255,255,255,0) 68%);
+  }
 </style>
 </head>
 <body>
@@ -232,6 +275,9 @@
         <span class="tm">TM</span>
       </div>
     </div>
+
+    <div class="case-edge-glint"></div>
+    <div class="case-gloss"></div>
   </div>
 </body>
 </html>
