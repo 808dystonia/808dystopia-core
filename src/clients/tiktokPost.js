@@ -13,11 +13,18 @@ const INIT_URL = "https://open.tiktokapis.com/v2/post/publish/video/init/";
 const STATUS_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/";
 
 // TikTok's own chunking rules (content-posting-api-media-transfer-guide):
-// under 5 MB must go as a single chunk; otherwise each chunk is 5-64 MB
-// except the last, which absorbs the remainder (may run over chunk_size,
-// up to 128 MB) -- reel clips are short highlight cuts, well under that
-// ceiling in practice.
-const MIN_WHOLE_FILE_BYTES = 5 * 1024 * 1024;
+// total_chunk_count = floor(video_size / chunk_size); non-final chunks
+// must be 5-64 MB; the final chunk absorbs the remainder and may run up
+// to 128 MB. Confirmed live (2026-09-16): that floor division is exactly
+// right for a real multi-chunk upload, but it breaks for anything between
+// 5 MB and CHUNK_SIZE -- floor(8MB / 10MB) = 0, an invalid chunk count
+// TikTok rejected as "chunk size is invalid". Reel clips (~50s highlight
+// cuts) land in that range often enough to hit this on a real post, not
+// just a theoretical edge. Since nothing in TikTok's docs requires a
+// single chunk to be under 5 MB -- only that a single chunk IS the final
+// chunk, capped at 128 MB -- anything up to that cap goes as one whole
+// chunk; only a video that would actually need >1 chunk uses CHUNK_SIZE.
+const SINGLE_CHUNK_MAX_BYTES = 128 * 1024 * 1024;
 const CHUNK_SIZE = 10 * 1024 * 1024;
 
 const POLL_INTERVAL_MS = 3000;
@@ -55,7 +62,7 @@ function pickPrivacyLevel(options) {
 
 async function initUpload(accessToken, { filePath, caption, creatorInfo }) {
   const { size: videoSize } = await stat(filePath);
-  const singleChunk = videoSize < MIN_WHOLE_FILE_BYTES;
+  const singleChunk = videoSize <= SINGLE_CHUNK_MAX_BYTES;
   const chunkSize = singleChunk ? videoSize : CHUNK_SIZE;
   const totalChunkCount = singleChunk ? 1 : Math.floor(videoSize / chunkSize);
 
