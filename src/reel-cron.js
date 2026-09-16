@@ -8,6 +8,9 @@
 // at this volume are YouTube Data API quota (10,000 units/day, 100 per
 // search.list call) and the cookie-authenticated download account's
 // exposure to YouTube's bot detection, neither a hard wall today.
+import { runDailyReelFlow } from "./reels/index.js";
+import { currentChicagoHour } from "./util/chicagoHour.js";
+
 const POST_HOURS = [10, 12, 14, 16, 19];
 
 const isScheduledRun = process.env.GITHUB_EVENT_NAME === "schedule";
