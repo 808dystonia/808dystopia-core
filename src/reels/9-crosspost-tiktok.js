@@ -17,7 +17,16 @@ export async function crosspostReelToTikTok({ clipPath, caption }) {
 
   try {
     const result = await postVideoToTikTok({ filePath: clipPath, caption });
-    return { published: true, note: `Cross-posted to TikTok (${result.status})`, publishId: result.publishId };
+    // privacyLevel matters here, not just cosmetically: until this app
+    // passes TikTok's audit, creator_info only offers SELF_ONLY (see
+    // clients/tiktokPost.js), so a "published: true" run can still be
+    // completely invisible to anyone but the account owner.
+    return {
+      published: true,
+      note: `Cross-posted to TikTok (${result.status}, privacy: ${result.privacyLevel})`,
+      publishId: result.publishId,
+      privacyLevel: result.privacyLevel,
+    };
   } catch (err) {
     console.log("tiktok reel crosspost:", err.message);
     return { published: false, note: `TikTok cross-post failed: ${err.message}` };
