@@ -1,12 +1,14 @@
-// Cron entry point for the 11 AM/3 PM/7 PM BoxArt pin (the GitHub Actions
-// workflow invokes this via `npm run boxart`). Same DST-safe hourly-gate
-// approach as the other pipelines -- see cron.js's comment for the
-// reasoning -- staggered from the album-art board (9/1/5) and RapToonz
-// (10/2/6) so all three Pinterest pipelines don't fire in the same hour.
+// Cron entry point for the BoxArt pin (the GitHub Actions workflow invokes
+// this via `npm run boxart`). Same DST-safe hourly-gate approach as the
+// other pipelines -- see cron.js's comment for the reasoning. Matches the
+// combined posting times of the other two Pinterest boards -- 9 AM/1 PM/
+// 5 PM (album-art) plus 10 AM/2 PM/6 PM (RapToonz) -- rather than its own
+// staggered slot, so BoxArt fires 6x/day alongside whichever of the other
+// two boards is posting that hour.
 import { runBoxArt } from "./boxart/index.js";
 import { currentChicagoHour } from "./util/chicagoHour.js";
 
-const POST_HOURS = [11, 15, 19];
+const POST_HOURS = [9, 10, 13, 14, 17, 18];
 
 const isScheduledRun = process.env.GITHUB_EVENT_NAME === "schedule";
 const hour = currentChicagoHour();
