@@ -8,6 +8,7 @@
 import { readFile, stat } from "node:fs/promises";
 import { getValidAccessToken } from "./tiktokAuth.js";
 
+const CREATOR_INFO_URL = "https://open.tiktokapis.com/v2/post/publish/creator_info/query/";
 const INIT_URL = "https://open.tiktokapis.com/v2/post/publish/video/init/";
 const STATUS_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/";
 
@@ -22,13 +23,37 @@ const CHUNK_SIZE = 10 * 1024 * 1024;
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 2 * 60 * 1000;
 
-// unaudited apps are limited to non-public privacy levels (TikTok: "All
-// content posted by unaudited clients will be restricted to private
-// viewing mode") -- requesting PUBLIC_TO_EVERYONE is still correct to
-// send; if the app hasn't passed that separate compliance audit, TikTok
-// itself downgrades the actual visibility rather than rejecting the
-// call, so there's nothing to detect or branch on here.
-async function initUpload(accessToken, { filePath, caption }) {
+// Confirmed live (first real cross-post attempt, 2026-09-16): hardcoding
+// PUBLIC_TO_EVERYONE does NOT get silently downgraded for an unaudited
+// app the way TikTok's own prose docs suggested -- it's a hard rejection,
+// "unaudited_client_can_only_post_to_private_accounts". The Content
+// Posting API has a dedicated endpoint for exactly this: query the
+// creator's actual available privacy_level_options and use one of those,
+// rather than assuming a fixed value ever works. Preferring
+// PUBLIC_TO_EVERYONE when it's offered means this automatically starts
+// posting publicly the moment the app passes TikTok's audit, with no code
+// change needed here.
+async function getCreatorInfo(accessToken) {
+  const res = await fetch(CREATOR_INFO_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json; charset=UTF-8",
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error?.code !== "ok" || !data.data) {
+    throw new Error(`TikTok creator_info query failed: ${JSON.stringify(data)}`);
+  }
+  return data.data;
+}
+
+function pickPrivacyLevel(options) {
+  if (!options?.length) throw new Error("TikTok creator_info returned no privacy_level_options");
+  return options.includes("PUBLIC_TO_EVERYONE") ? "PUBLIC_TO_EVERYONE" : options[0];
+}
+
+async function initUpload(accessToken, { filePath, caption, creatorInfo }) {
   const { size: videoSize } = await stat(filePath);
   const singleChunk = videoSize < MIN_WHOLE_FILE_BYTES;
   const chunkSize = singleChunk ? videoSize : CHUNK_SIZE;
@@ -43,10 +68,10 @@ async function initUpload(accessToken, { filePath, caption }) {
     body: JSON.stringify({
       post_info: {
         title: caption,
-        privacy_level: "PUBLIC_TO_EVERYONE",
-        disable_duet: false,
-        disable_comment: false,
-        disable_stitch: false,
+        privacy_level: pickPrivacyLevel(creatorInfo.privacy_level_options),
+        disable_duet: !!creatorInfo.duet_disabled,
+        disable_comment: !!creatorInfo.comment_disabled,
+        disable_stitch: !!creatorInfo.stitch_disabled,
       },
       source_info: {
         source: "FILE_UPLOAD",
@@ -114,8 +139,9 @@ async function waitForPublish(accessToken, publishId) {
 
 export async function postVideoToTikTok({ filePath, caption }) {
   const accessToken = await getValidAccessToken();
-  const init = await initUpload(accessToken, { filePath, caption });
+  const creatorInfo = await getCreatorInfo(accessToken);
+  const init = await initUpload(accessToken, { filePath, caption, creatorInfo });
   await uploadChunks({ filePath, ...init });
   const status = await waitForPublish(accessToken, init.publishId);
-  return { publishId: init.publishId, status };
+  return { publishId: init.publishId, status, privacyLevel: pickPrivacyLevel(creatorInfo.privacy_level_options) };
 }
