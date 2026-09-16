@@ -34,6 +34,7 @@
 // asking this function for a second video.
 import { searchVideos, getVideoDetails } from "../clients/youtube.js";
 import { findChannelId, getClips } from "../clients/twitch.js";
+import { describeError } from "../util/describeError.js";
 
 const CONTENT_TYPE_QUERIES = [
   (artist) => ({ label: "interview", query: `${artist} interview` }),
@@ -103,7 +104,7 @@ export async function findVideo(artistHandle) {
     const twitchClip = await findTwitchClip(artistHandle);
     if (twitchClip) return twitchClip;
   } catch (err) {
-    console.log(`twitch fallback for ${artistHandle} failed:`, err.message);
+    console.log(`twitch fallback for ${artistHandle} failed:`, describeError(err));
   }
   return null;
 }

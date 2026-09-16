@@ -36,6 +36,7 @@ import { crosspostReelToFacebook } from "./8-crosspost-facebook.js";
 import { crosspostReelToTikTok } from "./9-crosspost-tiktok.js";
 import { readReelLogRows, isVideoAlreadyUsed } from "../clients/googleSheets.js";
 import { getTikTokClip } from "../clients/tiktok.js";
+import { describeError } from "../util/describeError.js";
 
 function shuffle(items) {
   const result = [...items];
@@ -64,7 +65,7 @@ async function finishCandidate(video, label) {
     const caption = await buildReelCaption(processed);
     return { video: processed, caption };
   } catch (err) {
-    console.log(`pipeline failed for ${label} (${video.videoId}):`, err.message);
+    console.log(`pipeline failed for ${label} (${video.videoId}):`, describeError(err));
     return null;
   }
 }
@@ -85,7 +86,7 @@ export async function selectReelCandidate() {
     try {
       video = await getTikTokClip(url);
     } catch (err) {
-      console.log(`getTikTokClip(${url}) failed:`, err.message);
+      console.log(`getTikTokClip(${url}) failed:`, describeError(err));
       continue;
     }
     if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
@@ -102,7 +103,7 @@ export async function selectReelCandidate() {
     try {
       video = await findVideo(artist);
     } catch (err) {
-      console.log(`findVideo(${artist}) failed:`, err.message);
+      console.log(`findVideo(${artist}) failed:`, describeError(err));
       continue;
     }
     if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
@@ -144,8 +145,8 @@ export async function runDailyReelFlow() {
 
     return { ...logReport, facebook, tiktok };
   } catch (err) {
-    console.log("publishReel failed:", err.message);
-    return logReelOutcome({ video, status: "failed-and-retried", note: err.message });
+    console.log("publishReel failed:", describeError(err));
+    return logReelOutcome({ video, status: "failed-and-retried", note: describeError(err) });
   }
 }
 

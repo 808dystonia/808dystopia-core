@@ -18,9 +18,19 @@ const MODEL = "Xenova/whisper-base.en";
 let transcriberPromise = null;
 function getTranscriber() {
   if (!transcriberPromise) {
-    transcriberPromise = import("@huggingface/transformers").then(({ pipeline }) =>
-      pipeline("automatic-speech-recognition", MODEL)
-    );
+    // Confirmed live (2026-09-16): a transient failure downloading the
+    // model from the Hugging Face Hub (a few hundred MB, fetched fresh
+    // every run since each GitHub Actions container starts clean) got
+    // memoized as a permanently-rejected promise -- every candidate for
+    // the rest of that run inherited the same cached rejection instead of
+    // getting a fresh retry, turning one network blip into a whole-run
+    // failure. Resetting the memo on rejection lets the next call retry.
+    transcriberPromise = import("@huggingface/transformers")
+      .then(({ pipeline }) => pipeline("automatic-speech-recognition", MODEL))
+      .catch((err) => {
+        transcriberPromise = null;
+        throw err;
+      });
   }
   return transcriberPromise;
 }
