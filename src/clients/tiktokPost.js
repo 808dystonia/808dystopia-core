@@ -30,16 +30,6 @@ const CHUNK_SIZE = 10 * 1024 * 1024;
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 2 * 60 * 1000;
 
-// Confirmed live (first real cross-post attempt, 2026-09-16): hardcoding
-// PUBLIC_TO_EVERYONE does NOT get silently downgraded for an unaudited
-// app the way TikTok's own prose docs suggested -- it's a hard rejection,
-// "unaudited_client_can_only_post_to_private_accounts". The Content
-// Posting API has a dedicated endpoint for exactly this: query the
-// creator's actual available privacy_level_options and use one of those,
-// rather than assuming a fixed value ever works. Preferring
-// PUBLIC_TO_EVERYONE when it's offered means this automatically starts
-// posting publicly the moment the app passes TikTok's audit, with no code
-// change needed here.
 async function getCreatorInfo(accessToken) {
   const res = await fetch(CREATOR_INFO_URL, {
     method: "POST",
@@ -60,7 +50,7 @@ function pickPrivacyLevel(options) {
   return options.includes("PUBLIC_TO_EVERYONE") ? "PUBLIC_TO_EVERYONE" : options[0];
 }
 
-async function initUpload(accessToken, { filePath, caption, creatorInfo }) {
+async function initUpload(accessToken, { filePath, caption, privacyLevel, creatorInfo }) {
   const { size: videoSize } = await stat(filePath);
   const singleChunk = videoSize <= SINGLE_CHUNK_MAX_BYTES;
   const chunkSize = singleChunk ? videoSize : CHUNK_SIZE;
@@ -75,7 +65,7 @@ async function initUpload(accessToken, { filePath, caption, creatorInfo }) {
     body: JSON.stringify({
       post_info: {
         title: caption,
-        privacy_level: pickPrivacyLevel(creatorInfo.privacy_level_options),
+        privacy_level: privacyLevel,
         disable_duet: !!creatorInfo.duet_disabled,
         disable_comment: !!creatorInfo.comment_disabled,
         disable_stitch: !!creatorInfo.stitch_disabled,
@@ -90,7 +80,9 @@ async function initUpload(accessToken, { filePath, caption, creatorInfo }) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.error?.code !== "ok" || !data.data?.upload_url) {
-    throw new Error(`TikTok post init failed: ${JSON.stringify(data)}`);
+    const err = new Error(`TikTok post init failed: ${JSON.stringify(data)}`);
+    err.code = data.error?.code;
+    throw err;
   }
   return { videoSize, chunkSize, totalChunkCount, publishId: data.data.publish_id, uploadUrl: data.data.upload_url };
 }
@@ -144,11 +136,33 @@ async function waitForPublish(accessToken, publishId) {
   throw new Error(`TikTok publish ${publishId} timed out waiting to process`);
 }
 
+const UNAUDITED_ERROR_CODE = "unaudited_client_can_only_post_to_private_accounts";
+
 export async function postVideoToTikTok({ filePath, caption }) {
   const accessToken = await getValidAccessToken();
   const creatorInfo = await getCreatorInfo(accessToken);
-  const init = await initUpload(accessToken, { filePath, caption, creatorInfo });
+  let privacyLevel = pickPrivacyLevel(creatorInfo.privacy_level_options);
+
+  let init;
+  try {
+    init = await initUpload(accessToken, { filePath, caption, privacyLevel, creatorInfo });
+  } catch (err) {
+    // Confirmed live (2026-09-16): creator_info's privacy_level_options
+    // reflects the ACCOUNT's public/private setting, not whether this
+    // APP has passed TikTok's own audit -- a public account still lists
+    // PUBLIC_TO_EVERYONE as available even while the app is unaudited,
+    // and the post endpoint enforces a separate, stricter app-level gate
+    // that creator_info never exposes at all. Retrying with the one
+    // level TikTok's own error names as safe for an unaudited app, rather
+    // than trusting creator_info's answer a second time. This still
+    // self-heals once the app passes audit: creator_info's own choice
+    // will simply stop failing, so this fallback path just never fires.
+    if (err.code !== UNAUDITED_ERROR_CODE) throw err;
+    privacyLevel = "SELF_ONLY";
+    init = await initUpload(accessToken, { filePath, caption, privacyLevel, creatorInfo });
+  }
+
   await uploadChunks({ filePath, ...init });
   const status = await waitForPublish(accessToken, init.publishId);
-  return { publishId: init.publishId, status, privacyLevel: pickPrivacyLevel(creatorInfo.privacy_level_options) };
+  return { publishId: init.publishId, status, privacyLevel };
 }
