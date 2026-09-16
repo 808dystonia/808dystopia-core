@@ -43,6 +43,12 @@ export const config = {
     // #raptoonz -- Grok posts one AI-generated rapper x cartoon-style
     // mashup image per message here (src/raptoonz/).
     raptoonzChannelId: process.env.DISCORD_RAPTOONZ_CHANNEL_ID || "",
+    // #ps2 -- a curated photo of a female rapper/artist per message
+    // (caption "**{ARTIST}** {vibe} — {look}"), composited into a PS1-style
+    // game-case cover (src/boxart/). Found via a live
+    // DISCORDBOT_LIST_GUILD_CHANNELS call; a channel id isn't a secret, so
+    // it's defaulted here rather than needing its own Actions secret.
+    boxartChannelId: process.env.DISCORD_BOXART_CHANNEL_ID || "1549573920800116826",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -60,6 +66,9 @@ export const config = {
     // "RapToonz" board -- created live via PINTEREST_CREATE_BOARD for the
     // rapper x cartoon-art-style pipeline (src/raptoonz/).
     raptoonzBoardId: process.env.PINTEREST_RAPTOONZ_BOARD_ID || "1099230290240923848",
+    // "808 Box Art" board -- created live via PINTEREST_CREATE_BOARD for
+    // the PS1/PS2-style game-case cover pipeline (src/boxart/).
+    boxartBoardId: process.env.PINTEREST_BOXART_BOARD_ID || "1099230290240924080",
   },
 
   facebook: {
@@ -93,6 +102,8 @@ export const config = {
     pinsTab: process.env.GOOGLE_SHEETS_PINS_TAB || "Pins",
     // RapToonz's own dedup log, same spreadsheet, its own tab.
     raptoonzTab: process.env.GOOGLE_SHEETS_RAPTOONZ_TAB || "RapToonz",
+    // BoxArt's own dedup log, same spreadsheet, its own tab.
+    boxartTab: process.env.GOOGLE_SHEETS_BOXART_TAB || "BoxArt",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -184,6 +195,9 @@ export const config = {
   // Same gate, for the 10 AM/2 PM/6 PM RapToonz pin (AI-generated rapper x
   // cartoon-art-style mashups).
   raptoonzPublish: process.env.RAPTOONZ_PUBLISH === "1",
+  // Same gate, for the 11 AM/3 PM/7 PM BoxArt pin (PS1/PS2-style game-case
+  // covers of female rappers/artists).
+  boxartPublish: process.env.BOXART_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

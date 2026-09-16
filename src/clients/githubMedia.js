@@ -47,3 +47,10 @@ export async function publishImageToRepo(localPath, filename) {
 export async function publishReelToRepo(localPath, filename) {
   return commitMediaToRepo(localPath, filename, "Add reel media");
 }
+
+// Same approach, for the BoxArt pipeline's rendered game-case cover --
+// Pinterest's PINTEREST_CREATE_PIN needs a publicly-fetchable image_url,
+// same constraint as the other pipelines above.
+export async function publishBoxArtToRepo(localPath, filename) {
+  return commitMediaToRepo(localPath, filename, "Add box art media");
+}

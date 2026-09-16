@@ -1,0 +1,237 @@
+<!doctype html>
+<!-- BoxArt pipeline: a PS1 jewel-case cover with the artist's photo in the
+     cover window and their name as the game title.
+
+     The case itself (plastic shell, PlayStation logo lockup, NTSC U/C,
+     the vertical PlayStation wordmark, ESRB box, SLUS number, Sony
+     lockup) is not redrawn in CSS — it IS the reference cover, with the
+     cover window masked to black (assets/boxart-frame.png), so every one
+     of those details stays pixel-exact. Only two things are composited
+     in: the photo, and the chrome title.
+
+     All coordinates below are measured off that 1200x1200 frame:
+       cover window   x 228..1173, y 26..1173
+       Sony lockup    x 1020..1170, y 938..1152  (sits inside the window,
+                      so it's re-laid over the photo — see .sony-lockup)
+       title baseline the "GLARE" logotype occupied y 995..1075, centred
+                      in the space left of the Sony lockup (x 231..1010) -->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  /* Bundled rather than pulled from Google Fonts at render time:
+     Puppeteer's Chromium has its own network stack and doesn't inherit
+     this project's proxy config, so a webfont link renders as a fallback
+     sans and silently ruins the logotype. Same reasoning (and the same
+     local-asset pattern) as the carousel's Capture_it.ttf. Michroma is
+     the closest open font to the wide squarish italic the reference
+     logotype uses; the italic is faked with a skew since it has none. */
+  @font-face {
+    font-family: "Michroma";
+    src: url("assets/Michroma.ttf") format("truetype");
+  }
+
+  html, body {
+    margin: 0;
+    width: 1200px;
+    height: 1200px;
+    background: #000;
+    overflow: hidden;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1200px;
+    height: 1200px;
+  }
+
+  .frame {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1200px;
+    height: 1200px;
+  }
+
+  /* The cover window, exactly matching the frame's masked-out rect. */
+  .window {
+    position: absolute;
+    left: 228px;
+    top: 26px;
+    width: 945px;
+    height: 1147px;
+    overflow: hidden;
+  }
+
+  .photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 28%;
+    /* The reference's "glossy" look is a wet-highlight editorial shot;
+       this nudges an ordinary photo toward it rather than trying to
+       simulate it outright. Kept light on purpose — pushed any further
+       and it washes the photo out instead of reading as gloss. */
+    filter: contrast(1.06) saturate(1.12);
+  }
+
+  /* Specular streak across the upper-left, like light raking across the
+     case's plastic. */
+  .gloss-streak {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(112deg,
+      rgba(255,255,255,0) 26%,
+      rgba(255,255,255,0.03) 33%,
+      rgba(210,235,255,0.10) 38%,
+      rgba(255,255,255,0.16) 41%,
+      rgba(210,235,255,0.07) 45%,
+      rgba(255,255,255,0) 52%);
+  }
+
+  .gloss-top {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(200,225,255,0.07) 0%, rgba(255,255,255,0) 13%);
+  }
+
+  /* The reference's photo falls off to near-black across its bottom
+     third, which is what lets the chrome title and the Sony lockup read.
+     Reproduced here so an arbitrary photo behaves the same way. */
+  .bottom-fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0) 46%,
+      rgba(0,0,0,0.42) 62%,
+      rgba(0,0,0,0.80) 76%,
+      rgba(0,0,0,0.93) 88%,
+      rgba(0,0,0,0.96) 100%);
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 120px 30px rgba(0,0,0,0.45);
+  }
+
+  /* The Sony lockup lives inside the cover window, so the photo covers
+     it. Rather than redraw it, the same region of the frame is laid back
+     over the photo with `screen` — its background is pure black, which
+     screens out to nothing, leaving just the mark. */
+  .sony-lockup {
+    position: absolute;
+    left: 1020px;
+    top: 938px;
+    width: 150px;
+    height: 214px;
+    background-image: url("assets/boxart-frame.png");
+    background-position: -1020px -938px;
+    mix-blend-mode: screen;
+  }
+
+  .title {
+    position: absolute;
+    left: 231px;
+    width: 779px;
+    top: 972px;
+    height: 124px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Three stacked copies of the same text: a silver outer bevel, a dark
+     separating edge, then the chrome face on top — which is how the
+     reference logotype reads (bright rim, dark cut, mirrored face). */
+  .title-stack {
+    position: relative;
+    transform: skewX(-12deg);
+  }
+  .title-stack span {
+    font-family: "Michroma", "Eurostile", Impact, sans-serif;
+    font-size: 100px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    display: block;
+  }
+  .layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  /* Michroma only ships a 400 weight, so the strokes are stepped to build
+     the weight back up: silver rim outermost, dark cut inside it, chrome
+     face on top. Going heavier than this closes up the counters and the
+     letters read as a fat outline rather than chrome. */
+  .rim {
+    color: #c9d6e7;
+    -webkit-text-stroke: 13px #c9d6e7;
+    filter: drop-shadow(0 0 22px rgba(90,160,255,0.55)) drop-shadow(0 4px 6px rgba(0,0,0,0.8));
+  }
+  .edge {
+    color: #080e1c;
+    -webkit-text-stroke: 6px #080e1c;
+  }
+  .face {
+    position: relative;
+    background: linear-gradient(180deg,
+      #f2f7fd 0%,
+      #c3d2e4 5%,
+      #16233f 13%,
+      #1b3257 30%,
+      #3c7bc0 46%,
+      #bfe4ff 54%,
+      #ffffff 58%,
+      #8cc6f2 64%,
+      #24508c 73%,
+      #101c33 86%,
+      #7b8ea7 95%,
+      #dce6f2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Needs to out-specify `.title-stack span` above, which otherwise sets
+     this to the title's own size. */
+  .title-stack span.tm {
+    position: absolute;
+    left: 100%;
+    bottom: 4px;
+    margin-left: 12px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #e9eef6;
+    transform: skewX(12deg);
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <img class="frame" src="assets/boxart-frame.png" />
+
+    <div class="window">
+      <img class="photo" src="{{PHOTO_URL}}" />
+      <div class="gloss-streak"></div>
+      <div class="gloss-top"></div>
+      <div class="bottom-fade"></div>
+      <div class="vignette"></div>
+    </div>
+
+    <div class="sony-lockup"></div>
+
+    <div class="title">
+      <div class="title-stack" id="title-stack">
+        <span class="layer rim">{{ARTIST_NAME}}</span>
+        <span class="layer edge">{{ARTIST_NAME}}</span>
+        <span class="face">{{ARTIST_NAME}}</span>
+        <span class="tm">TM</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

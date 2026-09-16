@@ -241,3 +241,106 @@ export function isRaptoonzMessageAlreadyPosted(logRows, messageId) {
   if (!messageId) return false;
   return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
 }
+
+// BoxArt's dedup/outcome log -- a separate tab (config.sheets.boxartTab) in
+// the same spreadsheet, its own column schema (row 1 = header):
+//   timestamp | artist | messageId | pinId | status | note
+// Identity is the Discord message id (the curated photo drop), same
+// reasoning as RapToonz's own messageId dedup.
+//
+// Unlike the other pipelines' tabs (each hand-created once via a one-off
+// live call before its workflow ever ran), this one provisions itself on
+// first use: GOOGLESHEETS_ADD_SHEET's own `title` param is silently
+// ignored (creates "SheetN" instead) -- confirmed against this exact
+// spreadsheet setting up RapToonz's tab -- so this creates it unnamed,
+// renames it via GOOGLESHEETS_UPDATE_SHEET_PROPERTIES, then writes the
+// header row. Checked (and created, if missing) on every read -- cheap
+// at this pipeline's 3x/day volume, and avoids a manual bootstrap step a
+// workflow_dispatch run can't do from a feature branch (GitHub only
+// dispatches a workflow that already exists on the default branch).
+let boxartTabEnsured = false;
+
+async function ensureBoxArtTab() {
+  if (boxartTabEnsured) return;
+
+  const { sheet_names: names = [] } = await runTool(
+    "GOOGLESHEETS_GET_SHEET_NAMES",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  if (names.includes(config.sheets.boxartTab)) {
+    boxartTabEnsured = true;
+    return;
+  }
+
+  const added = await runTool(
+    "GOOGLESHEETS_ADD_SHEET",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  const sheetId = added?.replies?.[0]?.addSheet?.properties?.sheetId;
+  if (sheetId === undefined) throw new Error("BoxArt tab setup: could not find new sheetId in ADD_SHEET response");
+
+  await runTool(
+    "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
+    {
+      spreadsheet_id: config.sheets.id,
+      updateSheetProperties: { properties: { sheetId, title: config.sheets.boxartTab }, fields: "title" },
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  await runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.boxartTab}!A:F`,
+      valueInputOption: "USER_ENTERED",
+      values: [["timestamp", "artist", "messageId", "pinId", "status", "note"]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  boxartTabEnsured = true;
+}
+
+export async function readBoxArtLogRows() {
+  if (!config.sheets.id) return [];
+  await ensureBoxArtTab();
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.boxartTab}!A:F`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    timestamp: row[0] || "",
+    artist: row[1] || "",
+    messageId: row[2] || "",
+    pinId: row[3] || "",
+    status: row[4] || "",
+    note: row[5] || "",
+  }));
+}
+
+export async function appendBoxArtLogRow(row) {
+  if (!config.sheets.id) return null;
+  await ensureBoxArtTab();
+
+  return runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.boxartTab}!A:F`,
+      valueInputOption: "USER_ENTERED",
+      values: [[row.timestamp, row.artist, row.messageId || "", row.pinId || "", row.status, row.note || ""]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+}
+
+export function isBoxArtMessageAlreadyPosted(logRows, messageId) {
+  if (!messageId) return false;
+  return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
+}
