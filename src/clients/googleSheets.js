@@ -350,3 +350,150 @@ export function isBoxArtMessageAlreadyPosted(logRows, messageId) {
   if (!messageId) return false;
   return logRows.some((row) => row.status === "posted" && row.messageId === messageId);
 }
+
+// Budget pipeline's two tabs (config.sheets.financeTab / config.sheets.budgetTab),
+// same spreadsheet as everything else. Two tabs because they're fed by two
+// different sources: Finances is an append-only feed an external Grok
+// automation writes to (outside this repo entirely -- see src/budget/),
+// while Budget is a small table the user edits by hand in Sheets whenever
+// a monthly limit changes. Both self-provision on first read (same
+// pattern as ensureBoxArtTab above), so neither the Grok automation nor
+// the user is blocked on a manual setup step before this pipeline's own
+// cron has ever run.
+let financeTabEnsured = false;
+
+async function ensureFinanceTab() {
+  if (financeTabEnsured) return;
+
+  const { sheet_names: names = [] } = await runTool(
+    "GOOGLESHEETS_GET_SHEET_NAMES",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  if (names.includes(config.sheets.financeTab)) {
+    financeTabEnsured = true;
+    return;
+  }
+
+  const added = await runTool(
+    "GOOGLESHEETS_ADD_SHEET",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  const addSheet = added?.replies?.[0]?.addSheet;
+  const sheetId = addSheet?.sheetId ?? addSheet?.properties?.sheetId;
+  if (sheetId === undefined) throw new Error("Finance tab setup: could not find new sheetId in ADD_SHEET response");
+
+  await runTool(
+    "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
+    {
+      spreadsheet_id: config.sheets.id,
+      updateSheetProperties: { properties: { sheetId, title: config.sheets.financeTab }, fields: "title" },
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  await runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.financeTab}!A:E`,
+      valueInputOption: "USER_ENTERED",
+      values: [["timestamp", "category", "amount", "type", "note"]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  financeTabEnsured = true;
+}
+
+// Row shape the external Grok automation writes: timestamp | category |
+// amount | type (income/expense) | note. amount is a plain decimal dollar
+// figure (e.g. "42.50"), not minor units -- this is a human/Grok-edited
+// sheet, not a payments ledger like Era Context's account balances.
+export async function readFinanceRows() {
+  if (!config.sheets.id) return [];
+  await ensureFinanceTab();
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.financeTab}!A:E`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    timestamp: row[0] || "",
+    category: row[1] || "",
+    amount: parseFloat(row[2]) || 0,
+    type: (row[3] || "").trim().toLowerCase(),
+    note: row[4] || "",
+  }));
+}
+
+let budgetTabEnsured = false;
+
+async function ensureBudgetTab() {
+  if (budgetTabEnsured) return;
+
+  const { sheet_names: names = [] } = await runTool(
+    "GOOGLESHEETS_GET_SHEET_NAMES",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  if (names.includes(config.sheets.budgetTab)) {
+    budgetTabEnsured = true;
+    return;
+  }
+
+  const added = await runTool(
+    "GOOGLESHEETS_ADD_SHEET",
+    { spreadsheet_id: config.sheets.id },
+    config.sheets.connectedAccountId || undefined
+  );
+  const addSheet = added?.replies?.[0]?.addSheet;
+  const sheetId = addSheet?.sheetId ?? addSheet?.properties?.sheetId;
+  if (sheetId === undefined) throw new Error("Budget tab setup: could not find new sheetId in ADD_SHEET response");
+
+  await runTool(
+    "GOOGLESHEETS_UPDATE_SHEET_PROPERTIES",
+    {
+      spreadsheet_id: config.sheets.id,
+      updateSheetProperties: { properties: { sheetId, title: config.sheets.budgetTab }, fields: "title" },
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  await runTool(
+    "GOOGLESHEETS_SPREADSHEETS_VALUES_APPEND",
+    {
+      spreadsheetId: config.sheets.id,
+      range: `${config.sheets.budgetTab}!A:B`,
+      valueInputOption: "USER_ENTERED",
+      values: [["category", "monthly_limit"]],
+    },
+    config.sheets.connectedAccountId || undefined
+  );
+
+  budgetTabEnsured = true;
+}
+
+// Hand-edited by the user in Sheets whenever a monthly limit changes --
+// category | monthly_limit (plain dollar figure, same convention as
+// Finances' amount column). A category with spending in Finances but no
+// row here has nothing to check against, so 2-compute-status.js reports
+// it as unbudgeted rather than alerting on it.
+export async function readBudgetLimits() {
+  if (!config.sheets.id) return [];
+  await ensureBudgetTab();
+
+  const result = await runTool(
+    "GOOGLESHEETS_BATCH_GET",
+    { spreadsheet_id: config.sheets.id, ranges: [`${config.sheets.budgetTab}!A:B`] },
+    config.sheets.connectedAccountId || undefined
+  );
+  const values = result?.valueRanges?.[0]?.values || [];
+  return values.slice(1).map((row) => ({
+    category: row[0] || "",
+    monthlyLimit: parseFloat(row[1]) || 0,
+  }));
+}
