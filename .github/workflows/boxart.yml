@@ -31,7 +31,10 @@ jobs:
       - run: npm run boxart
         env:
           TZ: America/Chicago
-          BOXART_PUBLISH: "1"
+          # Off until a real run is validated (real Discord read, cover
+          # render, Pinterest pin) -- see the other pipelines' own history
+          # of nothing posting live until tested.
+          BOXART_PUBLISH: "0"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_BOXART_CHANNEL_ID: ${{ secrets.DISCORD_BOXART_CHANNEL_ID }}
