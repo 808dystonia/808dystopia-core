@@ -28,10 +28,13 @@ ${formatMetrics(analytics.instagram)}
 Today's Pinterest analytics (Underground Hiphop album cover art board and account):
 ${formatMetrics(analytics.pinterest)}
 
+Latest weekly per-post evidence (null means unavailable; compare within platform, respect sample sizes and different post ages; suggestions are experiments, not proven causes):
+${JSON.stringify(analytics.weeklyPerformance || null)}
+
 Return ONLY the JSON object.`;
 }
 
 export async function buildRecommendations(accomplishments, analytics) {
-  const result = await classifyWithDeepSeek(buildPrompt(accomplishments, analytics));
+  const result = await classifyWithDeepSeek(buildPrompt(accomplishments, analytics), "recommendations");
   return Array.isArray(result.recommendations) ? result.recommendations : [];
 }

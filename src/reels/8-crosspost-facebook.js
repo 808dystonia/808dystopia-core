@@ -12,7 +12,7 @@ import { createVideoPost } from "../clients/facebook.js";
 
 export async function crosspostReelToFacebook({ videoUrl, message }) {
   if (!config.reelFacebookCrosspostPublish) {
-    return { published: false, note: "REEL_FACEBOOK_CROSSPOST_PUBLISH is off — dry run, nothing posted." };
+    return { published: false, status: "disabled", note: "REEL_FACEBOOK_CROSSPOST_PUBLISH is off — dry run, nothing posted." };
   }
 
   try {
@@ -20,6 +20,6 @@ export async function crosspostReelToFacebook({ videoUrl, message }) {
     return { published: true, note: "Cross-posted to Facebook Page", postId: result?.post_id || result?.id || "" };
   } catch (err) {
     console.log("facebook reel crosspost:", err.message);
-    return { published: false, note: `Facebook cross-post failed: ${err.message}` };
+    return { published: false, status: "failed", note: `Facebook cross-post failed: ${err.message}` };
   }
 }

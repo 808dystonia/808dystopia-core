@@ -1,59 +1,53 @@
 name: Daily Reel Post
 
-# Genuinely free — same reasoning as daily-post.yml (GitHub Actions has
-# no minutes cap on public repos; Render's cron jobs carry a $1/month
-# minimum despite being labeled "free").
+# Hourly UTC trigger; the dependency-free gate uses America/Chicago.
 on:
   schedule:
-    # Fires hourly (UTC). src/reel-cron.js gates the real run to the
-    # 10 AM/12 PM/2 PM/4 PM/7 PM Chicago hours, year-round — DST-safe,
-    # same approach as daily-post.yml.
-    - cron: "0 * * * *"
-  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
 
+concurrency:
+  group: 808-reel
+  cancel-in-progress: false
 permissions:
-  contents: write # placeholder — only needed if step 4 ends up committing
-                   # clip files the same way githubMedia.js hosts carousel
-                   # slides; revisit once that step is actually built.
+  contents: write # media hosting and durable automation-state records
+  pull-requests: read
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Video/audio download + local Whisper transcription + ffmpeg processing
-    # needs real headroom, unlike the carousel's render-and-publish.
     timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPS_STATE_ENABLED: "1"
+      AI_PROVIDER: ${{ vars.AI_PROVIDER || 'deepseek' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+      - name: Check Chicago posting window
+        id: gate
+        run: node scripts/schedule-gate.mjs reel
       - run: npm ci
-      # yt-dlp downloads the candidate video's audio (step 3) — needs a real
-      # account's cookies to get past YouTube's bot detection on datacenter
-      # IPs (validated live: every cookie-less approach gets blocked).
-      #
-      # Cookies alone aren't enough, though — YouTube also throws a
-      # JS-based "n challenge" at every request, which needs a JS runtime
-      # yt-dlp can solve it with plus the actual solver script distribution
-      # (yt-dlp-ejs). Validated live: Node was detected but reported
-      # "unsupported" by yt-dlp's solver; deno (yt-dlp's own top-priority,
-      # best-supported runtime) worked immediately once yt-dlp-ejs was
-      # installed alongside it.
-      # curl_cffi lets yt-dlp impersonate a real browser's TLS fingerprint --
-      # needed for TikTok's extractor (clients/tiktok.js's curated-link
-      # source): validated live as part of getting single-video TikTok
-      # extraction working.
+        if: steps.gate.outputs.due == 'true'
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
       - run: pip install --quiet yt-dlp yt-dlp-ejs curl_cffi
+        if: steps.gate.outputs.due == 'true'
       - uses: denoland/setup-deno@v2
+        if: steps.gate.outputs.due == 'true'
         with:
           deno-version: v2.x
-      # Confirmed live this is NOT actually preinstalled on this runner
-      # image despite ubuntu-latest's own docs suggesting otherwise --
-      # yt-dlp's own audio-extraction postprocessing failed with "ffprobe
-      # and ffmpeg not found" once a run finally got far enough to need it.
       - run: sudo apt-get update -qq && sudo apt-get install -qq -y ffmpeg
-      - run: npm run reel
+        if: steps.gate.outputs.due == 'true'
+      - name: Run reel
+        if: steps.gate.outputs.due == 'true'
+        run: npm run reel
         env:
+          OPS_SLOT: ${{ steps.gate.outputs.slot }}
           TZ: America/Chicago
           REEL_PUBLISH: "1"
           REEL_FACEBOOK_CROSSPOST_PUBLISH: "1"
@@ -72,8 +66,12 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}
-          # Step 5's @handle lookup (src/clients/genius.js) needs this —
-          # already an existing secret (daily-post.yml uses it too), just
-          # never wired into this workflow.
           GENIUS_ACCESS_TOKEN: ${{ secrets.GENIUS_ACCESS_TOKEN }}
           COMPOSIO_FACEBOOK_ACCOUNT_ID: ${{ secrets.COMPOSIO_FACEBOOK_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.due == 'true'
+        with:
+          name: run-report
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30

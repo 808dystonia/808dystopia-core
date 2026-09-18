@@ -1,28 +1,45 @@
 name: EOD Brief
 
-# Genuinely free — same reasoning as the other two workflows (GitHub
-# Actions has no minutes cap on public repos).
+# Hourly UTC trigger; the dependency-free gate uses America/Chicago.
 on:
   schedule:
-    # Fires hourly (UTC). src/eod-cron.js gates the real run to the 9 PM
-    # Chicago hour, year-round — DST-safe, same approach as the other two
-    # pipelines.
-    - cron: "0 * * * *"
-  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+    - cron: "37 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: 808-eod-brief
+  cancel-in-progress: false
+permissions:
+  contents: write # media hosting and durable automation-state records
+  pull-requests: read
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    # No video/audio work here — just API calls and one Discord post.
-    timeout-minutes: 5
+    timeout-minutes: 10
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPS_STATE_ENABLED: "1"
+      AI_PROVIDER: ${{ vars.AI_PROVIDER || 'deepseek' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+      - name: Check Chicago posting window
+        id: gate
+        run: node scripts/schedule-gate.mjs eod-brief
       - run: npm ci
-      - run: npm run eod-brief
+        if: steps.gate.outputs.due == 'true'
         env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+      - name: Run eod-brief
+        if: steps.gate.outputs.due == 'true'
+        run: npm run eod-brief
+        env:
+          OPS_SLOT: ${{ steps.gate.outputs.slot }}
           TZ: America/Chicago
           EOD_BRIEF_PUBLISH: "1"
           DEEPSEEK_MODEL: deepseek-chat
@@ -32,7 +49,11 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          # Automatically provided by GitHub Actions for this repo — no
-          # secret to set up, unlike every other credential in this
-          # project (see clients/github.js).
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.due == 'true'
+        with:
+          name: run-report
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30

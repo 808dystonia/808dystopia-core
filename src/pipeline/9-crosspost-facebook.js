@@ -12,7 +12,7 @@ import { createMultiPhotoPost } from "../clients/facebook.js";
 
 export async function crosspostToFacebook({ imageUrls, message }) {
   if (!config.facebookCrosspostPublish) {
-    return { published: false, note: "FACEBOOK_CROSSPOST_PUBLISH is off — dry run, nothing posted." };
+    return { published: false, status: "disabled", note: "FACEBOOK_CROSSPOST_PUBLISH is off — dry run, nothing posted." };
   }
 
   try {
@@ -20,6 +20,6 @@ export async function crosspostToFacebook({ imageUrls, message }) {
     return { published: true, note: "Cross-posted to Facebook Page", postId: result?.post_id || result?.id || "" };
   } catch (err) {
     console.log("facebook crosspost:", err.message);
-    return { published: false, note: `Facebook cross-post failed: ${err.message}` };
+    return { published: false, status: "failed", note: `Facebook cross-post failed: ${err.message}` };
   }
 }

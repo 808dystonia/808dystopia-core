@@ -47,7 +47,7 @@ Return ONLY the JSON object.`;
 const VALID_LYRIC_TAGS = new Set(["DISS", "COSIGN", "SHOUTOUT", "CALLOUT"]);
 
 export async function classifyArticle(candidate) {
-  const result = await classifyWithDeepSeek(buildPrompt(candidate.text));
+  const result = await classifyWithDeepSeek(buildPrompt(candidate.text), "article");
 
   const type = VALID_TYPES.has(result.type) ? result.type : "other";
   const artist = result.artist || "";

@@ -1,7 +1,4 @@
-// Daily pipeline logic. Invoked by src/cron.js (the actual GitHub Actions
-// entry point, which gates the scheduled trigger to the 9 AM Chicago
-// hour) — running this file directly always runs immediately, which is
-// useful for manual testing regardless of the time of day.
+// News carousel selection and IG/FB publishing with durable publication receipts.
 import "dotenv/config";
 import { getCandidates } from "./1-select-article.js";
 import { classifyArticle } from "./2-classify.js";
@@ -13,20 +10,31 @@ import { publishCarousel } from "./7-publish.js";
 import { logAndReport } from "./8-log-and-report.js";
 import { crosspostToFacebook } from "./9-crosspost-facebook.js";
 import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
+import { config } from "../config.js";
+import { contentKey, claimedPosts, bestEffort } from "../ops/publishing.js";
+import { finishPost } from "../ops/followups.js";
+import { postComment } from "../clients/instagram.js";
 import { isSensitiveClaim } from "../util/sensitiveContent.js";
 
 // Walks candidates newest-first: classify, skip repeats of already-posted
 // stories (artist+title match against the Sheet log), skip anything with no
-// usable photo (Pinterest, then Google fallback — both live in getPhoto).
+// usable photo from Pinterest (getPhoto).
 // A candidate only "wins" once it clears both checks.
 export async function selectPublishableArticle() {
   const [candidates, logRows] = await Promise.all([getCandidates(), readLogRows()]);
 
+  const claims = config.publish ? await claimedPosts("carousel") : {};
+  // Include durable receipts/uncertain claims in semantic and sensitive
+  // dedup even when their Sheets mirror was never written.
+  const dedupRows = [...logRows, ...Object.values(claims).map(post => ({
+    artist: post.artist, title: post.title, status: 'posted', timestamp: post.publishedAt || post.startedAt,
+  }))];
   for (const candidate of candidates) {
+    if (claims[contentKey(candidate.text)]) continue;
     const classified = await classifyArticle(candidate);
     const sensitive = isSensitiveClaim(candidate.text) || isSensitiveClaim(classified.context);
     if (
-      isAlreadyPosted(logRows, {
+      isAlreadyPosted(dedupRows, {
         artist: classified.artist,
         title: classified.title,
         sourceText: candidate.text,
@@ -63,26 +71,16 @@ export async function runDailyFlow() {
   const caption = await buildCaption({ candidate, classified });
 
   try {
-    const result = await publishCarousel({ slides, caption });
-    // A dry run (CAROUSEL_PUBLISH off) must never log as "posted" — that
-    // status is what isAlreadyPosted checks for dedup, so logging a dry
-    // run that way would permanently block the real post later.
-    const status = result.published ? "posted" : "skipped";
-    const logReport = await logAndReport({ candidate, classified, status, note: result?.note || "" });
-
-    // Only cross-post once the real IG post has actually gone out — a
-    // dry run never uploads slide1Url/slide2Url in the first place.
-    const facebook = result.published
-      ? await crosspostToFacebook({
-          imageUrls: [result.slide1Url, result.slide2Url],
-          message: caption.caption,
-        })
-      : { published: false, note: "Not attempted (carousel didn't publish)." };
-
-    return { ...logReport, facebook };
+    const result = await publishCarousel({ slides, caption, identity: candidate.text,
+      metadata: { artist: classified.artist, title: classified.title, topic: classified.type, format: 'carousel' } });
+    return await finishPost({ pipeline: 'carousel', result,
+      comment: () => postComment(result.mediaId, caption.hashtags),
+      log: () => logAndReport({ candidate, classified, status: result.published ? 'posted' : 'skipped', note: result.note }),
+      facebook: () => crosspostToFacebook({ imageUrls: [result.slide1Url, result.slide2Url], message: caption.caption }),
+    });
   } catch (err) {
-    console.log("publishCarousel failed:", err.message);
-    return logAndReport({ candidate, classified, status: "failed-and-retried", note: err.message });
+    await bestEffort(() => logAndReport({ candidate, classified, status: 'failed', note: 'Publishing interrupted; inspect operational state before retrying.' }));
+    throw err;
   }
 }
 

@@ -13,7 +13,11 @@
     "pin-post": "node src/pin-cron.js",
     "raptoonz": "node src/raptoonz-cron.js",
     "boxart": "node src/boxart-cron.js",
-    "trending-tuesday": "node src/trending-cron.js"
+    "trending-tuesday": "node src/trending-cron.js",
+    "test": "node --test",
+    "check": "node scripts/check.mjs",
+    "dashboard": "node scripts/dashboard-data.mjs",
+    "weekly-performance": "node scripts/weekly-performance.mjs"
   },
   "engines": {
     "node": ">=20"
@@ -25,5 +29,8 @@
     "puppeteer": "^23.6.0",
     "rss-parser": "^3.13.0",
     "wavefile": "^11.0.0"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
   }
 }

@@ -34,25 +34,15 @@ export async function appendLogRow(row) {
     {
       spreadsheetId: config.sheets.id,
       range: `${config.sheets.tab}!A:F`,
-      valueInputOption: "USER_ENTERED",
+      valueInputOption: "RAW",
       values: [[row.timestamp, row.artist, row.title, row.status, row.note || "", row.sourceText || ""]],
     },
     config.sheets.connectedAccountId || undefined
   );
 }
 
-// Sheets reformats the ISO-ish timestamp logAndReport writes into its own
-// display format on read-back (USER_ENTERED recognizes it as a date/time) —
-// space separator, no zero-padding on the hour ("2026-09-13 8:14:22") — so
-// plain Date.parse rejects it. Pad the hour and treat as UTC; a same-day/
-// same-artist window only needs day-level precision, not exact offset.
-function parseTimestampMs(ts) {
-  if (!ts) return NaN;
-  const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):(\d{2}):(\d{2})/);
-  if (!m) return NaN;
-  const [, y, mo, d, h, mi, s] = m;
-  return Date.parse(`${y}-${mo}-${d}T${h.padStart(2, "0")}:${mi}:${s}Z`);
-}
+// Parse both legacy Chicago wall-clock rows and new UTC ISO timestamps.
+import { parseTimestamp as parseTimestampMs } from "../ops/schedule.js";
 
 const SENSITIVE_SAME_ARTIST_WINDOW_MS = 72 * 60 * 60 * 1000;
 
@@ -128,7 +118,7 @@ export async function appendReelLogRow(row) {
     {
       spreadsheetId: config.sheets.id,
       range: `${config.sheets.reelsTab}!A:F`,
-      valueInputOption: "USER_ENTERED",
+      valueInputOption: "RAW",
       values: [[row.timestamp, row.artist, row.videoId, row.highlightRange, row.status, row.note || ""]],
     },
     config.sheets.connectedAccountId || undefined
@@ -178,7 +168,7 @@ export async function appendPinLogRow(row) {
     {
       spreadsheetId: config.sheets.id,
       range: `${config.sheets.pinsTab}!A:F`,
-      valueInputOption: "USER_ENTERED",
+      valueInputOption: "RAW",
       values: [[row.timestamp, row.artist, row.album, row.pinId || "", row.status, row.note || ""]],
     },
     config.sheets.connectedAccountId || undefined

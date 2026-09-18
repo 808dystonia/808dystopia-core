@@ -13,6 +13,7 @@ export async function runTool(slug, args = {}, connectedAccountId) {
 
   const res = await fetch(`${BASE}/${slug}`, {
     method: "POST",
+    signal: AbortSignal.timeout(60000),
     headers: {
       "Content-Type": "application/json",
       "x-api-key": config.composio.apiKey,
@@ -37,6 +38,7 @@ export async function runProxy({ connectedAccountId, endpoint, method = "GET", b
 
   const res = await fetch(`https://backend.composio.dev/api/v3/tools/execute/proxy`, {
     method: "POST",
+    signal: AbortSignal.timeout(60000),
     headers: {
       "Content-Type": "application/json",
       "x-api-key": config.composio.apiKey,

@@ -1,29 +1,45 @@
 name: Morning Site Sync
 
-# Mirrors Grok's own morning #underground-news drop onto 808dystopia.win's
-# Morning news box. Doesn't post anything to Discord -- Grok's own
-# scheduled task already did that -- just reads it and writes it into the
-# site's Netlify Blobs store.
+# Hourly UTC trigger; the dependency-free gate uses America/Chicago.
 on:
   schedule:
-    # Fires hourly (UTC). src/morning-sync-cron.js gates the real run to
-    # 10 AM Chicago time, year-round -- DST-safe, same approach as the
-    # other pipelines.
-    - cron: "0 * * * *"
-  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+    - cron: "13 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: 808-morning-sync
+  cancel-in-progress: false
+permissions:
+  contents: write # media hosting and durable automation-state records
+  pull-requests: read
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPS_STATE_ENABLED: "1"
+      AI_PROVIDER: ${{ vars.AI_PROVIDER || 'deepseek' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+      - name: Check Chicago posting window
+        id: gate
+        run: node scripts/schedule-gate.mjs morning-sync
       - run: npm ci
-      - run: npm run morning-sync
+        if: steps.gate.outputs.due == 'true'
         env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+      - name: Run morning-sync
+        if: steps.gate.outputs.due == 'true'
+        run: npm run morning-sync
+        env:
+          OPS_SLOT: ${{ steps.gate.outputs.slot }}
           TZ: America/Chicago
           SITE_SYNC_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
@@ -32,3 +48,10 @@ jobs:
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.due == 'true'
+        with:
+          name: run-report
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30

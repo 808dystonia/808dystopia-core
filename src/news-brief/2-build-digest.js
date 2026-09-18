@@ -36,10 +36,10 @@ Return ONLY the JSON object.`;
 export async function buildDigest(articles) {
   if (articles.length === 0) return [];
 
-  const result = await classifyWithDeepSeek(buildPrompt(articles));
+  const result = await classifyWithDeepSeek(buildPrompt(articles), "digest");
   const stories = Array.isArray(result.stories) ? result.stories : [];
   return stories
-    .filter((s) => s.summary && s.source)
+    .filter((s) => s.summary && articles.some(a => a.source === s.source))
     .slice(0, MAX_STORIES)
     .map((s) => `${s.summary} (${s.source})`);
 }

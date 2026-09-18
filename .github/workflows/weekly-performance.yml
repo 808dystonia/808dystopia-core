@@ -1,0 +1,40 @@
+name: Weekly Performance
+on:
+  schedule:
+    - cron: "43 * * * *"
+  workflow_dispatch: {}
+concurrency:
+  group: 808-weekly-performance
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: gate
+        name: Check Monday Chicago window
+        run: node scripts/schedule-gate.mjs weekly-performance
+      - run: npm ci
+        if: steps.gate.outputs.due == 'true'
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+      - run: node scripts/weekly-performance.mjs
+        if: steps.gate.outputs.due == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
+          COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.due == 'true'
+        with:
+          name: weekly-performance
+          path: reports/
+          retention-days: 90

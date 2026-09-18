@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import { stateStore } from '../src/ops/state.js';
+import { PIPELINES } from '../src/ops/schedule.js';
+import { missingSlots } from '../src/ops/health.js';
+await stateStore.update('monitor', state => { state.activatedAt ||= new Date().toISOString(); });
+const { value: monitor } = await stateStore.read('monitor');
+const states = Object.fromEntries(await Promise.all(Object.keys(PIPELINES).map(async name => [name, (await stateStore.read(name)).value])));
+const issues = missingSlots(states, { activatedAt: monitor.activatedAt });
+fs.mkdirSync('reports', { recursive: true });
+fs.writeFileSync('reports/health.json', JSON.stringify({ checkedAt: new Date().toISOString(), issues }, null, 2));
+const summary = issues.length ? issues.map(x => `- ${x.pipeline}: ${x.slot} Chicago — ${x.status}`).join('\n') : 'All due slots since monitoring began are confirmed (90-minute grace period).';
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Automation health\n\n${summary}\n`);
+for (const issue of issues) console.error(`::error::${issue.pipeline} ${issue.slot}: ${issue.status}`);
+if (issues.length) process.exitCode = 1;
