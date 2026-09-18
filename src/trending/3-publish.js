@@ -5,6 +5,9 @@ import { config } from "../config.js";
 import { publishImageToRepo } from "../clients/githubMedia.js";
 import { createStandaloneImageContainer, waitForContainerReady, publishContainer } from "../clients/instagram.js";
 
+import { publishOnce } from "../ops/publishing.js";
+import { chicagoDateString } from "../util/chicagoHour.js";
+
 function buildCaption(rankings) {
   const lines = rankings.map((entry, i) => `${i + 1}. ${entry.name} — ${entry.streamsLabel}`).join("\n");
   return `808 TRENDING TUESDAY\nTop 10 underground rappers moving right now.\n\n${lines}\n\nFollow @808dystopia · more on 808dystopia.win`;
@@ -20,7 +23,8 @@ export async function publishChart({ chartPath, rankings }) {
   const imageUrl = await publishImageToRepo(chartPath, `trending-${Date.now()}.png`);
   const containerId = await createStandaloneImageContainer(imageUrl, caption);
   await waitForContainerReady(containerId);
-  const mediaId = await publishContainer(containerId);
-
-  return { published: true, mediaId, note: `Published as IG media ${mediaId}` };
+  return publishOnce({ pipeline: 'trending-tuesday', identity: chicagoDateString(), platform: 'instagram',
+    metadata: { artist: 'Various', title: 'Trending Tuesday', topic: 'chart', format: 'chart' },
+    publish: async () => ({ published: true, mediaId: await publishContainer(containerId) }),
+  });
 }

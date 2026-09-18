@@ -1,8 +1,4 @@
-// Step 7: publish the carousel (2 rendered image slides + the closer
-// video) via Composio's Instagram tools, then post the hashtag block as a
-// separate first comment. Gated behind config.publish (CAROUSEL_PUBLISH=1)
-// so nothing posts until the pipeline is actually built and tested — with
-// the flag off, this makes no external calls at all.
+// Prepare media, claim content, then persist the confirmed IG ID before follow-ups.
 import { config } from "../config.js";
 import { publishImageToRepo } from "../clients/githubMedia.js";
 import {
@@ -11,7 +7,6 @@ import {
   waitForContainerReady,
   createCarouselContainer,
   publishContainer,
-  postComment,
 } from "../clients/instagram.js";
 
 // The closer video never changes per-post, so instead of re-uploading it
@@ -22,7 +17,9 @@ import {
 const CLOSER_VIDEO_URL =
   "https://raw.githubusercontent.com/808dystonia/808dystopia-core/b0f477120070c70426b4893967d1c3f2116c5dee/src/templates/assets/closer.mp4";
 
-export async function publishCarousel({ slides, caption }) {
+import { publishOnce } from "../ops/publishing.js";
+
+export async function publishCarousel({ slides, caption, identity, metadata }) {
   if (!config.publish) {
     return { published: false, note: "CAROUSEL_PUBLISH is off — dry run, nothing posted." };
   }
@@ -56,11 +53,14 @@ export async function publishCarousel({ slides, caption }) {
   });
   await waitForContainerReady(carouselContainerId);
 
-  const mediaId = await publishContainer(carouselContainerId);
-  await postComment(mediaId, caption.hashtags);
+  const confirmed = await publishOnce({
+    pipeline: "carousel", identity, metadata, platform: "instagram",
+    publish: async () => ({ published: true, mediaId: await publishContainer(carouselContainerId) }),
+  });
+  const { mediaId } = confirmed;
 
   // slide1Url/slide2Url are returned alongside mediaId so a downstream
   // cross-post (Facebook) can reuse the exact same already-uploaded
   // slides instead of uploading them a second time.
-  return { published: true, mediaId, slide1Url, slide2Url, note: `Published as IG media ${mediaId}` };
+  return { ...confirmed, slide1Url, slide2Url, note: `Published as IG media ${mediaId}` };
 }

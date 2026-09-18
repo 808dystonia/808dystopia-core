@@ -1,30 +1,9 @@
-// Daily Reel pipeline logic. Invoked by src/reel-cron.js (the GitHub
-// Actions entry point, which gates the scheduled trigger to the 7 PM
-// Chicago hour) — running this file directly always runs immediately,
-// same posture as the news carousel's pipeline/index.js.
-//
-// #reels turned out to be a static artist/producer watchlist, not a
-// manual day-by-day request queue (see 1-get-watchlist.js) — the
-// watchlist only names who, not what to feature, and doesn't say who
-// should go today. Rather than track "recently featured artist" state
-// separately, this shuffles the watchlist into a random order each run
-// and walks it — natural variety over time, without a second dedup
-// dimension beyond the spec's actual hard rule (never repost a used
-// clip, which is genuinely per-video, not per-artist — see
-// isVideoAlreadyUsed in clients/googleSheets.js).
-//
-// Failure handling (per spec): if any step fails for the selected
-// artist — no video found, no highlight worth featuring, clip
-// processing failed, etc. — that's not a whole-day failure. Fall back
-// to the next artist in the (shuffled) watchlist and retry the pipeline
-// for that one instead. If every candidate fails, or the time budget
-// below runs out first, skip posting for the day entirely — no error
-// alert, fully hands-off. A publish-stage failure (step 6) does NOT
-// fall back to another candidate, though — same as the carousel's
-// runDailyFlow, since redoing all the upstream work (re-search,
-// re-transcribe, re-render the clip) for what's likely a transient
-// publish/network issue isn't worth it inside a time-boxed job.
+// Reel selection and IG/FB publishing. Confirmed posts survive follow-up failures.
 import "dotenv/config";
+import { config } from "../config.js";
+import { contentKey, claimedPosts, bestEffort } from "../ops/publishing.js";
+import { finishPost } from "../ops/followups.js";
+import { postComment } from "../clients/instagram.js";
 import { getWatchlistAndTikTokUrls } from "./1-get-watchlist.js";
 import { findVideo } from "./2-find-video.js";
 import { selectHighlight } from "./3-select-highlight.js";
@@ -78,6 +57,7 @@ export async function selectReelCandidate() {
   const startedAt = Date.now();
   const [{ artists, tiktokUrls }, logRows] = await Promise.all([getWatchlistAndTikTokUrls(), readReelLogRows()]);
 
+  const claims = config.reelPublish ? await claimedPosts("reel") : {};
   for (const url of tiktokUrls) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
 
@@ -88,7 +68,7 @@ export async function selectReelCandidate() {
       console.log(`getTikTokClip(${url}) failed:`, describeError(err));
       continue;
     }
-    if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
+    if (!video || isVideoAlreadyUsed(logRows, video.videoId) || claims[contentKey(video.videoId)]) continue;
 
     const result = await finishCandidate(video, url);
     if (result) return result;
@@ -105,7 +85,7 @@ export async function selectReelCandidate() {
       console.log(`findVideo(${artist}) failed:`, describeError(err));
       continue;
     }
-    if (!video || isVideoAlreadyUsed(logRows, video.videoId)) continue;
+    if (!video || isVideoAlreadyUsed(logRows, video.videoId) || claims[contentKey(video.videoId)]) continue;
 
     const result = await finishCandidate(video, artist);
     if (result) return result;
@@ -125,23 +105,16 @@ export async function runDailyReelFlow() {
   const { video, caption } = selected;
 
   try {
-    const result = await publishReel({ clipPath: video.clipPath, caption });
-    // A dry run (REEL_PUBLISH off) must never log as "posted" — that
-    // status is what isVideoAlreadyUsed checks for dedup, so logging a
-    // dry run that way would permanently block the real post later.
-    const status = result.published ? "posted" : "skipped";
-    const logReport = await logReelOutcome({ video, status, note: result?.note || "" });
-
-    // Only cross-post once the real IG post has actually gone out — a
-    // dry run never uploads videoUrl (or keeps clipPath's file live long
-    // enough to matter) in the first place.
-    const facebook = result.published
-      ? await crosspostReelToFacebook({ videoUrl: result.videoUrl, message: caption.caption })
-      : { published: false, note: "Not attempted (Reel didn't publish)." };
-    return { ...logReport, facebook };
+    const result = await publishReel({ clipPath: video.clipPath, caption, identity: video.videoId,
+      metadata: { artist: video.artist || '', title: video.title || '', topic: video.contentType || 'clip', format: 'reel' } });
+    return await finishPost({ pipeline: 'reel', result,
+      comment: () => postComment(result.mediaId, caption.hashtags),
+      log: () => logReelOutcome({ video, status: result.published ? 'posted' : 'skipped', note: result.note }),
+      facebook: () => crosspostReelToFacebook({ videoUrl: result.videoUrl, message: caption.caption }),
+    });
   } catch (err) {
-    console.log("publishReel failed:", describeError(err));
-    return logReelOutcome({ video, status: "failed-and-retried", note: describeError(err) });
+    await bestEffort(() => logReelOutcome({ video, status: 'failed', note: 'Publishing interrupted; inspect operational state before retrying.' }));
+    throw err;
   }
 }
 

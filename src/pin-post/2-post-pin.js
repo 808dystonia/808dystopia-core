@@ -5,6 +5,8 @@ import { config } from "../config.js";
 import { createPin } from "../clients/pinterest.js";
 import { appendPinLogRow } from "../clients/googleSheets.js";
 
+import { publishOnce, bestEffort, recordFollowups } from "../ops/publishing.js";
+
 export async function postPin(candidate) {
   if (!candidate) {
     return { published: false, note: "No unclaimed underground release found to pin right now." };
@@ -25,22 +27,16 @@ export async function postPin(candidate) {
     };
   }
 
-  const result = await createPin({
-    boardId: config.pinterest.boardId,
-    title: `${album.name} — ${artist}`,
-    description,
-    imageUrl: album.imageUrl,
-    link: album.spotifyUrl,
+  const result = await publishOnce({
+    pipeline: 'pin', identity: `${artist}|${album.name}`, platform: 'pinterest',
+    metadata: { artist, title: album.name, topic: 'album', format: 'pin' },
+    publish: async () => {
+      const pin = await createPin({ boardId: config.pinterest.boardId, title: `${album.name} — ${artist}`, description, imageUrl: album.imageUrl, link: album.spotifyUrl });
+      return { published: true, pinId: pin?.id };
+    },
   });
-  const pinId = result?.id || "";
-
-  await appendPinLogRow({
-    timestamp: new Date().toISOString(),
-    artist,
-    album: album.name,
-    pinId,
-    status: "posted",
-  });
-
-  return { published: true, note: `Pinned "${album.name}" by ${artist}`, pinId };
+  const logged = await bestEffort(() => appendPinLogRow({ timestamp: new Date().toISOString(), artist, album: album.name, pinId: result.pinId, status: 'posted' }));
+  const outcomes = { pinterest: { status: 'posted', id: result.pinId }, sheets: { status: logged.ok ? 'recorded' : 'failed' } };
+  const saved = await bestEffort(() => recordFollowups('pin', result.key, outcomes));
+  return { ...result, outcomes, followupFailed: !logged.ok || !saved.ok, note: `Pinned "${album.name}" by ${artist}` };
 }

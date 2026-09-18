@@ -47,7 +47,7 @@ export async function selectHighlight(video) {
   if (chunks.length === 0) throw new Error("empty transcript");
 
   const transcriptText = formatTranscript(chunks);
-  const result = await classifyWithDeepSeek(buildPrompt(video, transcriptText));
+  const result = await classifyWithDeepSeek(buildPrompt(video, transcriptText), "highlight");
 
   const startSeconds = Number(result.startSeconds);
   const endSeconds = Number(result.endSeconds);

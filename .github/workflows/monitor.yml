@@ -1,0 +1,28 @@
+name: Automation Health
+on:
+  schedule:
+    - cron: "53 * * * *"
+  workflow_dispatch: {}
+concurrency:
+  group: 808-health
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/monitor.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automation-health
+          path: reports/
+          retention-days: 14

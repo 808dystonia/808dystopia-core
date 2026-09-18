@@ -6,6 +6,9 @@ import { listReelsChannelMessages, parseWatchlist } from "../clients/discord.js"
 import { getArtistReleases } from "../clients/spotify.js";
 import { readPinLogRows, isAlbumAlreadyPinned } from "../clients/googleSheets.js";
 
+import { config } from "../config.js";
+import { contentKey, claimedPosts } from "../ops/publishing.js";
+
 function shuffle(items) {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
@@ -26,6 +29,7 @@ export async function getCandidate() {
   if (artists.length === 0) return null;
 
   const logRows = await readPinLogRows();
+  const claims = config.pinPublish ? await claimedPosts("pin") : {};
 
   for (const artist of shuffle(artists)) {
     let releases;
@@ -35,7 +39,7 @@ export async function getCandidate() {
       console.log(`spotify lookup failed for ${artist}:`, err.message);
       continue;
     }
-    const unclaimed = releases.filter((r) => !isAlbumAlreadyPinned(logRows, { artist, album: r.name }));
+    const unclaimed = releases.filter((r) => !isAlbumAlreadyPinned(logRows, { artist, album: r.name }) && !claims[contentKey(`${artist}|${r.name}`)]);
     if (unclaimed.length > 0) {
       return { artist, album: unclaimed[0] };
     }

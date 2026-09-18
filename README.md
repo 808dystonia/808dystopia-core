@@ -1,60 +1,36 @@
 # 808 Dystopia Automation
 
-Daily IG news carousel for @808dystopia, posting twice daily around 9:00 AM and 12:00 PM Central.
-Pipeline: select article → classify → get photo → diss content (if applicable) →
-render slides → build caption → publish → log.
+GitHub Actions pipelines for 808 Dystopia's Instagram, Facebook, Pinterest, Discord, and website. All business schedules use America/Chicago with DST-aware gates.
 
-Steps 1-3 (select article, classify, get photo) are real and tested against
-live services. Steps 4-8 are still stubs — every function there throws
-`not implemented`. Building one step at a time as credentials come in,
-rather than wiring the whole thing at once.
+Active pipelines: news carousel, Reel, album-art Pinterest pins, News Brief, EOD Brief, Morning Sync, and Trending Tuesday. RapToonz, BoxArt, and TikTok publishing are discontinued. TikTok links can still supply source clips for Reels.
 
-## Layout
+## Setup and development
 
-- `src/pipeline/` — the 8 numbered steps + `index.js` orchestrator
-- `src/clients/` — thin wrappers around each external API
-- `src/templates/` — HTML slide templates (placeholders until STOKELY's
-  Canva export + font file are in hand) and `assets/` for static files
-  (font, closer video) once provided
-- `src/config.js` — reads all IDs/keys from env, no hardcoded values
-- `render.yaml` — Render free-tier cron job config
-
-## Run
+Requires Node 22. Copy `.env.example` to `.env` for local configuration. Never commit credentials. Production credentials live in GitHub Actions secrets.
 
 ```bash
-cp .env.example .env
-npm install
-npm start
+npm ci --ignore-scripts
+npm test
+npm run check
 ```
 
-## Credentials to gather
+Publish flags default off locally. Do not trigger live publishing to test changes. Read [AGENTS.md](AGENTS.md) before editing and [the operations guide](docs/operations.md) before changing scheduling, state, or publishing.
 
-See `.env.example` for the full list: Composio project API key + connected
-account IDs (Discord, Pinterest, Google Sheets), Gemini API key, Genius
-access token, Spotify Client ID/Secret, Google Sheets ID.
+## Reliability and observability
 
-## Hard rules (from the project spec)
+- Time-window checks run before expensive dependency setup.
+- Per-pipeline concurrency, durable slot records, and content claims prevent duplicate attempts.
+- Confirmed platform IDs survive comment, cross-post, or Sheets failures.
+- Automation Health flags overdue or incomplete slots in GitHub Actions.
+- `npm run dashboard` exports current targets and verified per-platform outcomes.
+- Weekly Performance reports compare artists, topics, formats, and Chicago posting hours using measured metrics and explicit sample counts.
 
-- Never repeat a posted article unless the underlying story changed
-- Never use AI-generated images — real photos only, from Pinterest's own
-  pinned content (Composio). Google Custom Search was dropped as a
-  fallback: Google discontinued free "search the entire web" for new
-  Programmable Search Engines (March 2026), so it can no longer act as an
-  open-web fallback. If Pinterest has nothing pinned for an artist, that
-  candidate is skipped in favor of the next-newest unused one.
-- No manual override/kill switch — fully hands-off once built
-- 9 AM must be Central Time with correct DST handling — the current
-  `render.yaml` schedule is a fixed UTC cron and does **not** handle DST;
-  needs a real fix before launch
-- Publishing stays gated behind `CAROUSEL_PUBLISH=1` until the pipeline is
-  actually built and tested end-to-end
+Durable non-secret runtime metadata lives on the separate `automation-state` branch. Existing published media remains in `public-media/`. Google Sheets preserves historical outcome logs. See the operations guide for recovery when a publish response is uncertain.
 
-## Composio setup notes
+## Text generation
 
-Project API keys can only see connected accounts made *for that project*
-(via `POST /connected_accounts/link`), not whatever's connected through the
-personal dashboard/login or the CLI's default session. Each toolkit
-(Discord, Pinterest, Google Sheets) needed its own auth config + connection
-created against this project specifically — see git history on
-`src/clients/composio.js` and friends for the exact flow if a new
-connection needs to be added.
+DeepSeek remains the default for classification, digest selection, highlights, and recommendations. OpenAI is an optional configurable alternative using Responses and Structured Outputs. It requires an Actions secret `OPENAI_API_KEY` and variables `OPENAI_MODEL` and `AI_PROVIDER=openai`; adding code alone does not activate it.
+
+## Project rules
+
+Use real photos and source-backed facts for active news publishing. Do not repeat posted stories or clips. Preserve sensitive-story safeguards and disabled publish gates. Changes use a new `claude/*` branch, a PR, and explicit user approval before merging. Nothing runs on Render.

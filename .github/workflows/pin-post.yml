@@ -1,31 +1,45 @@
 name: Pin Post
 
-# Genuinely free — same reasoning as the other workflows (GitHub Actions
-# has no minutes cap on public repos). No new secrets needed at all --
-# reuses the same Composio Discord/Pinterest/Sheets accounts and Spotify
-# keys already configured for the other pipelines.
+# Hourly UTC trigger; the dependency-free gate uses America/Chicago.
 on:
   schedule:
-    # Fires hourly (UTC). src/pin-cron.js gates the real run to the
-    # 9 AM/1 PM/5 PM Chicago hours, year-round — DST-safe, same approach
-    # as the other pipelines.
-    - cron: "0 * * * *"
-  workflow_dispatch: {} # lets a human trigger a run manually, e.g. for testing
+    - cron: "29 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: 808-pin
+  cancel-in-progress: false
+permissions:
+  contents: write # media hosting and durable automation-state records
+  pull-requests: read
 
 jobs:
   run:
     runs-on: ubuntu-latest
-    # Just a watchlist read, a couple Spotify calls, a Sheets read/append,
-    # and one Pinterest pin.
     timeout-minutes: 5
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPS_STATE_ENABLED: "1"
+      AI_PROVIDER: ${{ vars.AI_PROVIDER || 'deepseek' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+      - name: Check Chicago posting window
+        id: gate
+        run: node scripts/schedule-gate.mjs pin
       - run: npm ci
-      - run: npm run pin-post
+        if: steps.gate.outputs.due == 'true'
         env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+      - name: Run pin
+        if: steps.gate.outputs.due == 'true'
+        run: npm run pin-post
+        env:
+          OPS_SLOT: ${{ steps.gate.outputs.slot }}
           TZ: America/Chicago
           PIN_PUBLISH: "1"
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
@@ -37,3 +51,10 @@ jobs:
           SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
           COMPOSIO_GOOGLESHEETS_ACCOUNT_ID: ${{ secrets.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID }}
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.gate.outputs.due == 'true'
+        with:
+          name: run-report
+          path: reports/
+          if-no-files-found: ignore
+          retention-days: 30
