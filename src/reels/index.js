@@ -33,7 +33,6 @@ import { buildReelCaption } from "./5-build-caption.js";
 import { publishReel } from "./6-publish.js";
 import { logReelOutcome } from "./7-log-and-report.js";
 import { crosspostReelToFacebook } from "./8-crosspost-facebook.js";
-import { crosspostReelToTikTok } from "./9-crosspost-tiktok.js";
 import { readReelLogRows, isVideoAlreadyUsed } from "../clients/googleSheets.js";
 import { getTikTokClip } from "../clients/tiktok.js";
 import { describeError } from "../util/describeError.js";
@@ -139,11 +138,7 @@ export async function runDailyReelFlow() {
     const facebook = result.published
       ? await crosspostReelToFacebook({ videoUrl: result.videoUrl, message: caption.caption })
       : { published: false, note: "Not attempted (Reel didn't publish)." };
-    const tiktok = result.published
-      ? await crosspostReelToTikTok({ clipPath: video.clipPath, caption: caption.caption })
-      : { published: false, note: "Not attempted (Reel didn't publish)." };
-
-    return { ...logReport, facebook, tiktok };
+    return { ...logReport, facebook };
   } catch (err) {
     console.log("publishReel failed:", describeError(err));
     return logReelOutcome({ video, status: "failed-and-retried", note: describeError(err) });
