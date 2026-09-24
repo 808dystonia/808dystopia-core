@@ -10,3 +10,22 @@
 - Before modifying publishing, read `docs/operations.md`. An uncertain publish must never be blindly retried. Persist IDs and retain duplicate protection when a comment or Sheets write fails.
 - Validate with `npm test` and `npm run check`. Add behavioral tests for failure recovery, DST, scheduling, and external response parsing when those paths change.
 - OpenAI is optional. Keep provider selection explicit; do not silently change providers or activate API spending. Do not use an LLM for scheduling, locks, success decisions, or retries.
+
+## Multi-agent coordination
+
+More than one AI agent works on this repo across separate sessions and
+separate tools (Claude Code, Codex), with no shared memory between them.
+**GitHub Issue #78 ("Agent Coordination Log")** is the async handoff
+channel that substitutes for that missing shared memory.
+
+- **Before starting work**, read the last ~5 comments on issue #78 for
+  current state, in-flight branches/PRs, and anything a prior session
+  learned that isn't yet reflected in this file or `docs/operations.md`.
+- **After finishing a session with meaningful repo changes**, post a
+  comment on issue #78: what changed, current pipeline state, any
+  blocker that needs a human (not fixable in code), and suggested next
+  steps. Skip the entry for sessions with no repo changes.
+- If something here or in `docs/operations.md` looks stale or wrong,
+  say so in the issue #78 entry rather than silently overwriting these
+  files with an assumption — another agent may have made the change
+  deliberately for a reason not yet reflected in your own context.
