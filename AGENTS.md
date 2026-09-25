@@ -29,3 +29,14 @@ channel that substitutes for that missing shared memory.
   say so in the issue #78 entry rather than silently overwriting these
   files with an assumption — another agent may have made the change
   deliberately for a reason not yet reflected in your own context.
+
+## 808 Dev Bot (Phase 0 only — see `docs/dev-bot.md`)
+
+`config/dev-bot-roles.json`, `src/ops/dev-bot/`, `scripts/dev-bot-intake.mjs`,
+and `.github/workflows/dev-bot-intake.yml` belong to a separate,
+deliberately small system: an orchestrator for AI agents working this
+repo, built one approved phase at a time. Only task intake from a
+labeled GitHub issue into durable state (`ops-state/dev-bot.json`) exists
+so far — no agent execution, no Discord, no merge authority anywhere yet.
+Read `docs/dev-bot.md` before touching any of those files or assuming
+what Dev Bot can currently do.
