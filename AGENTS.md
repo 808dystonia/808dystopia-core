@@ -37,10 +37,11 @@ and `.github/workflows/dev-bot-*.yml` belong to a separate, deliberately
 small system: an orchestrator for AI agents working this repo, built one
 approved phase at a time. So far: task intake from a labeled GitHub issue
 or an authorized Discord message into durable state
-(`ops-state/dev-bot.json`); a daily read-only Discord summary of that
-state; an isolated `agents/dev-bot/<slug>` branch + task brief scaffolded
-on request, with a read-only PR/CI check folded into the daily summary
-(Phase 2); and (Phase 3) plain-text Discord commands
+(`ops-state/dev-bot.json`); a daily Discord summary of that state; an
+isolated `agents/dev-bot/<slug>` branch + task brief scaffolded on
+request, with a PR/CI check folded into the daily summary (Phase 2, and
+note the daily status workflow needs `contents: write` for that sync,
+not just `read`); and (Phase 3) plain-text Discord commands
 (`approve:`/`reject:`/`explain: <task-id>`) to post a real GitHub PR
 review or get a templated task summary — not native Discord buttons (no
 Discord Application Developer Portal access to register an Interactions
