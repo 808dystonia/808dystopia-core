@@ -1,11 +1,12 @@
 # 808 Dev Bot
 
-> **Status: Phase 0 only.** Everything below the "Phase plan" section
-> describes the eventual full design. Only the Phase 0 mechanics
-> (task intake from a labeled GitHub issue into durable state) exist in
-> this repo today. No agent execution, no cross-agent critique, no
-> referee/metrics gate, no Discord surface, and no merge/deploy authority
-> exist yet -- anywhere in the system, for anyone.
+> **Status: Phase 0 and Phase 0.5 only.** Everything below the "Phase
+> plan" section past 0.5 describes the eventual full design. Only task
+> intake exists so far -- from a labeled GitHub issue (Phase 0) or a
+> Discord message in #admin-general (Phase 0.5) into durable state. No
+> agent execution, no cross-agent critique, no referee/metrics gate, no
+> Discord buttons, and no merge/deploy authority exist yet -- anywhere in
+> the system, for anyone.
 
 ## What this is
 
@@ -61,6 +62,36 @@ placeholder waiting to be filled in.
 
 **Cost**: zero. No AI provider is invoked anywhere in this phase.
 
+## Phase 0.5 (implemented)
+
+**Loop**: `.github/workflows/dev-bot-discord-intake.yml` runs hourly
+(`workflow_dispatch` also available for a manual test run), polling the
+last 25 messages in **#admin-general** (`config.discord.adminChannelId`
+-- the same channel EOD Brief already posts to; no new channel, no new
+secret). For each message:
+
+1. Skip if `discordMessageAlreadyProcessed()` says this message ID was
+   already recorded as either an accepted task or a rejected attempt --
+   makes re-scanning the same recent window on every poll a no-op
+   instead of reprocessing or re-logging anything.
+2. Checks the message author's Discord ID against
+   `config/dev-bot-roles.json`. Not listed → rejected, logged internally,
+   **never enters the task queue, and gets no reply** -- #admin-general is
+   shared, so silently ignoring non-task chatter (including Jayden's, or
+   anyone else's) is safer than calling it out publicly.
+3. If authorized, records a task with the message content stored
+   **verbatim** as the body -- no LLM call reads or restructures it.
+4. Posts one confirmation reply in the channel for each accepted task.
+
+Task shape is identical to the GitHub path's, with `discordMessageId`
+instead of `issueNumber` and `requestedBy.via: "discord-message"` instead
+of `"github-issue"` -- both paths write into the same
+`ops-state/dev-bot.json`, so there's one task list regardless of which
+surface a task came in through.
+
+**Cost**: zero. No AI provider invoked; reuses the same Composio Discord
+integration every other pipeline already uses.
+
 ## Who's authorized
 
 Yvan is currently the sole authorized human requester and, once
@@ -75,16 +106,8 @@ to be activated. Expanding the allowlist to a second person, whoever
 that ends up being, is a config change whenever it's actually decided --
 not something implied by this system's existence.
 
-## Phase plan (not yet built)
+## Phase plan (0 and 0.5 built; everything below is not yet built)
 
-- **Phase 0.5** -- Discord task intake. Only Yvan's Discord user ID is
-  authorized to submit Dev Bot tasks this way -- same single-requester
-  model as Phase 0, just a second input surface for the same one person,
-  via the same style of configurable allowlist. A message in a
-  designated channel becomes a task the same way a labeled issue does
-  now. The raw message is stored verbatim as the task body -- **no LLM
-  call to "interpret" it**; interpretation is deferred until an agent
-  actually needs to reason about the task. Not started yet.
 - **Phase 1** -- Discord posts read-only status summaries of task
   progress. Still no buttons, still no merge authority.
 - **Phase 2** -- isolated agent branches (`agents/<tool>/<slug>`),

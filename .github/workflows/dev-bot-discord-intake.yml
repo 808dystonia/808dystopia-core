@@ -1,0 +1,38 @@
+name: Dev Bot Discord Intake
+
+# Phase 0.5 of the 808 Dev Bot orchestrator: polls #admin-general for
+# messages from the sole authorized Discord user and records each as a
+# tracked task, verbatim, alongside the existing GitHub-issue intake path
+# (dev-bot-intake.yml). No new channel, no new secret -- reuses the same
+# admin channel EOD Brief already posts to (config.discord.adminChannelId
+# defaults correctly even without the secret set, same as EOD Brief's own
+# workflow already relies on). Zero AI/third-party API calls. See
+# docs/dev-bot.md.
+on:
+  schedule:
+    - cron: "59 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: 808-dev-bot-discord-intake
+  cancel-in-progress: false
+
+permissions:
+  contents: write # durable dev-bot state lives on the automation-state branch
+
+jobs:
+  intake:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: npm run dev-bot-discord-intake
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}

@@ -53,3 +53,16 @@ export async function taskExistsForIssue(issueNumber, store = defaultStore) {
   const state = await readDevBotState(store);
   return Object.values(state.tasks).some((t) => t.issueNumber === issueNumber);
 }
+
+// Discord intake polls the same recent-message window on every scheduled
+// run, unlike the GitHub path which only fires on a discrete labeling
+// event. Without this, an old unauthorized message would get re-logged
+// as a fresh "attempt" on every single poll for as long as it stays
+// within the fetch window. Checks both accepted tasks and previously
+// recorded unauthorized attempts, so either outcome is remembered.
+export async function discordMessageAlreadyProcessed(messageId, store = defaultStore) {
+  const state = await readDevBotState(store);
+  const inTasks = Object.values(state.tasks).some((t) => t.discordMessageId === messageId);
+  const inUnauthorized = state.unauthorizedAttempts.some((a) => a.discordMessageId === messageId);
+  return inTasks || inUnauthorized;
+}

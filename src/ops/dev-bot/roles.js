@@ -1,9 +1,9 @@
 // Configurable requester allowlist for Dev Bot task intake. Add or remove
 // people by editing config/dev-bot-roles.json -- never hardcode usernames
 // in this file. An entry's presence is the only thing that grants
-// permission to open an accepted dev-bot:task issue; it grants nothing
-// else (no merge/deploy authority is configurable here or anywhere in
-// Phase 0).
+// permission to submit an accepted dev-bot task (via GitHub issue or,
+// since Phase 0.5, Discord); it grants nothing else (no merge/deploy
+// authority is configurable here or anywhere yet).
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -20,7 +20,14 @@ export function loadRoles(path = DEFAULT_PATH) {
     if (!entry.githubUsername || typeof entry.githubUsername !== 'string') {
       throw new Error('config/dev-bot-roles.json: every requester needs a githubUsername string');
     }
-    return { githubUsername: entry.githubUsername.toLowerCase(), displayName: entry.displayName || entry.githubUsername };
+    if (entry.discordUserId != null && typeof entry.discordUserId !== 'string') {
+      throw new Error('config/dev-bot-roles.json: discordUserId, if present, must be a string');
+    }
+    return {
+      githubUsername: entry.githubUsername.toLowerCase(),
+      displayName: entry.displayName || entry.githubUsername,
+      discordUserId: entry.discordUserId || null,
+    };
   });
 }
 
@@ -31,4 +38,15 @@ export function findRequester(githubUsername, roles = loadRoles()) {
 
 export function isAuthorizedRequester(githubUsername, roles = loadRoles()) {
   return findRequester(githubUsername, roles) !== null;
+}
+
+// discordUserId is a Discord snowflake -- always compared as a string, no
+// case-folding (unlike GitHub usernames, Discord IDs aren't letters).
+export function findRequesterByDiscordId(discordUserId, roles = loadRoles()) {
+  if (!discordUserId) return null;
+  return roles.find((r) => r.discordUserId === String(discordUserId)) || null;
+}
+
+export function isAuthorizedDiscordUser(discordUserId, roles = loadRoles()) {
+  return findRequesterByDiscordId(discordUserId, roles) !== null;
 }
