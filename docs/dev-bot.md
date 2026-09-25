@@ -1,12 +1,13 @@
 # 808 Dev Bot
 
-> **Status: Phase 0 and Phase 0.5 only.** Everything below the "Phase
-> plan" section past 0.5 describes the eventual full design. Only task
-> intake exists so far -- from a labeled GitHub issue (Phase 0) or a
-> Discord message in #admin-general (Phase 0.5) into durable state. No
-> agent execution, no cross-agent critique, no referee/metrics gate, no
-> Discord buttons, and no merge/deploy authority exist yet -- anywhere in
-> the system, for anyone.
+> **Status: Phase 0, Phase 0.5, and Phase 1 only.** Everything below the
+> "Phase plan" section past 1 describes the eventual full design. Task
+> intake exists from a labeled GitHub issue (Phase 0) or a Discord
+> message in #admin-general (Phase 0.5) into durable state, plus a daily
+> read-only status summary of that state posted back to Discord (Phase
+> 1). No agent execution, no cross-agent critique, no referee/metrics
+> gate, no Discord buttons, and no merge/deploy authority exist yet --
+> anywhere in the system, for anyone.
 
 ## What this is
 
@@ -92,6 +93,29 @@ surface a task came in through.
 **Cost**: zero. No AI provider invoked; reuses the same Composio Discord
 integration every other pipeline already uses.
 
+## Phase 1 (implemented)
+
+**Loop**: `.github/workflows/dev-bot-status.yml` runs once a day (gated
+through the same Chicago-time `scheduleDecision()` mechanism every
+publishing pipeline uses -- see `src/ops/schedule.js`'s `dev-bot-status`
+entry; `workflow_dispatch` also available for a manual run), and:
+
+1. Reads every task out of `ops-state/dev-bot.json`
+   (`src/ops/dev-bot/state.js`'s `listTasks()`) -- no write happens in
+   this path at all (the workflow's `permissions` are `contents: read`,
+   not `write`, unlike Phase 0/0.5's intake workflows).
+2. Formats a plain-English summary (`src/ops/dev-bot/status.js`): a count
+   by status, then the most recent tasks (id, title, source -- GitHub
+   issue or Discord -- and age), newest first.
+3. Posts that summary as one message in #admin-general.
+
+Nothing else happens. No task's status changes, no agent is invoked, and
+there's no button or reply mechanism here -- it's a heartbeat, not a
+control surface.
+
+**Cost**: zero. No AI provider invoked; reuses the same Composio Discord
+integration every other Dev Bot phase and pipeline already uses.
+
 ## Who's authorized
 
 Yvan is currently the sole authorized human requester and, once
@@ -106,10 +130,8 @@ to be activated. Expanding the allowlist to a second person, whoever
 that ends up being, is a config change whenever it's actually decided --
 not something implied by this system's existence.
 
-## Phase plan (0 and 0.5 built; everything below is not yet built)
+## Phase plan (0, 0.5, and 1 built; everything below is not yet built)
 
-- **Phase 1** -- Discord posts read-only status summaries of task
-  progress. Still no buttons, still no merge authority.
 - **Phase 2** -- isolated agent branches (`agents/<tool>/<slug>`),
   cross-agent critique (Claude reviews Codex's diff and vice versa, as
   peers -- neither model outranks the other), and the referee gate: CI
