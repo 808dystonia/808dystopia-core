@@ -4,8 +4,8 @@ name: Dev Bot Task Intake
 # dev-bot:task-labeled GitHub issue as a tracked task in durable state
 # (ops-state/dev-bot.json on the automation-state branch). Makes zero AI
 # or third-party API calls and adds zero new recurring cost -- see
-# docs/dev-bot.md for the full design and phase plan. Only Phase 0 is
-# implemented: no agent execution, no Discord, no merge/deploy authority
+# docs/dev-bot.md for the full design and phase plan. Dev Bot is
+# GitHub-only: no agent execution, no Discord, no merge/deploy authority
 # exists yet anywhere in this system.
 on:
   issues:

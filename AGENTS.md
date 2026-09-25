@@ -30,30 +30,26 @@ channel that substitutes for that missing shared memory.
   files with an assumption — another agent may have made the change
   deliberately for a reason not yet reflected in your own context.
 
-## 808 Dev Bot (Phase 0, 0.5, 1, 2, and 3 only — see `docs/dev-bot.md`)
+## 808 Dev Bot (Phase 0 and Phase 2 only, GitHub-only — see `docs/dev-bot.md`)
 
 `config/dev-bot-roles.json`, `src/ops/dev-bot/`, `scripts/dev-bot-*.mjs`,
 and `.github/workflows/dev-bot-*.yml` belong to a separate, deliberately
 small system: an orchestrator for AI agents working this repo, built one
 approved phase at a time. So far: task intake from a labeled GitHub issue
-or an authorized Discord message into durable state
-(`ops-state/dev-bot.json`); a daily Discord summary of that state; an
-isolated `agents/dev-bot/<slug>` branch + task brief scaffolded on
-request, with a PR/CI check folded into the daily summary (Phase 2, and
-note the daily status workflow needs `contents: write` for that sync,
-not just `read`); and (Phase 3) plain-text Discord commands
-(`approve:`/`reject:`/`explain: <task-id>`) to post a plain PR comment
-(not a formal GitHub review — GitHub blocks self-review, and every PR
-Dev Bot deals with is opened under this repo's own credentials) or get a
-templated task summary — not native Discord buttons (no Discord
-Application Developer Portal access to register an Interactions
-Endpoint against). **No agent is ever invoked automatically anywhere in
-this system** — a human still manually starts a Claude Code or Codex
-session and points it at the branch, same as any other change in this
-repo. If you're an agent picking up work from a Dev Bot task brief
-(`.dev-bot/tasks/<task-id>.md` on an `agents/dev-bot/*` branch), the
-normal rules in this file still apply in full — new PR, no merge without
-explicit user approval, tests, etc. Read `docs/dev-bot.md` before
-touching any Dev Bot files or assuming what the system can currently do;
-update its status banner and phase-plan section in the same change if
-you add a phase, so this pointer doesn't go stale again.
+into durable state (`ops-state/dev-bot.json`), and an isolated
+`agents/dev-bot/<slug>` branch + task brief scaffolded on request via a
+second label. **No agent is ever invoked automatically anywhere in this
+system** — a human still manually starts a Claude Code or Codex session
+and points it at the branch, same as any other change in this repo.
+Discord-based intake/status/approval (once Phases 0.5/1/3) were built,
+live-tested, and then removed on Yvan's explicit call — too much
+complexity for the value. Don't reintroduce a Discord dependency here
+without a fresh, explicit sign-off; see `docs/dev-bot.md`'s "Discord was
+removed" section for the full reasoning. If you're an agent picking up
+work from a Dev Bot task brief (`.dev-bot/tasks/<task-id>.md` on an
+`agents/dev-bot/*` branch), the normal rules in this file still apply in
+full — new PR, no merge without explicit user approval, tests, etc.
+Read `docs/dev-bot.md` before touching any Dev Bot files or assuming
+what the system can currently do; update its status banner and
+phase-plan section in the same change if you add a phase, so this
+pointer doesn't go stale again.

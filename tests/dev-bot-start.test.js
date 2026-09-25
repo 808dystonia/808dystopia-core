@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { startTask } from '../src/ops/dev-bot/start.js';
 
 const roles = [
-  { githubUsername: 'yvan-real-login', displayName: 'Yvan', discordUserId: '111111111111111111' },
+  { githubUsername: 'yvan-real-login', displayName: 'Yvan' },
 ];
 
 function fakeStore(initial = { version: 1, tasks: {}, unauthorizedAttempts: [] }) {
@@ -54,15 +54,6 @@ test('startTask rejects an unauthorized GitHub actor and logs the attempt withou
   assert.equal(store._value.tasks['issue-1'].status, 'pending-review');
 });
 
-test('startTask rejects an unauthorized Discord actor the same way', async () => {
-  const store = seededStore(pendingTask());
-  const branchCreator = fakeBranchCreator();
-  const result = await startTask('issue-1', { discordUserId: '999999999999999999' }, { store, roles, branchCreator });
-  assert.equal(result.started, false);
-  assert.match(result.reason, /999999999999999999/);
-  assert.equal(branchCreator.calls.length, 0);
-});
-
 test('startTask reports a missing task without touching the branch creator', async () => {
   const store = fakeStore();
   const branchCreator = fakeBranchCreator();
@@ -90,12 +81,4 @@ test('startTask creates a branch for an authorized, pending-review task and upda
   assert.equal(branchCreator.calls.length, 1);
   assert.equal(store._value.tasks['issue-1'].status, 'branch-ready');
   assert.equal(store._value.tasks['issue-1'].branch, 'agents/dev-bot/fake-issue-1');
-});
-
-test('startTask works the same way for a Discord actor authorized by Discord ID', async () => {
-  const store = seededStore(pendingTask({ id: 'discord-m1' }));
-  const branchCreator = fakeBranchCreator();
-  const result = await startTask('discord-m1', { discordUserId: '111111111111111111' }, { store, roles, branchCreator });
-  assert.equal(result.started, true);
-  assert.equal(store._value.tasks['discord-m1'].status, 'branch-ready');
 });
