@@ -42,9 +42,11 @@ isolated `agents/dev-bot/<slug>` branch + task brief scaffolded on
 request, with a PR/CI check folded into the daily summary (Phase 2, and
 note the daily status workflow needs `contents: write` for that sync,
 not just `read`); and (Phase 3) plain-text Discord commands
-(`approve:`/`reject:`/`explain: <task-id>`) to post a real GitHub PR
-review or get a templated task summary — not native Discord buttons (no
-Discord Application Developer Portal access to register an Interactions
+(`approve:`/`reject:`/`explain: <task-id>`) to post a plain PR comment
+(not a formal GitHub review — GitHub blocks self-review, and every PR
+Dev Bot deals with is opened under this repo's own credentials) or get a
+templated task summary — not native Discord buttons (no Discord
+Application Developer Portal access to register an Interactions
 Endpoint against). **No agent is ever invoked automatically anywhere in
 this system** — a human still manually starts a Claude Code or Codex
 session and points it at the branch, same as any other change in this

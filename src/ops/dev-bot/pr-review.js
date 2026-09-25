@@ -1,8 +1,13 @@
-// Phase 3: posts a real GitHub PR review (APPROVE / REQUEST_CHANGES) on
-// behalf of a Discord approve/reject command -- fully native to GitHub,
-// visible on the PR itself, no new label or GitHub Application needed.
-// Never merges anything: a human still clicks Merge on GitHub, same as
-// every phase before this one.
+// Phase 3: posts a plain comment on a PR on behalf of a Discord
+// approve/reject command. Originally posted a formal GitHub review
+// (APPROVE / REQUEST_CHANGES), but GitHub rejects both event types with
+// "Can not approve/request changes on your own pull request" whenever
+// the reviewing token's identity matches the PR author -- which, in
+// this repo, is every PR Dev Bot ever deals with (Claude/Codex sessions
+// open PRs under this same repo's own credentials). A plain issue
+// comment has no such self-authorship restriction, is still fully
+// visible on the PR, and never merges anything -- a human still clicks
+// Merge on GitHub, same as every phase before this one.
 export function createPrReviewer({
   token = process.env.GITHUB_TOKEN,
   repo = process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || '808dystonia/808dystopia-core',
@@ -29,20 +34,22 @@ export function createPrReviewer({
     return data;
   }
 
+  // PRs are issues under the hood, so the issue-comments endpoint works
+  // on a PR number directly -- no separate PR-comments endpoint needed.
+  async function comment(prNumber, body) {
+    if (!token) throw new Error('GITHUB_TOKEN required to post a Dev Bot PR comment');
+    await api(`issues/${prNumber}/comments`, 'POST', { body });
+  }
+
   async function approve(prNumber) {
-    if (!token) throw new Error('GITHUB_TOKEN required to post a Dev Bot PR review');
-    await api(`pulls/${prNumber}/reviews`, 'POST', {
-      event: 'APPROVE',
-      body: 'Approved via 808 Dev Bot (Discord). A human still merges this manually -- Dev Bot has no merge authority.',
-    });
+    await comment(prNumber, '✅ Approved via 808 Dev Bot (Discord). A human still merges this manually -- Dev Bot has no merge authority.');
   }
 
   async function requestChanges(prNumber, reasonText) {
-    if (!token) throw new Error('GITHUB_TOKEN required to post a Dev Bot PR review');
     const body = reasonText
-      ? `Changes requested via 808 Dev Bot (Discord):\n\n${reasonText}`
-      : 'Changes requested via 808 Dev Bot (Discord). No reason was given -- ask the requester for detail.';
-    await api(`pulls/${prNumber}/reviews`, 'POST', { event: 'REQUEST_CHANGES', body });
+      ? `🚫 Changes requested via 808 Dev Bot (Discord):\n\n${reasonText}`
+      : '🚫 Changes requested via 808 Dev Bot (Discord). No reason was given -- ask the requester for detail.';
+    await comment(prNumber, body);
   }
 
   return { approve, requestChanges };

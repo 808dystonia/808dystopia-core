@@ -11,16 +11,24 @@
 //    "explain: <task-id>" let Yvan review a task's open PR from Discord --
 //    plain-text commands, not native Discord buttons (this repo's Discord
 //    access is Composio's connected account, not a Discord Application we
-//    control the Developer Portal for). Approve/reject post a real GitHub
-//    PR review (see src/ops/dev-bot/pr-review.js) but never merge; explain
-//    replies with templated facts, no LLM (see src/ops/dev-bot/review.js).
+//    control the Developer Portal for). Approve/reject post a plain PR
+//    comment (see src/ops/dev-bot/pr-review.js -- a formal GitHub review
+//    doesn't work here, since every PR Dev Bot deals with is opened under
+//    this same repo's own credentials, and GitHub blocks self-review) but
+//    never merge; explain replies with templated facts, no LLM (see
+//    src/ops/dev-bot/review.js).
 //
 // Every recent message in the poll window is re-evaluated on every run.
 // Task intake has its own dedup (discordMessageAlreadyProcessed). Commands
 // don't need a separate dedup ledger: start naturally stops applying once
 // a task moves off "pending-review", and approve/reject/explain are each
 // idempotent or freely repeatable in their own right (re-approving just
-// posts another GitHub review; re-explaining just replies again).
+// posts another PR comment; re-explaining just replies again).
+//
+// Each command runs inside its own try/catch (handleCommands below) --
+// one command failing (a GitHub API error, a transient network blip)
+// must not crash the whole run and block every other message in this
+// poll, including plain task intake, from ever being processed.
 import 'dotenv/config';
 import { config } from '../src/config.js';
 import { listChannelMessages, postToAdminChannel } from '../src/clients/discord.js';
@@ -52,52 +60,66 @@ function matchCommand(message) {
   return null;
 }
 
+async function runCommand(command, message, { branchCreator, prReviewer }) {
+  const actor = { discordUserId: message.authorDiscordId };
+
+  if (command.kind === 'start') {
+    const result = await startTask(command.taskId, actor, { branchCreator });
+    if (!result.started) return false; // unauthorized/not-found/already-started: silent
+    await postToAdminChannel({
+      content: `🏗️ Branch ready: \`${result.branch}\`\n\nFor task \`${command.taskId}\`. Point a Claude Code or Codex session at this branch to begin work.\n\nThis is Phase 2 -- no agent invoked automatically, and nothing here merges on its own.`,
+    });
+    return true;
+  }
+
+  if (command.kind === 'approve') {
+    const result = await approveTask(command.taskId, message.authorDiscordId, { prReviewer });
+    if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); return false; }
+    await postToAdminChannel({ content: `✅ Approved task \`${command.taskId}\` (PR #${result.task.prNumber}) -- posted as a comment on the PR. A human still needs to click Merge -- Dev Bot has no merge authority.` });
+    return true;
+  }
+
+  if (command.kind === 'reject') {
+    const result = await rejectTask(command.taskId, message.authorDiscordId, command.reason, { prReviewer });
+    if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); return false; }
+    await postToAdminChannel({ content: `🚫 Requested changes on task \`${command.taskId}\` (PR #${result.task.prNumber}) -- posted as a comment on the PR.` });
+    return true;
+  }
+
+  if (command.kind === 'explain') {
+    const result = await explainTask(command.taskId, message.authorDiscordId);
+    if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); return false; }
+    await postToAdminChannel({ content: formatTaskExplanation(result.task) });
+    return true;
+  }
+
+  return false;
+}
+
 async function handleCommands(messages) {
   const branchCreator = createBranchCreator();
   const prReviewer = createPrReviewer();
   let applied = 0;
+  let failed = 0;
 
   for (const message of [...messages].reverse()) { // oldest-first
     const command = matchCommand(message);
     if (!command) continue;
-    const actor = { discordUserId: message.authorDiscordId };
-
-    if (command.kind === 'start') {
-      const result = await startTask(command.taskId, actor, { branchCreator });
-      if (!result.started) continue; // unauthorized/not-found/already-started: silent
-      applied += 1;
+    try {
+      if (await runCommand(command, message, { branchCreator, prReviewer })) applied += 1;
+    } catch (err) {
+      // One command failing (a GitHub API error, a transient network
+      // blip) must not crash the whole run -- log it, tell Yvan, and
+      // keep processing the rest of this poll (including plain intake).
+      failed += 1;
+      console.error(`Command "${command.kind}: ${command.taskId}" failed:`, err);
       await postToAdminChannel({
-        content: `🏗️ Branch ready: \`${result.branch}\`\n\nFor task \`${command.taskId}\`. Point a Claude Code or Codex session at this branch to begin work.\n\nThis is Phase 2 -- no agent invoked automatically, and nothing here merges on its own.`,
-      });
-      continue;
-    }
-
-    if (command.kind === 'approve') {
-      const result = await approveTask(command.taskId, message.authorDiscordId, { prReviewer });
-      if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); continue; }
-      applied += 1;
-      await postToAdminChannel({ content: `✅ Approved task \`${command.taskId}\` (PR #${result.task.prNumber}) via a real GitHub review. A human still needs to click Merge -- Dev Bot has no merge authority.` });
-      continue;
-    }
-
-    if (command.kind === 'reject') {
-      const result = await rejectTask(command.taskId, message.authorDiscordId, command.reason, { prReviewer });
-      if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); continue; }
-      applied += 1;
-      await postToAdminChannel({ content: `🚫 Requested changes on task \`${command.taskId}\` (PR #${result.task.prNumber}) via a real GitHub review.` });
-      continue;
-    }
-
-    if (command.kind === 'explain') {
-      const result = await explainTask(command.taskId, message.authorDiscordId);
-      if (!result.applied) { if (!result.silent) await postToAdminChannel({ content: `⚠️ ${result.reason}` }); continue; }
-      applied += 1;
-      await postToAdminChannel({ content: formatTaskExplanation(result.task) });
-      continue;
+        content: `⚠️ \`${command.kind}: ${command.taskId}\` failed: ${err.message || 'unknown error'}. Nothing else in this poll was affected.`,
+      }).catch((postErr) => console.error('Also failed to post the failure notice:', postErr));
     }
   }
 
-  return applied;
+  return { applied, failed };
 }
 
 async function handleIntake(messages) {
@@ -126,10 +148,10 @@ async function main() {
   const commandMessages = messages.filter((m) => matchCommand(m));
   const taskMessages = messages.filter((m) => !matchCommand(m));
 
-  const applied = await handleCommands(commandMessages);
+  const { applied, failed } = await handleCommands(commandMessages);
   const { accepted, rejected, skipped } = await handleIntake(taskMessages);
 
-  console.log(`Discord intake: ${accepted} accepted, ${rejected} rejected (silent), ${skipped} already processed. Commands applied: ${applied}.`);
+  console.log(`Discord intake: ${accepted} accepted, ${rejected} rejected (silent), ${skipped} already processed. Commands applied: ${applied}, failed: ${failed}.`);
 }
 
 main().catch((err) => {
