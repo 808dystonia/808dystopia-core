@@ -55,3 +55,18 @@ test('formatStatusSummary mixes multiple statuses into one counts line', () => {
   assert.match(summary, /1 `pending-review`/);
   assert.match(summary, /1 `in-progress`/);
 });
+
+test('formatStatusSummary shows a branch-ready task as such once Phase 2 has scaffolded it', () => {
+  const summary = formatStatusSummary([task({ status: 'branch-ready', branch: 'agents/dev-bot/foo-abc123' })]);
+  assert.match(summary, /branch `agents\/dev-bot\/foo-abc123` ready/);
+});
+
+test('formatStatusSummary shows PR number and CI state once a PR opens for a tracked branch', () => {
+  const summary = formatStatusSummary([task({ status: 'in-review', branch: 'agents/dev-bot/foo-abc123', prNumber: 84, ciState: 'passing' })]);
+  assert.match(summary, /PR #84, CI: passing/);
+});
+
+test('formatStatusSummary defaults an unreported CI state to pending once a PR is on file', () => {
+  const summary = formatStatusSummary([task({ status: 'in-review', branch: 'agents/dev-bot/foo-abc123', prNumber: 84 })]);
+  assert.match(summary, /PR #84, CI: pending/);
+});

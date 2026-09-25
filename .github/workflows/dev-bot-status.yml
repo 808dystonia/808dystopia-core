@@ -3,8 +3,10 @@ name: Dev Bot Status
 # Phase 1 of the 808 Dev Bot orchestrator: once a day, posts a read-only
 # summary of tracked task progress to #admin-general (same channel Phase
 # 0/0.5 intake already posts to). Purely observational -- reads
-# ops-state/dev-bot.json, writes nothing. Still no buttons, still no
-# merge/deploy authority anywhere in the system. See docs/dev-bot.md.
+# ops-state/dev-bot.json, writes nothing. Phase 2 adds a read-only PR/CI
+# lookup for branch-ready/in-review tasks before the summary is built.
+# Still no buttons, still no merge/deploy authority anywhere in the
+# system. See docs/dev-bot.md.
 on:
   schedule:
     - cron: "51 * * * *"
@@ -16,6 +18,8 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read # Phase 2: look up an open PR for a task's branch
+  checks: read # Phase 2: read that PR's CI conclusion
 
 jobs:
   status:
@@ -34,6 +38,7 @@ jobs:
       - run: npm run dev-bot-status
         if: steps.gate.outputs.due == 'true'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Phase 2: PR/CI lookups
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}

@@ -1,0 +1,37 @@
+name: Dev Bot Start
+
+# Phase 2 of the 808 Dev Bot orchestrator: an authorized requester adds
+# the "dev-bot:start" label to an already-tracked task's issue, and Dev
+# Bot creates an isolated branch (agents/dev-bot/<slug>) plus a task
+# brief committed to it. No AI call, no autonomous code-writing -- a
+# human still manually points Claude Code or Codex at the branch. See
+# docs/dev-bot.md.
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: 808-dev-bot-start-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write # creates the isolated agent branch + brief file
+  issues: write # comment back on the issue
+
+jobs:
+  start:
+    # issues:labeled fires for every label on every issue; only react to
+    # the one Dev Bot cares about. Keep this label name in sync with
+    # START_LABEL in src/ops/dev-bot/start.js.
+    if: github.event.label.name == 'dev-bot:start'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - run: node scripts/dev-bot-start.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

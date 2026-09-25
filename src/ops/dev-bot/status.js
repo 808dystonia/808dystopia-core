@@ -17,6 +17,19 @@ function viaLabel(requestedBy) {
   return requestedBy?.via === 'discord-message' ? 'Discord' : 'GitHub issue';
 }
 
+// Phase 2: tasks past intake carry a branch, and once a PR opens from it,
+// a PR number and CI state (see src/ops/dev-bot/pr-status.js). Falls back
+// to nothing extra for tasks still sitting at plain intake.
+function progressLabel(task) {
+  if (task.prNumber) {
+    return ` — PR #${task.prNumber}, CI: ${task.ciState || 'pending'}`;
+  }
+  if (task.branch) {
+    return ` — branch \`${task.branch}\` ready`;
+  }
+  return '';
+}
+
 export function formatStatusSummary(tasks, now = new Date()) {
   if (tasks.length === 0) {
     return '📋 808 Dev Bot status: no tasks tracked yet.';
@@ -33,7 +46,7 @@ export function formatStatusSummary(tasks, now = new Date()) {
   const sorted = [...tasks].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const lines = sorted
     .slice(0, MAX_LISTED)
-    .map((task) => `• \`${task.id}\` — "${task.title}" (${viaLabel(task.requestedBy)}, ${ageLabel(task.createdAt, now)})`);
+    .map((task) => `• \`${task.id}\` — "${task.title}" (${viaLabel(task.requestedBy)}, ${ageLabel(task.createdAt, now)})${progressLabel(task)}`);
   const remainder = sorted.length - MAX_LISTED;
   const more = remainder > 0 ? `\n…and ${remainder} more.` : '';
 
