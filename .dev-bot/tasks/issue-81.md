@@ -18,3 +18,5 @@ invoked automatically -- point a Claude Code or Codex session at this
 branch to begin work. Open a PR from here when ready; Dev Bot's daily
 status summary will start tracking its CI state. A human still reviews
 and merges -- nothing here merges on its own.
+
+<!-- Phase 3 live-test commit: this trivial edit exists only to open a throwaway PR to verify approve:/reject:/explain: end-to-end. Safe to close without merging. -->
