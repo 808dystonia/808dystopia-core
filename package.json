@@ -18,9 +18,7 @@
     "check": "node scripts/check.mjs",
     "dashboard": "node scripts/dashboard-data.mjs",
     "weekly-performance": "node scripts/weekly-performance.mjs",
-    "dev-bot-intake": "node scripts/dev-bot-intake.mjs",
-    "dev-bot-discord-intake": "node scripts/dev-bot-discord-intake.mjs",
-    "dev-bot-status": "node scripts/dev-bot-status.mjs"
+    "dev-bot-intake": "node scripts/dev-bot-intake.mjs"
   },
   "engines": {
     "node": ">=20"
