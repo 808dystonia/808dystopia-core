@@ -6,8 +6,9 @@ name: Dev Bot Discord Intake
 # (dev-bot-intake.yml). No new channel, no new secret -- reuses the same
 # admin channel EOD Brief already posts to (config.discord.adminChannelId
 # defaults correctly even without the secret set, same as EOD Brief's own
-# workflow already relies on). Zero AI/third-party API calls. See
-# docs/dev-bot.md.
+# workflow already relies on). Also handles Phase 2's "start:" and Phase
+# 3's "approve:"/"reject:"/"explain:" commands. Zero AI/third-party API
+# calls. See docs/dev-bot.md.
 on:
   schedule:
     - cron: "59 * * * *"
@@ -19,6 +20,7 @@ concurrency:
 
 permissions:
   contents: write # durable dev-bot state lives on the automation-state branch
+  pull-requests: write # Phase 3: post an approve/request-changes review
 
 jobs:
   intake:

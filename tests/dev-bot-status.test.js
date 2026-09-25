@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatStatusSummary } from '../src/ops/dev-bot/status.js';
+import { formatStatusSummary, formatTaskExplanation } from '../src/ops/dev-bot/status.js';
 
 function task(overrides) {
   return {
@@ -69,4 +69,41 @@ test('formatStatusSummary shows PR number and CI state once a PR opens for a tra
 test('formatStatusSummary defaults an unreported CI state to pending once a PR is on file', () => {
   const summary = formatStatusSummary([task({ status: 'in-review', branch: 'agents/dev-bot/foo-abc123', prNumber: 84 })]);
   assert.match(summary, /PR #84, CI: pending/);
+});
+
+test('formatStatusSummary shows the review state once Yvan approves or requests changes via Discord', () => {
+  const approved = formatStatusSummary([task({ status: 'in-review', prNumber: 84, ciState: 'passing', reviewState: 'approved' })]);
+  assert.match(approved, /PR #84, CI: passing, review: approved/);
+
+  const rejected = formatStatusSummary([task({ status: 'in-review', prNumber: 84, reviewState: 'changes-requested' })]);
+  assert.match(rejected, /review: changes-requested/);
+});
+
+test('formatTaskExplanation is templated facts only -- no AI-generated summary', () => {
+  const t = task({
+    status: 'in-review',
+    branch: 'agents/dev-bot/foo-abc123',
+    prNumber: 84,
+    prUrl: 'https://github.com/x/y/pull/84',
+    ciState: 'passing',
+    reviewState: 'approved',
+    body: 'Make trending detection more accurate for underground artists.',
+    acceptanceCriteria: ['Tests pass', 'No false positives on the sample set'],
+  });
+  const explanation = formatTaskExplanation(t);
+  assert.match(explanation, /Task `issue-1`: "Improve trending detection"/);
+  assert.match(explanation, /Requested by: Yvan \(GitHub issue\)/);
+  assert.match(explanation, /Branch: `agents\/dev-bot\/foo-abc123`/);
+  assert.match(explanation, /PR: #84 \(https:\/\/github\.com\/x\/y\/pull\/84\), CI: passing/);
+  assert.match(explanation, /Review: `approved`/);
+  assert.match(explanation, /Tests pass; No false positives on the sample set/);
+  assert.match(explanation, /Make trending detection more accurate/);
+  assert.match(explanation, /templated facts only, no AI-generated explanation/);
+});
+
+test('formatTaskExplanation handles a bare task with no branch, PR, or criteria yet', () => {
+  const explanation = formatTaskExplanation(task());
+  assert.doesNotMatch(explanation, /Branch:/);
+  assert.doesNotMatch(explanation, /PR:/);
+  assert.match(explanation, /Acceptance criteria: none recorded/);
 });
