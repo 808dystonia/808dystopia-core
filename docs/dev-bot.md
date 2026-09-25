@@ -53,18 +53,38 @@ later phase can add `"agent"` (Claude/Codex self-proposing) or
 
 **Adding a requester**: edit `config/dev-bot-roles.json` and open a PR
 like any other change. Nothing in this repo can add someone to that file
-automatically -- Phase 0 has no path that writes to it.
+automatically -- Phase 0 has no path that writes to it. The allowlist
+format is intentionally generic (a list of entries) so adding a second
+person later is a one-line config change, not a redesign -- but Phase 0
+ships with a single authorized entry (Yvan), deliberately, not as a
+placeholder waiting to be filled in.
 
 **Cost**: zero. No AI provider is invoked anywhere in this phase.
 
+## Who's authorized
+
+Yvan is currently the sole authorized human requester and, once
+approval controls exist (Phase 2+), the sole approver for 808 Dev Bot.
+This is a Dev Bot-specific restriction, not a statement about who's
+involved in 808 Dystopia as a business -- Jayden (Stokely Santana) is
+Yvan's business partner on the project as a whole and this doesn't
+change that. He's just not part of the AI-development-pipeline side of
+things right now: no GitHub account, doesn't work the coding/dev side,
+and there's no placeholder entry for him anywhere in this system waiting
+to be activated. Expanding the allowlist to a second person, whoever
+that ends up being, is a config change whenever it's actually decided --
+not something implied by this system's existence.
+
 ## Phase plan (not yet built)
 
-- **Phase 0.5** -- Discord task intake for authorized requesters (initially
-  the two people in `config/dev-bot-roles.json`'s eventual Discord
-  counterpart list). A message in a designated channel becomes a task the
-  same way a labeled issue does now. The raw message is stored verbatim
-  as the task body -- **no LLM call to "interpret" it**; interpretation is
-  deferred until an agent actually needs to reason about the task.
+- **Phase 0.5** -- Discord task intake. Only Yvan's Discord user ID is
+  authorized to submit Dev Bot tasks this way -- same single-requester
+  model as Phase 0, just a second input surface for the same one person,
+  via the same style of configurable allowlist. A message in a
+  designated channel becomes a task the same way a labeled issue does
+  now. The raw message is stored verbatim as the task body -- **no LLM
+  call to "interpret" it**; interpretation is deferred until an agent
+  actually needs to reason about the task. Not started yet.
 - **Phase 1** -- Discord posts read-only status summaries of task
   progress. Still no buttons, still no merge authority.
 - **Phase 2** -- isolated agent branches (`agents/<tool>/<slug>`),
