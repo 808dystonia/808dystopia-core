@@ -211,13 +211,20 @@ allowlist check, logged as an unauthorized attempt and answered with
 silence if it fails -- see `src/ops/dev-bot/review.js`)**:
 
 - **`approve: <task-id>`** -- only valid once the task has an open PR on
-  file (`prNumber` set by Phase 2's PR/CI sync). Posts a real GitHub PR
-  review (`APPROVE`, via `src/ops/dev-bot/pr-review.js`) with a note that
-  a human still has to click Merge -- this never merges anything. Records
-  `reviewState: "approved"` on the task.
+  file (`prNumber` set by Phase 2's PR/CI sync). Posts a plain comment on
+  the PR (`src/ops/dev-bot/pr-review.js`) with a note that a human still
+  has to click Merge -- this never merges anything. Records
+  `reviewState: "approved"` on the task. (A *formal* GitHub review --
+  the `APPROVE` event -- was the first version of this and genuinely
+  worked in tests, but GitHub rejects it in real use with "Can not
+  approve your own pull request": every PR Dev Bot deals with is opened
+  under this same repo's own credentials, so the reviewing token's
+  identity always matches the PR author. A plain comment has no such
+  restriction, so that's what ships.)
 - **`reject: <task-id> [reason]`** -- same PR requirement, posts a
-  `REQUEST_CHANGES` review carrying the reason (or a generic note if none
-  given). Records `reviewState: "changes-requested"` plus the reason.
+  comment carrying the reason (or a generic note if none given) --
+  same self-review reasoning as `approve` above. Records
+  `reviewState: "changes-requested"` plus the reason.
 - **`explain: <task-id>`** -- read-only. Replies with templated facts
   pulled straight from the task record (`src/ops/dev-bot/status.js`'s
   `formatTaskExplanation()`): title, requester, status, branch, PR
@@ -228,7 +235,11 @@ silence if it fails -- see `src/ops/dev-bot/review.js`)**:
 
 A genuine mistake (task ID that doesn't exist, or approving/rejecting a
 task with no PR yet) gets a reply explaining why -- unlike an
-unauthorized attempt, that's not something worth hiding.
+unauthorized attempt, that's not something worth hiding. A command that
+throws (a GitHub API error, a transient network blip) is caught and
+reported the same way, per-command -- one failing command can't crash
+the whole poll and block every other message in it, including plain
+task intake, from being processed.
 
 The daily status summary (Phase 1) now also shows the review state once
 set, e.g. `PR #84, CI: passing, review: approved`.
@@ -268,9 +279,9 @@ this one did.
   agent is invoked to write to one automatically; a human still starts
   that session by hand.
 - No Discord user has merge or deploy authority through Dev Bot as of
-  Phase 3 -- approve/reject post a real GitHub review, nothing more.
-  Only Phase 4, if and when it's built, would change that, and only
-  after its own explicit sign-off, not implied by adding someone to a
+  Phase 3 -- approve/reject post a plain PR comment, nothing more. Only
+  Phase 4, if and when it's built, would change that, and only after
+  its own explicit sign-off, not implied by adding someone to a
   requester list.
 - Cost and loop-prevention counters live in `ops-state/dev-bot.json`
   once a phase actually spends anything; Phase 0 has nothing to meter.

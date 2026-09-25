@@ -16,28 +16,28 @@ function jsonResponse(status, body) {
   return { ok: status >= 200 && status < 300, status, json: async () => body };
 }
 
-test('approve posts an APPROVE review with a no-merge-authority note', async () => {
+test('approve posts a PR comment with a no-merge-authority note', async () => {
   const calls = [];
-  const fetchImpl = fakeFetch([[/^pulls\/84\/reviews$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
+  const fetchImpl = fakeFetch([[/^issues\/84\/comments$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
   const reviewer = createPrReviewer({ token: 'tok', fetchImpl });
   await reviewer.approve(84);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].event, 'APPROVE');
+  assert.match(calls[0].body, /Approved via 808 Dev Bot/);
   assert.match(calls[0].body, /no merge authority/);
 });
 
-test('requestChanges posts a REQUEST_CHANGES review including the given reason', async () => {
+test('requestChanges posts a comment including the given reason', async () => {
   const calls = [];
-  const fetchImpl = fakeFetch([[/^pulls\/84\/reviews$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
+  const fetchImpl = fakeFetch([[/^issues\/84\/comments$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
   const reviewer = createPrReviewer({ token: 'tok', fetchImpl });
   await reviewer.requestChanges(84, 'Needs tests for the DST edge case.');
-  assert.equal(calls[0].event, 'REQUEST_CHANGES');
+  assert.match(calls[0].body, /Changes requested via 808 Dev Bot/);
   assert.match(calls[0].body, /Needs tests for the DST edge case\./);
 });
 
 test('requestChanges falls back to a generic note when no reason is given', async () => {
   const calls = [];
-  const fetchImpl = fakeFetch([[/^pulls\/84\/reviews$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
+  const fetchImpl = fakeFetch([[/^issues\/84\/comments$/, (body) => { calls.push(body); return jsonResponse(200, {}); }]]);
   const reviewer = createPrReviewer({ token: 'tok', fetchImpl });
   await reviewer.requestChanges(84, null);
   assert.match(calls[0].body, /No reason was given/);
@@ -50,7 +50,7 @@ test('approve and requestChanges refuse to run without a token', async () => {
 });
 
 test('a failed GitHub response surfaces its status on the thrown error', async () => {
-  const fetchImpl = fakeFetch([[/^pulls\/84\/reviews$/, () => jsonResponse(422, { message: 'Review cannot be submitted' })]]);
+  const fetchImpl = fakeFetch([[/^issues\/84\/comments$/, () => jsonResponse(404, { message: 'Not Found' })]]);
   const reviewer = createPrReviewer({ token: 'tok', fetchImpl });
-  await assert.rejects(() => reviewer.approve(84), (err) => err.status === 422);
+  await assert.rejects(() => reviewer.approve(84), (err) => err.status === 404);
 });
