@@ -49,6 +49,23 @@ export async function listTasks(store = defaultStore) {
   return Object.values(state.tasks);
 }
 
+export async function getTask(taskId, store = defaultStore) {
+  const state = await readDevBotState(store);
+  return state.tasks[taskId] || null;
+}
+
+// Phase 2: merges a patch into an existing task record (e.g. branch/PR/CI
+// fields as a task moves past intake) -- never used to create a task,
+// only to update one recordTask() already persisted.
+export async function updateTask(taskId, patch, store = defaultStore) {
+  return store.update(NAME, (value) => {
+    ensureShape(value);
+    if (!value.tasks[taskId]) throw new Error(`No task found for id "${taskId}"`);
+    value.tasks[taskId] = { ...value.tasks[taskId], ...patch };
+    return value.tasks[taskId];
+  });
+}
+
 export async function taskExistsForIssue(issueNumber, store = defaultStore) {
   const state = await readDevBotState(store);
   return Object.values(state.tasks).some((t) => t.issueNumber === issueNumber);
