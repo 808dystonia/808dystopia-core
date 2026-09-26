@@ -11,12 +11,12 @@
 - Validate with `npm test` and `npm run check`. Add behavioral tests for failure recovery, DST, scheduling, and external response parsing when those paths change.
 - OpenAI is optional. Keep provider selection explicit; do not silently change providers or activate API spending. Do not use an LLM for scheduling, locks, success decisions, or retries.
 
-## Multi-agent coordination
+## Session handoff log
 
-More than one AI agent works on this repo across separate sessions and
-separate tools (Claude Code, Codex), with no shared memory between them.
+Only Claude Code works on this repo now (Codex/ChatGPT is no longer
+used), but separate Claude Code sessions still share no memory.
 **GitHub Issue #78 ("Agent Coordination Log")** is the async handoff
-channel that substitutes for that missing shared memory.
+channel between sessions.
 
 - **Before starting work**, read the last ~5 comments on issue #78 for
   current state, in-flight branches/PRs, and anything a prior session
@@ -27,29 +27,11 @@ channel that substitutes for that missing shared memory.
   steps. Skip the entry for sessions with no repo changes.
 - If something here or in `docs/operations.md` looks stale or wrong,
   say so in the issue #78 entry rather than silently overwriting these
-  files with an assumption — another agent may have made the change
-  deliberately for a reason not yet reflected in your own context.
+  files with an assumption.
 
-## 808 Dev Bot (Phase 0 and Phase 2 only, GitHub-only — see `docs/dev-bot.md`)
+## 808 Dev Bot (removed)
 
-`config/dev-bot-roles.json`, `src/ops/dev-bot/`, `scripts/dev-bot-*.mjs`,
-and `.github/workflows/dev-bot-*.yml` belong to a separate, deliberately
-small system: an orchestrator for AI agents working this repo, built one
-approved phase at a time. So far: task intake from a labeled GitHub issue
-into durable state (`ops-state/dev-bot.json`), and an isolated
-`agents/dev-bot/<slug>` branch + task brief scaffolded on request via a
-second label. **No agent is ever invoked automatically anywhere in this
-system** — a human still manually starts a Claude Code or Codex session
-and points it at the branch, same as any other change in this repo.
-Discord-based intake/status/approval (once Phases 0.5/1/3) were built,
-live-tested, and then removed on Yvan's explicit call — too much
-complexity for the value. Don't reintroduce a Discord dependency here
-without a fresh, explicit sign-off; see `docs/dev-bot.md`'s "Discord was
-removed" section for the full reasoning. If you're an agent picking up
-work from a Dev Bot task brief (`.dev-bot/tasks/<task-id>.md` on an
-`agents/dev-bot/*` branch), the normal rules in this file still apply in
-full — new PR, no merge without explicit user approval, tests, etc.
-Read `docs/dev-bot.md` before touching any Dev Bot files or assuming
-what the system can currently do; update its status banner and
-phase-plan section in the same change if you add a phase, so this
-pointer doesn't go stale again.
+The 808 Dev Bot agent orchestrator (issue-label task intake and
+`agents/dev-bot/*` branch scaffolding) was scrapped at Yvan's request.
+Don't rebuild it or any other agent-orchestration layer without a fresh,
+explicit request.

@@ -17,8 +17,7 @@
     "test": "node --test",
     "check": "node scripts/check.mjs",
     "dashboard": "node scripts/dashboard-data.mjs",
-    "weekly-performance": "node scripts/weekly-performance.mjs",
-    "dev-bot-intake": "node scripts/dev-bot-intake.mjs"
+    "weekly-performance": "node scripts/weekly-performance.mjs"
   },
   "engines": {
     "node": ">=20"
