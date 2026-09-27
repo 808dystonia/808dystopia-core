@@ -31,8 +31,8 @@ test('health skips hours before a newly added pipeline first ran, but still flag
   const now = new Date('2026-09-28T23:00:00Z');
   const neverRan = missingSlots({}, { activatedAt, now });
   assert.ok(neverRan.some(x => x.pipeline === 'his-pin'));
-  // First his-pin run on 9/28 at 18:47 CT (23:47Z): earlier his-pin slots predate it.
-  const now2 = new Date('2026-09-29T01:30:00Z');
-  const state = { 'his-pin': { slots: { '2026-09-28T18': { status: 'posted', startedAt: '2026-09-28T23:47:30Z' } } } };
+  // First his-pin run on 9/28 at 11:47 CT (16:47Z): the 9/27 11 AM slot predates it.
+  const now2 = new Date('2026-09-28T23:00:00Z');
+  const state = { 'his-pin': { slots: { '2026-09-28T11': { status: 'posted', startedAt: '2026-09-28T16:47:30Z' } } } };
   assert.ok(!missingSlots(state, { activatedAt, now: now2 }).some(x => x.pipeline === 'his-pin'));
 });
