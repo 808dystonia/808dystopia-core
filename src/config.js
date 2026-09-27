@@ -69,6 +69,12 @@ export const config = {
     // "808 Box Art" board -- created live via PINTEREST_CREATE_BOARD for
     // the PS1/PS2-style game-case cover pipeline (src/boxart/).
     boxartBoardId: process.env.PINTEREST_BOXART_BOARD_ID || "1099230290240924080",
+    // "His Underground" / "Her Underground" public boards and the secret
+    // "Underground Photo Drop" staging board -- created live via
+    // PINTEREST_CREATE_BOARD for src/artist-pins/.
+    hisBoardId: process.env.PINTEREST_HIS_BOARD_ID || "1099230290240967696",
+    herBoardId: process.env.PINTEREST_HER_BOARD_ID || "1099230290240967695",
+    photoDropBoardId: process.env.PINTEREST_PHOTO_DROP_BOARD_ID || "1099230290240967694",
   },
 
   facebook: {
@@ -180,6 +186,8 @@ export const config = {
   siteSyncPublish: process.env.SITE_SYNC_PUBLISH === "1",
   // Same gate, for the 9 AM/1 PM/5 PM Pinterest album-art pins.
   pinPublish: process.env.PIN_PUBLISH === "1",
+  // Same gate, for the His/Her Underground artist photo pins.
+  artistPinPublish: process.env.ARTIST_PIN_PUBLISH === "1",
   // Same gate, for cross-posting the daily carousel to the Facebook Page.
   facebookCrosspostPublish: process.env.FACEBOOK_CROSSPOST_PUBLISH === "1",
   // Same gate, for cross-posting the daily Reel to the Facebook Page --

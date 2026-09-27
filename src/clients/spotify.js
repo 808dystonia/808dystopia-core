@@ -77,6 +77,22 @@ async function searchArtist(name) {
   return items.find((a) => a.name.toLowerCase() === name.toLowerCase()) || null;
 }
 
+// Artist profile photo + page -- His/Her Underground's fallback photo
+// source and pin link. Same exact-name rule as searchArtist, so a miss
+// means "no confident match", never a same-named stranger. Spotify lists
+// images largest first.
+export async function getArtistProfile(name) {
+  const artist = await searchArtist(name);
+  if (!artist) return null;
+  const image = artist.images?.[0];
+  return {
+    spotifyUrl: artist.external_urls?.spotify || null,
+    imageUrl: image?.url || null,
+    width: image?.width || null,
+    height: image?.height || null,
+  };
+}
+
 // Every album/single release for an artist, newest first, each with its
 // cover art URL -- the Pin pipeline's source of candidate cover art.
 // Releases with no art at all (rare, but real) are dropped rather than

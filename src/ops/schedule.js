@@ -4,6 +4,8 @@ export const PIPELINES = {
   carousel: { hours: [9, 12], minute: 17, module: '../pipeline/index.js', entry: 'runDailyFlow' },
   reel: { hours: [10, 12, 14, 16, 19], minute: 23, module: '../reels/index.js', entry: 'runDailyReelFlow' },
   pin: { hours: [9, 13, 17], minute: 29, module: '../pin-post/index.js', entry: 'runPinPost' },
+  'his-pin': { hours: [11], minute: 47, module: '../artist-pins/index.js', entry: 'runHisPin' },
+  'her-pin': { hours: [15], minute: 47, module: '../artist-pins/index.js', entry: 'runHerPin' },
   'news-brief': { hours: [12, 18], minute: 7, module: '../news-brief/index.js', entry: 'runNewsBrief' },
   'eod-brief': { hours: [21], minute: 37, module: '../eod-brief/index.js', entry: 'runEodBrief' },
   'morning-sync': { hours: [10], minute: 13, module: '../morning-sync/index.js', entry: 'runMorningSync' },

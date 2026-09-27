@@ -29,6 +29,29 @@ export async function searchOwnPins(query) {
   return null;
 }
 
+// Pins on one of the account's own boards (secret boards included when
+// listed by board_id) -- His/Her Underground's hand-picked photo source:
+// the "Underground Photo Drop" board where photos get saved by hand.
+export async function listBoardPins(boardId, pageSize = 100) {
+  const res = await runTool(
+    "PINTEREST_LIST_PINS",
+    { board_id: boardId, page_size: pageSize },
+    config.pinterest.connectedAccountId || undefined
+  );
+  return (res?.items || []).map((pin) => {
+    const images = pin?.media?.images || {};
+    const best = images["1200x"] || images["600x"] || null;
+    return {
+      id: pin.id,
+      text: [pin.title, pin.description, pin.alt_text, pin.note].filter(Boolean).join(" "),
+      imageUrl: extractImageUrl(pin),
+      width: best?.width || null,
+      height: best?.height || null,
+      link: pin.link || null,
+    };
+  });
+}
+
 // Creates an image Pin from a public image URL (Pinterest fetches it
 // itself — no upload/base64 needed). Confirmed live: this Pinterest
 // connection has full Standard write access, not the Trial-tier sandbox

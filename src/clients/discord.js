@@ -101,6 +101,53 @@ export function parseTvBoard(messages) {
   return [...names.values()];
 }
 
+// His/Her Underground's data source: the same board, now split by Grok
+// into **MALE** / **FEMALE** sub-sections under each **RAPPERS** /
+// **PRODUCERS** header (confirmed live 9/27). Gender comes only from
+// which labelled section a line sits under -- never inferred from a
+// name. A **RAPPERS**/**PRODUCERS** header resets the section, so a
+// line is only counted once a MALE/FEMALE label has been seen after it;
+// unlabelled boards (the older format) contribute nothing. A name listed
+// under both is dropped from both rather than guessed at.
+const ROLE_HEADER = /^\*\*(RAPPERS|PRODUCERS)\*\*/i;
+const GENDER_HEADER = /^\*\*(MALE|FEMALE)\*\*\s*$/i;
+
+export function parseTvBoardByGender(messages) {
+  const found = { male: new Map(), female: new Map() };
+  for (const message of messages) {
+    let role = null;
+    let gender = null;
+    for (const raw of (message.content || "").split("\n")) {
+      const line = raw.trim();
+      const roleMatch = line.match(ROLE_HEADER);
+      if (roleMatch) {
+        role = roleMatch[1].toUpperCase() === "RAPPERS" ? "rapper" : "producer";
+        gender = null;
+        continue;
+      }
+      const genderMatch = line.match(GENDER_HEADER);
+      if (genderMatch) {
+        gender = genderMatch[1].toLowerCase();
+        continue;
+      }
+      if (!gender) continue;
+      const match = line.match(TV_BOARD_LINE);
+      if (!match) continue;
+      for (const part of match[1].split("/")) {
+        const name = part.trim();
+        if (name && !found[gender].has(name.toLowerCase())) found[gender].set(name.toLowerCase(), { name, role: role || "artist" });
+      }
+    }
+  }
+  for (const key of [...found.male.keys()]) {
+    if (found.female.has(key)) {
+      found.male.delete(key);
+      found.female.delete(key);
+    }
+  }
+  return { male: [...found.male.values()], female: [...found.female.values()] };
+}
+
 // Trending Tuesdays' data source: the most recent RAPPERS board message
 // only (not every one in the fetched window -- the board refreshes
 // daily, so anything older is stale and would mix names into a chart
