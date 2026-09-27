@@ -6,7 +6,9 @@
 // rotate instead of repeating the same few faces.
 import { listReelsChannelMessages, parseTvBoardByGender } from "../clients/discord.js";
 
-export const COOLDOWN_DAYS = 45;
+// Short on purpose: at 3 pins a day per board the labelled pool is small
+// (5 women on the 9/27 board). Repeats still need a never-used photo.
+export const COOLDOWN_DAYS = 7;
 
 function shuffle(items) {
   const result = [...items];
@@ -30,7 +32,8 @@ export function eligibleArtists(pool, posts, now = new Date()) {
 }
 
 export async function getCandidates(gender, posts) {
-  const messages = await listReelsChannelMessages();
+  // Several days of boards, not just today's, so the pool is wider.
+  const messages = await listReelsChannelMessages(100);
   const pool = parseTvBoardByGender(messages)[gender] || [];
   return eligibleArtists(pool, posts);
 }

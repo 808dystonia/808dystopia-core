@@ -9,8 +9,8 @@ GitHub Actions runs the pipelines. No Render service is involved. `src/ops/sched
 | Carousel, Instagram + Facebook | 9, 12 | 17 |
 | Reel, Instagram + Facebook | 10, 12, 14, 16, 19 | 23 |
 | Album-art Pinterest | 9, 13, 17 | 29 |
-| His Underground Pinterest | 11 | 47 |
-| Her Underground Pinterest | 15 | 47 |
+| His Underground Pinterest | 10, 14, 18 | 47 |
+| Her Underground Pinterest | 11, 15, 19 | 47 |
 | News Brief | 12, 18 | 07 |
 | Morning Sync | 10 | 13 |
 | EOD Brief | 21 | 37 |
@@ -19,7 +19,7 @@ GitHub Actions runs the pipelines. No Render service is involved. `src/ops/sched
 
 These are posting windows, not exact delivery guarantees. GitHub may delay or drop scheduled runs. News Brief starts before the noon carousel so fresh headlines have a chance to arrive, but this is not a dependency guarantee. See [GitHub scheduling documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
-His Underground and Her Underground (`src/artist-pins/`) pin one artist photo a day each. Artists come only from Grok's 808 TV board in `#reels`, and only names listed under an explicit **MALE** or **FEMALE** label; gender is never inferred. Photo sources, in order: the secret "Underground Photo Drop" Pinterest board (save a photo there with the artist's name in its title or description), Google Images via Composio (only when the result's own page names the artist, at least 600px on the short side), the Spotify profile photo, then the Genius photo. An artist rests for 45 days after a pin, and a photo is never pinned twice to the same board. Gate: `ARTIST_PIN_PUBLISH`.
+His Underground and Her Underground (`src/artist-pins/`) pin three artist photos a day each. Artists come only from Grok's 808 TV board in `#reels`, and only names listed under an explicit **MALE** or **FEMALE** label; gender is never inferred. Photo sources, in order: the secret "Underground Photo Drop" Pinterest board (save a photo there with the artist's name in its title or description), Google Images via Composio (only when the result's own page names the artist, at least 600px on the short side), the Spotify profile photo, then the Genius photo. An artist rests for 7 days after a pin (the labelled pool is small), and a photo is never pinned twice to the same board. The pool is the last 100 `#reels` messages. Gate: `ARTIST_PIN_PUBLISH`.
 
 RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
 

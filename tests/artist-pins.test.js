@@ -30,8 +30,8 @@ test('a name listed under both labels is dropped rather than guessed', () => {
 test('recent or pending pins put an artist on cooldown; old ones do not', () => {
   const now = new Date('2026-09-27T12:00:00Z');
   const posts = {
-    a: { artist: 'Pixy', startedAt: '2026-09-20T12:00:00Z', status: 'posted' },
-    b: { artist: 'Ledbyher', startedAt: '2026-07-01T12:00:00Z', status: 'posted' },
+    a: { artist: 'Pixy', startedAt: '2026-09-24T12:00:00Z', status: 'posted' },
+    b: { artist: 'Ledbyher', startedAt: '2026-09-19T12:00:00Z', status: 'posted' },
     c: { artist: 'Bby Kell', startedAt: '2026-09-27T11:00:00Z', status: 'pending' },
   };
   assert.equal(onCooldown('pixy', posts, now), true);
