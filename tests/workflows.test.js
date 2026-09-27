@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import YAML from 'yaml';
 import { PIPELINES } from '../src/ops/schedule.js';
-const files = { carousel: 'daily-post', reel: 'daily-reel', pin: 'pin-post', 'news-brief': 'news-brief', 'eod-brief': 'eod-brief', 'morning-sync': 'morning-sync', 'trending-tuesday': 'trending-tuesday', 'weekly-performance': 'weekly-performance' };
+const files = { carousel: 'daily-post', reel: 'daily-reel', pin: 'pin-post', 'his-pin': 'his-pin', 'her-pin': 'her-pin', 'news-brief': 'news-brief', 'eod-brief': 'eod-brief', 'morning-sync': 'morning-sync', 'trending-tuesday': 'trending-tuesday', 'weekly-performance': 'weekly-performance' };
 test('workflows and Chicago schedules cannot drift; heavy setup is gated', () => {
   for (const [name, file] of Object.entries(files)) {
     const workflow = YAML.parse(fs.readFileSync(`.github/workflows/${file}.yml`, 'utf8'));

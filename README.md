@@ -2,7 +2,7 @@
 
 GitHub Actions pipelines for 808 Dystopia's Instagram, Facebook, Pinterest, Discord, and website. All business schedules use America/Chicago with DST-aware gates.
 
-Active pipelines: news carousel, Reel, album-art Pinterest pins, News Brief, EOD Brief, Morning Sync, and Trending Tuesday. RapToonz, BoxArt, and TikTok publishing are discontinued. TikTok links can still supply source clips for Reels.
+Active pipelines: news carousel, Reel, album-art Pinterest pins, His/Her Underground artist Pinterest pins, News Brief, EOD Brief, Morning Sync, and Trending Tuesday. RapToonz, BoxArt, and TikTok publishing are discontinued. TikTok links can still supply source clips for Reels.
 
 ## Setup and development
 

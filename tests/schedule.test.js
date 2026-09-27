@@ -26,3 +26,13 @@ test('health ignores pre-activation slots and grace period; flags misses after g
   const state = { carousel: { slots: { '2026-09-18T09': { status: 'posted' } } } };
   assert.ok(!missingSlots(state, { activatedAt, now: new Date('2026-09-18T15:53:00Z') }).some(x => x.pipeline === 'carousel'));
 });
+test('health skips hours before a newly added pipeline first ran, but still flags one that never ran', () => {
+  const activatedAt = '2026-09-18T14:00:00Z';
+  const now = new Date('2026-09-28T23:00:00Z');
+  const neverRan = missingSlots({}, { activatedAt, now });
+  assert.ok(neverRan.some(x => x.pipeline === 'his-pin'));
+  // First his-pin run on 9/28 at 11:47 CT (16:47Z): the 9/27 11 AM slot predates it.
+  const now2 = new Date('2026-09-28T23:00:00Z');
+  const state = { 'his-pin': { slots: { '2026-09-28T11': { status: 'posted', startedAt: '2026-09-28T16:47:30Z' } } } };
+  assert.ok(!missingSlots(state, { activatedAt, now: now2 }).some(x => x.pipeline === 'his-pin'));
+});
