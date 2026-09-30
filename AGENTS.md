@@ -9,7 +9,7 @@
 - Local Composio calls may require `unset COMPOSIO_API_KEY GENIUS_ACCESS_TOKEN` followed by `NODE_USE_ENV_PROXY=1` so `.env` wins over stale shell credentials.
 - Before modifying publishing, read `docs/operations.md`. An uncertain publish must never be blindly retried. Persist IDs and retain duplicate protection when a comment or Sheets write fails.
 - Validate with `npm test` and `npm run check`. Add behavioral tests for failure recovery, DST, scheduling, and external response parsing when those paths change.
-- OpenAI is optional. Keep provider selection explicit; do not silently change providers or activate API spending. Do not use an LLM for scheduling, locks, success decisions, or retries.
+- OpenAI and Gemini (free tier) are optional. Keep provider selection explicit; do not silently change providers or activate API spending. Do not use an LLM for scheduling, locks, success decisions, or retries.
 
 ## Session handoff log
 

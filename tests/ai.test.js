@@ -30,3 +30,19 @@ test('safe calls retry transient errors; publishing mutations never auto-retry',
     if (retrySafe) { await request; assert.equal(calls, 2); } else { await assert.rejects(request); assert.equal(calls, 1); }
   }
 });
+test('Gemini uses its OpenAI-compatible endpoint, schema in the prompt, and tolerates a fenced reply', async () => {
+  let url, body, auth;
+  const generate = createJsonGenerator({ provider: 'gemini', apiKey: 'free-key', fetchImpl: async (u, options) => {
+    url = u; body = JSON.parse(options.body); auth = options.headers.Authorization;
+    return response({ choices: [{ finish_reason: 'stop', message: { content: '```json\n{"recommendations":["Post at 7 PM"]}\n```' } }] });
+  } });
+  assert.deepEqual(await generate('Evidence', 'recommendations'), { recommendations: ['Post at 7 PM'] });
+  assert.match(url, /generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions$/);
+  assert.equal(auth, 'Bearer free-key');
+  assert.equal(body.model, 'gemini-flash-lite-latest');
+  assert.equal(body.response_format, undefined);
+  assert.match(body.messages[0].content, /Schema:/);
+  const incomplete = createJsonGenerator({ provider: 'gemini', apiKey: 'k', fetchImpl: async () => response({ choices: [{ finish_reason: 'length', message: { content: '{' } }] }) });
+  await assert.rejects(incomplete('Evidence', 'recommendations'), /Gemini response incomplete/);
+  await assert.rejects(createJsonGenerator({ provider: 'claude', apiKey: 'k' })('Evidence', 'recommendations'), /deepseek, openai or gemini/);
+});

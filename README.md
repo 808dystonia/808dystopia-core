@@ -31,6 +31,8 @@ Durable non-secret runtime metadata lives on the separate `automation-state` bra
 
 DeepSeek remains the default for classification, digest selection, highlights, and recommendations. OpenAI is an optional configurable alternative using Responses and Structured Outputs. It requires an Actions secret `OPENAI_API_KEY` and variables `OPENAI_MODEL` and `AI_PROVIDER=openai`; adding code alone does not activate it.
 
+Gemini is a free alternative (Google AI Studio free tier, no card). Create a key at aistudio.google.com, add it as the Actions secret `GEMINI_API_KEY`, and set the Actions variable `AI_PROVIDER=gemini`. The model defaults to `gemini-flash-lite-latest`; override with the variable `GEMINI_MODEL`. Free-tier limits are per day and Google may change them; the pipelines make well under 100 calls a day.
+
 ## Project rules
 
 Use real photos and source-backed facts for active news publishing. Do not repeat posted stories or clips. Preserve sensitive-story safeguards and disabled publish gates. Changes use a new `claude/*` branch, a PR, and explicit user approval before merging. Nothing runs on Render.
