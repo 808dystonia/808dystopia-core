@@ -49,6 +49,8 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
       - uses: actions/upload-artifact@v4
         if: always() && steps.gate.outputs.due == 'true'

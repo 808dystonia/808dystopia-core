@@ -22,14 +22,25 @@ export function validate(value, schema, path = 'response') {
   if (schema.enum && !schema.enum.includes(value)) throw new Error(`${path} has invalid value`);
   return value;
 }
+// Providers: deepseek (default), openai, and gemini -- Google's free tier
+// via its OpenAI-compatible endpoint (free API key from aistudio.google.com,
+// no card). Selection is always explicit via AI_PROVIDER; never a fallback.
+const PROVIDERS = {
+  deepseek: { keyEnv: 'DEEPSEEK_API_KEY', model: () => process.env.DEEPSEEK_MODEL || 'deepseek-chat', url: 'https://api.deepseek.com/chat/completions', label: 'DeepSeek' },
+  openai: { keyEnv: 'OPENAI_API_KEY', model: () => process.env.OPENAI_MODEL, url: 'https://api.openai.com/v1/responses', label: 'OpenAI' },
+  gemini: { keyEnv: 'GEMINI_API_KEY', model: () => process.env.GEMINI_MODEL || 'gemini-flash-lite-latest', url: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', label: 'Gemini' },
+};
+// Chat models sometimes wrap JSON in a ```json fence despite instructions.
+const unfence = text => String(text).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
 export function createJsonGenerator({ provider = process.env.AI_PROVIDER || 'deepseek', apiKey, model, fetchImpl = fetch, maxCalls = 30 } = {}) {
   let calls = 0;
   return async function generate(prompt, task) {
     const schema = SCHEMAS[task];
     if (!schema) throw new Error('A known AI task schema is required');
-    if (!['deepseek', 'openai'].includes(provider)) throw new Error('AI_PROVIDER must be deepseek or openai');
-    const key = apiKey ?? process.env[provider === 'openai' ? 'OPENAI_API_KEY' : 'DEEPSEEK_API_KEY'];
-    const selectedModel = model || (provider === 'openai' ? process.env.OPENAI_MODEL : process.env.DEEPSEEK_MODEL || 'deepseek-chat');
+    const spec = PROVIDERS[provider];
+    if (!spec) throw new Error('AI_PROVIDER must be deepseek, openai or gemini');
+    const key = apiKey ?? process.env[spec.keyEnv];
+    const selectedModel = model || spec.model();
     if (!key || !selectedModel) throw new Error(`${provider} API key and model must be configured`);
     if (++calls > maxCalls) throw new Error('AI call budget exhausted for this run');
     if (prompt.length > 80000) throw new Error('AI input exceeds the per-call size limit');
@@ -40,9 +51,9 @@ export function createJsonGenerator({ provider = process.env.AI_PROVIDER || 'dee
       text: { format: { type: 'json_schema', name: task, strict: true, schema } },
     } : {
       model: selectedModel, messages: [{ role: 'system', content: `${instructions} Schema: ${JSON.stringify(schema)}` }, { role: 'user', content: prompt }],
-      response_format: { type: 'json_object' }, max_tokens: 3000, temperature: 0.1,
+      ...(provider === 'deepseek' ? { response_format: { type: 'json_object' } } : {}), max_tokens: 3000, temperature: 0.1,
     };
-    const data = await fetchJson(openai ? 'https://api.openai.com/v1/responses' : 'https://api.deepseek.com/chat/completions', {
+    const data = await fetchJson(spec.url, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` }, body: JSON.stringify(body),
     }, { retrySafe: true, attempts: 2, fetchImpl });
     let text;
@@ -52,10 +63,10 @@ export function createJsonGenerator({ provider = process.env.AI_PROVIDER || 'dee
       if (content.some(x => x.type === 'refusal')) throw new Error('OpenAI declined this input');
       text = content.filter(x => x.type === 'output_text').map(x => x.text).join('');
     } else {
-      if (data.choices?.[0]?.finish_reason !== 'stop') throw new Error('DeepSeek response incomplete');
+      if (data.choices?.[0]?.finish_reason !== 'stop') throw new Error(`${spec.label} response incomplete`);
       text = data.choices[0].message.content;
     }
-    return validate(JSON.parse(text), schema);
+    return validate(JSON.parse(unfence(text)), schema);
   };
 }
 // Construct lazily so dotenv has loaded before provider selection.

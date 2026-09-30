@@ -49,6 +49,8 @@ jobs:
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
       - uses: actions/upload-artifact@v4
