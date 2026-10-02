@@ -30,6 +30,11 @@ function shuffle(items) {
 // rather than risking the hard timeout killing the process mid-download/
 // mid-transcription on some later candidate.
 const TIME_BUDGET_MS = 25 * 60 * 1000;
+// One candidate (download, 8-minute transcription, clip, caption) needs
+// several minutes; starting one with less left than this just gets the
+// whole job killed at the hard timeout instead of ending cleanly.
+const CANDIDATE_RESERVE_MS = 8 * 60 * 1000;
+const outOfTime = (startedAt) => Date.now() - startedAt > TIME_BUDGET_MS - CANDIDATE_RESERVE_MS;
 
 // Shared tail of the pipeline once a candidate video is in hand (curated
 // TikTok link or watchlist-artist search result alike): transcribe, pick
@@ -59,7 +64,7 @@ export async function selectReelCandidate() {
 
   const claims = config.reelPublish ? await claimedPosts("reel") : {};
   for (const url of tiktokUrls) {
-    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+    if (outOfTime(startedAt)) break;
 
     let video;
     try {
@@ -76,7 +81,7 @@ export async function selectReelCandidate() {
 
   const candidates = shuffle(artists);
   for (const artist of candidates) {
-    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+    if (outOfTime(startedAt)) break;
 
     let video;
     try {

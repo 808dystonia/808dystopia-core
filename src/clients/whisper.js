@@ -47,8 +47,16 @@ async function loadAudioFloat32(wavPath) {
   return audioData;
 }
 
+// CPU Whisper on a 20-minute video can eat most of the 30-minute Reel job
+// on its own (confirmed live 10/01: two runs killed at the job timeout
+// mid-transcription), so only the opening minutes are transcribed -- plenty
+// to pick a 15-90s highlight from.
+export const MAX_TRANSCRIBE_SECONDS = 8 * 60;
+const SAMPLE_RATE = 16000;
+
 // Returns { text, chunks: [{ timestamp: [startSeconds, endSeconds], text }] }.
-export async function transcribeAudio(wavPath) {
+export async function transcribeAudio(wavPath, maxSeconds = MAX_TRANSCRIBE_SECONDS) {
   const [transcriber, audioData] = await Promise.all([getTranscriber(), loadAudioFloat32(wavPath)]);
-  return transcriber(audioData, { return_timestamps: true, chunk_length_s: 30, stride_length_s: 5 });
+  const capped = audioData.length > maxSeconds * SAMPLE_RATE ? audioData.slice(0, maxSeconds * SAMPLE_RATE) : audioData;
+  return transcriber(capped, { return_timestamps: true, chunk_length_s: 30, stride_length_s: 5 });
 }

@@ -51,3 +51,12 @@ test('managed slot is not executed twice, even across manual code reruns', async
     assert.equal(calls, 1);
   } finally { process.env = prior; }
 });
+test('uploaded media is polled until the raw CDN serves it', async () => {
+  const { waitUntilFetchable } = await import('../src/clients/githubMedia.js');
+  let calls = 0;
+  const ok = await waitUntilFetchable('https://raw.example/x.png', { wait: async () => {}, fetchImpl: async () => (++calls < 3 ? { ok: false, status: 404 } : { ok: true, status: 200 }) });
+  assert.equal(ok, true); assert.equal(calls, 3);
+  let tries = 0;
+  const never = await waitUntilFetchable('https://raw.example/y.png', { attempts: 4, wait: async () => {}, fetchImpl: async () => { tries++; throw new Error('blip'); } });
+  assert.equal(never, false); assert.equal(tries, 4);
+});

@@ -42,7 +42,8 @@ export function mentionsArtist(name, text, minLength = 3) {
 const bigEnough = (width, height) => !width || !height || Math.min(width, height) >= MIN_SIDE;
 
 export function pickDropPhoto(name, pins, used) {
-  return pins.find((pin) => pin.imageUrl && !used.has(pin.imageUrl) && mentionsArtist(name, pin.text) && bigEnough(pin.width, pin.height)) || null;
+  // Hand-picked, so even a two-letter name like "OK" is trusted here.
+  return pins.find((pin) => pin.imageUrl && !used.has(pin.imageUrl) && mentionsArtist(name, pin.text, 2) && bigEnough(pin.width, pin.height)) || null;
 }
 
 // Web results must name the artist on their own page, have known
@@ -76,7 +77,17 @@ export async function loadDropPins(list = listBoardPins) {
   return (await attempt("photo drop", () => list(config.pinterest.photoDropBoardId))) || [];
 }
 
+// Names this short ("OK", "YT", "Che") match many unrelated artists on
+// Spotify/Genius/web search, so an exact-name hit proves nothing. They
+// only get pinned from a photo picked by hand on the Photo Drop board.
+export const MIN_AUTO_MATCH_LENGTH = 4;
+export const isAmbiguousName = (name) => compact(name).length < MIN_AUTO_MATCH_LENGTH;
+
 export async function findPhoto({ name, role }, used, dropPins, deps = { searchImages, getArtistProfile, getArtistPhoto }) {
+  if (isAmbiguousName(name)) {
+    const drop = pickDropPhoto(name, dropPins, used);
+    return drop ? { imageUrl: drop.imageUrl, source: "photo-drop", credit: hostOf(drop.link), sourceUrl: drop.link, spotifyUrl: null } : null;
+  }
   const profile = await attempt("spotify", () => deps.getArtistProfile(name));
   const spotifyUrl = profile?.spotifyUrl || null;
 

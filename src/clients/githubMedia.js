@@ -48,6 +48,25 @@ async function pushWithRetry() {
   }
 }
 
+// Confirmed live 9/30: Instagram was handed a raw.githubusercontent URL
+// 9s after the push and failed with "Media download has failed" -- the raw
+// CDN hadn't caught up with the new commit yet. Poll until the file is
+// actually served before returning it. A file that never appears within
+// the window is still returned: Instagram's own error stays the signal.
+export async function waitUntilFetchable(url, { attempts = 12, delayMs = 5000, fetchImpl = fetch, wait = sleep } = {}) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetchImpl(url, { method: "HEAD", signal: AbortSignal.timeout(10000) });
+      if (res.ok) return true;
+    } catch {
+      // Network blip: retry like a not-yet-served response.
+    }
+    if (attempt < attempts) await wait(delayMs);
+  }
+  console.log(`media not reachable yet after ${attempts} checks: ${url}`);
+  return false;
+}
+
 async function commitMediaToRepo(localPath, filename, commitLabel) {
   const relPath = path.posix.join(MEDIA_DIR, filename);
   const destPath = path.join(process.cwd(), MEDIA_DIR, filename);
@@ -62,7 +81,9 @@ async function commitMediaToRepo(localPath, filename, commitLabel) {
   await pushWithRetry();
 
   const sha = git(["rev-parse", "HEAD"]);
-  return `https://raw.githubusercontent.com/${REPO}/${sha}/${relPath}`;
+  const url = `https://raw.githubusercontent.com/${REPO}/${sha}/${relPath}`;
+  await waitUntilFetchable(url);
+  return url;
 }
 
 export async function publishImageToRepo(localPath, filename) {

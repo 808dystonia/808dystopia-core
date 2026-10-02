@@ -9,8 +9,8 @@ import { publishOnce } from "../ops/publishing.js";
 import { chicagoDateString } from "../util/chicagoHour.js";
 
 function buildCaption(rankings) {
-  const lines = rankings.map((entry, i) => `${i + 1}. ${entry.name} — ${entry.streamsLabel}`).join("\n");
-  return `808 TRENDING TUESDAY\nTop 10 underground rappers moving right now.\n\n${lines}\n\nFollow @808dystopia · more on 808dystopia.win`;
+  const lines = rankings.map((entry, i) => `${i + 1}. ${entry.name} — ${entry.streamsLabel} Spotify followers`).join("\n");
+  return `808 TRENDING TUESDAY\nTop 10 underground rappers moving right now, ranked by Spotify followers.\n\n${lines}\n\nFollow @808dystopia · more on 808dystopia.win`;
 }
 
 export async function publishChart({ chartPath, rankings }) {

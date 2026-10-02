@@ -31,9 +31,13 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { config } from "../config.js";
 
-function run(cmd, args) {
+// A stalled download otherwise holds the job until GitHub's hard timeout
+// kills it, which also skips the run's own failure reporting.
+const CHILD_TIMEOUT_MS = 5 * 60 * 1000;
+
+function run(cmd, args, timeoutMs = CHILD_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args);
+    const child = spawn(cmd, args, { timeout: timeoutMs, killSignal: "SIGKILL" });
     let stderr = "";
     child.stderr.on("data", (chunk) => {
       stderr += chunk;
@@ -46,9 +50,9 @@ function run(cmd, args) {
   });
 }
 
-function runCapture(cmd, args) {
+function runCapture(cmd, args, timeoutMs = CHILD_TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args);
+    const child = spawn(cmd, args, { timeout: timeoutMs, killSignal: "SIGKILL" });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (chunk) => {
