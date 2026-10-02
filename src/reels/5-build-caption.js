@@ -1,13 +1,8 @@
-// Step 5: build the Reel caption — factual, to-the-point, same tone as
-// the news carousel's caption (src/pipeline/6-build-caption.js), no
-// separate stylized voice guide. Simpler than the carousel's version: no
-// per-type branching (album_drop/diss/other) — just one video per day, and
-// step 3's highlight.reason is already a clean, one-sentence factual
-// description of the moment (written for exactly this use), so this
-// doesn't need its own DeepSeek call to restate it. highlight.quote is
-// available but deliberately not quoted verbatim in the caption — it's
-// often several run-on transcript lines stitched together, not
-// caption-clean text — the reason line carries the caption instead.
+// Step 5: build the Reel caption. It leads with the artist's own words
+// (step 3's highlight.quote, cleaned up and capped), then a credit line
+// saying who said it and where the footage came from. highlight.reason is
+// the AI's internal note on why it picked the moment ("This is a
+// self-contained, quotable..."), so it never appears in the caption.
 import { getArtistInstagramHandle } from "../clients/genius.js";
 
 const BASE_HASHTAGS = ["#hiphop", "#rap", "#undergroundhiphop", "#hiphopreels"];
@@ -34,22 +29,42 @@ function buildHashtags(video) {
 
 const PLATFORM_LABELS = { tiktok: "TikTok", twitch: "Twitch" };
 
-// A credit line naming BOTH the featured artist/producer and whoever
-// actually posted the clip (video.channelTitle -- the YouTube channel,
-// Twitch broadcaster, or TikTok uploader step 2/tiktok.js already
-// captured, just never surfaced here before). Deliberately independent
-// of highlight.reason's phrasing -- that's a description of the moment,
-// not reliably a byline, so this is the one line guaranteed to always
-// name who's featured and where the footage came from, regardless of
-// how the reason sentence happens to be worded.
+const CONTENT_TYPE_LABELS = {
+  interview: "in an interview",
+  "beat breakdown": "breaking down a beat",
+  performance: "live",
+  freestyle: "freestyling",
+  "studio session": "in the studio",
+  "livestream clip": "on stream",
+};
+
+const MAX_QUOTE_LENGTH = 220;
+
+// Transcript quotes are often several run-on Whisper lines, so this
+// collapses whitespace, drops wrapping quote marks, and cuts long quotes
+// at a word boundary.
+export function cleanQuote(quote) {
+  let text = String(quote || "").replace(/\s+/g, " ").trim().replace(/^["“”']+|["“”']+$/g, "").trim();
+  if (text.length <= MAX_QUOTE_LENGTH) return text;
+  text = text.slice(0, MAX_QUOTE_LENGTH);
+  const lastSpace = text.lastIndexOf(" ");
+  if (lastSpace > MAX_QUOTE_LENGTH / 2) text = text.slice(0, lastSpace);
+  return `${text.replace(/[\s,;:.!?-]+$/, "")}…`;
+}
+
+// Who said it and where the clip came from: the featured artist plus
+// whoever posted it (video.channelTitle -- the YouTube channel, Twitch
+// broadcaster, or TikTok uploader).
 function creditLine(video) {
   const platform = PLATFORM_LABELS[video.source] || "YouTube";
   const source = video.channelTitle || platform;
-  return `🎤 ${video.artist} · 🎥 via ${source} (${platform})`;
+  const context = CONTENT_TYPE_LABELS[video.contentType];
+  return `— ${video.artist}${context ? `, ${context}` : ""} · 🎥 via ${source} (${platform})`;
 }
 
 export async function buildReelCaption(video) {
-  const contextLine = video.highlight?.reason || `${video.artist} — ${video.contentType} highlight.`;
+  const quote = cleanQuote(video.highlight?.quote);
+  const lead = quote ? `“${quote}”` : `🎤 ${video.artist}`;
 
   let instagramHandle = null;
   try {
@@ -58,7 +73,7 @@ export async function buildReelCaption(video) {
     console.log("genius instagram handle lookup:", err.message);
   }
 
-  const lines = [contextLine, creditLine(video)];
+  const lines = [lead, creditLine(video)];
   if (instagramHandle) lines.push(`@${instagramHandle}`);
   lines.push("Follow for more.");
 

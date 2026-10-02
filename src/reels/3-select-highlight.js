@@ -22,7 +22,7 @@ function buildPrompt(video, transcriptText) {
 
 - startSeconds: number, the clip's start time
 - endSeconds: number, the clip's end time (clip must be ${MIN_CLIP_SECONDS}-${MAX_CLIP_SECONDS} seconds long)
-- quote: the most important spoken line(s) within that window, verbatim from the transcript
+- quote: the single most striking thing the artist says within that window, verbatim from the transcript, one or two sentences (under 200 characters) that read well on their own as a caption
 - reason: one sentence on why this moment is worth featuring (a strong bar, a notable technical/production insight, a genuinely interesting story beat, etc.)
 
 Pick a genuinely compelling, self-contained moment -- not just the first thing said. Prefer moments that stand alone without needing earlier context. Do not invent content not present in the transcript.

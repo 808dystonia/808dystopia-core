@@ -70,6 +70,8 @@ export async function getVideoDetails(videoIds) {
     title: item.snippet.title,
     channelTitle: item.snippet.channelTitle,
     publishedAt: item.snippet.publishedAt,
+    categoryId: item.snippet.categoryId,
+    tags: item.snippet.tags || [],
     liveBroadcastContent: item.snippet.liveBroadcastContent,
     durationSeconds: parseIsoDuration(item.contentDetails.duration),
     uploadStatus: item.status.uploadStatus,
