@@ -81,12 +81,6 @@ const EXPLANATION_FONT_TIERS = [
   { maxLength: Infinity, size: 21 },
 ];
 
-const CONTEXT_FONT_TIERS = [
-  { maxLength: 200, size: 36 },
-  { maxLength: 350, size: 32 },
-  { maxLength: 500, size: 28 },
-  { maxLength: Infinity, size: 24 },
-];
 
 // Most titles are a few words and comfortable at the original 140px. A
 // title with no spaces at all (e.g. a filename-style "FREE_METHODS.zip")
@@ -217,13 +211,35 @@ function buildDissHtml({ classified, genius }) {
     .replace("{{EXPLANATION}}", escapeHtml(genius.explanation));
 }
 
-function buildContextHtml({ candidate, classified }) {
-  const title = [classified.headlineLine1, classified.headlineLine2].filter(Boolean).join(" ");
-  const context = classified.context || candidate.text;
+// Grok's blurbs end with a source tag like "(HipHop Magz / SC)". It's
+// pulled out into its own "SOURCE:" line instead of sitting mid-text.
+export function splitSource(text) {
+  const match = String(text || "").trim().match(/^(.*?)\s*\(([^()]{2,80})\)\s*\.?\s*$/s);
+  if (!match || !match[1].trim()) return { body: String(text || "").trim(), source: "" };
+  const body = match[1].trim().replace(/[\s,;:—-]+$/, "");
+  return { body: /[.!?]$/.test(body) ? body : `${body}.`, source: match[2].trim() };
+}
+
+// The first sentence is the bold lead; the rest reads as lighter body.
+export function splitLead(text) {
+  const match = String(text || "").match(/^(.+?[.!?]["”’']?)(\s+[\s\S]+)?$/);
+  if (!match || !match[2]) return { lead: String(text || "").trim(), rest: "" };
+  return { lead: match[1].trim(), rest: match[2].trim() };
+}
+
+function buildContextHtml({ candidate, classified, photoUrl = "" }) {
+  // Same red accent as the cover's second line.
+  const titleHtml = [escapeHtml(classified.headlineLine1), withAccent(classified.headlineLine2, classified.headlineAccent)]
+    .filter(Boolean)
+    .join(" ");
+  const { body, source } = splitSource(classified.context || candidate.text);
+  const { lead, rest } = splitLead(body);
   return readTemplate("slide-context.html")
-    .replace("{{TITLE}}", escapeHtml(title))
-    .replace("{{CONTEXT_FONT_SIZE}}", pickFontSize(context, CONTEXT_FONT_TIERS))
-    .replace("{{CONTEXT}}", escapeHtml(context));
+    .replace("{{PHOTO_URL}}", photoUrl)
+    .replace("{{TITLE}}", titleHtml)
+    .replace("{{LEAD}}", escapeHtml(lead))
+    .replace("{{REST}}", escapeHtml(rest))
+    .replace("{{SOURCE}}", source ? `SOURCE: ${escapeHtml(source)}` : "");
 }
 
 // album_drop -> tracklist, but only when one was actually found (source
@@ -231,14 +247,14 @@ function buildContextHtml({ candidate, classified }) {
 // rather than rendering an empty tracklist. diss/cosign/shoutout/callout
 // -> lyric quote, but only with a confident Genius match; otherwise
 // (including "other") falls back to the general context slide too.
-function buildSlide2({ candidate, classified, genius }) {
+function buildSlide2({ candidate, classified, genius, photoUrl }) {
   if (classified.type === "album_drop" && classified.tracklist.length > 0) {
     return { kind: "tracklist", html: buildTracklistHtml({ classified }) };
   }
   if (classified.type === "diss" && genius?.confident) {
     return { kind: "diss", html: buildDissHtml({ classified, genius }) };
   }
-  return { kind: "context", html: buildContextHtml({ candidate, classified }) };
+  return { kind: "context", html: buildContextHtml({ candidate, classified, photoUrl }) };
 }
 
 // Templates reference assets via relative paths ("assets/logo.png",
@@ -260,7 +276,7 @@ async function renderHtmlToPng(page, html, outPath) {
   }
 }
 
-export { buildTracklistHtml };
+export { buildTracklistHtml, buildContextHtml };
 
 export async function renderSlides({ candidate, classified, photo, genius }) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "808-slides-"));
@@ -276,7 +292,7 @@ export async function renderSlides({ candidate, classified, photo, genius }) {
   }
 
   const slide1Html = buildCoverHtml({ classified, photoUrl: photoLocalUrl, albumArtLocalUrl });
-  const slide2 = buildSlide2({ candidate, classified, genius });
+  const slide2 = buildSlide2({ candidate, classified, genius, photoUrl: photoLocalUrl });
 
   const slide1Path = path.join(outDir, "slide1.png");
   const slide2Path = path.join(outDir, "slide2.png");

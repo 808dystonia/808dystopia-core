@@ -55,32 +55,71 @@
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85));
   }
 
+  /* The artist photo, faded far back, so the slide isn't flat black. */
+  .bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 25%;
+    filter: grayscale(0.5) blur(2px) brightness(0.45);
+  }
+  .bg-fade {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.55) 45%, #000 88%);
+  }
+
+  /* Sized by the fit script below. */
   .headline {
     position: absolute;
-    left: 5%;
-    right: 5%;
-    top: 12%;
-    max-height: 26%;
+    left: 6%;
+    right: 6%;
+    top: 11%;
+    height: 20%;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     font-family: "Capture It", Impact, sans-serif;
     text-transform: uppercase;
-    font-size: 92px;
     line-height: 1.05;
+    overflow-wrap: anywhere;
   }
+  .headline .accent { color: #e01717; }
 
   .context {
     position: absolute;
     left: 8%;
     right: 8%;
-    top: 40%;
-    bottom: 15.5%;
+    top: 35%;
+    bottom: 19%;
+    display: flex;
+    align-items: center;
+  }
+  .context-inner {
+    border-left: 10px solid #e01717;
+    padding-left: 0.9em;
+    max-height: 100%;
     font-family: Arial, Helvetica, sans-serif;
-    line-height: 1.5;
-    color: #eee;
-    overflow: hidden;
+    line-height: 1.32;
+  }
+  .lead { font-weight: 900; color: #fff; }
+  .rest { display: block; margin-top: 0.7em; font-weight: 400; color: #cfcfcf; font-size: 0.82em; }
+  .rest:empty { display: none; }
+
+  .source {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 82.5%;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: #8a8a8a;
+    text-transform: uppercase;
   }
 
   .rule {
@@ -128,10 +167,13 @@
 </head>
 <body>
   <div class="canvas">
+    <img class="bg" src="{{PHOTO_URL}}" onerror="this.remove()" />
+    <div class="bg-fade"></div>
     <div class="badge news-badge glow"><span>NEWS</span></div>
 
-    <div class="headline">{{TITLE}}</div>
-    <div class="context" style="font-size: {{CONTEXT_FONT_SIZE}}px;">{{CONTEXT}}</div>
+    <div class="headline"><span>{{TITLE}}</span></div>
+    <div class="context"><div class="context-inner"><span class="lead">{{LEAD}}</span><span class="rest">{{REST}}</span></div></div>
+    <div class="source">{{SOURCE}}</div>
 
     <div class="rule glow"></div>
     <img class="logo" src="assets/logo.png" />
@@ -142,5 +184,28 @@
       <div class="chevron glow"></div>
     </div>
   </div>
+  <script>
+    // Largest sizes that fit: the headline within its band (max 76px),
+    // then the body text within its box (max 66px).
+    window.__layoutDone = false;
+    (async () => {
+      await document.fonts.ready;
+      const fit = (el, box, max, min) => {
+        let size = max;
+        el.style.fontSize = size + "px";
+        while (size > min && (box.scrollHeight > box.clientHeight || el.scrollWidth > el.clientWidth + 1)) {
+          el.style.fontSize = --size + "px";
+        }
+      };
+      const headline = document.querySelector(".headline");
+      fit(headline, headline, 76, 40);
+      const box = document.querySelector(".context");
+      const inner = box.querySelector(".context-inner");
+      let size = 66;
+      inner.style.fontSize = size + "px";
+      while (size > 26 && inner.scrollHeight > box.clientHeight) inner.style.fontSize = --size + "px";
+      window.__layoutDone = true;
+    })();
+  </script>
 </body>
 </html>
