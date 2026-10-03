@@ -3,6 +3,7 @@ import "dotenv/config";
 import { config } from "../config.js";
 import { contentKey, claimedPosts, bestEffort } from "../ops/publishing.js";
 import { finishPost } from "../ops/followups.js";
+import { shareToStory } from "../ops/story-share.js";
 import { postComment } from "../clients/instagram.js";
 import { getWatchlistAndTikTokUrls } from "./1-get-watchlist.js";
 import { findVideo } from "./2-find-video.js";
@@ -116,6 +117,7 @@ export async function runDailyReelFlow() {
       comment: () => postComment(result.mediaId, caption.hashtags),
       log: () => logReelOutcome({ video, status: result.published ? 'posted' : 'skipped', note: result.note }),
       facebook: () => crosspostReelToFacebook({ videoUrl: result.videoUrl, message: caption.caption }),
+      story: () => shareToStory({ videoUrl: result.videoUrl, durationSeconds: video.highlight.endSeconds - video.highlight.startSeconds }),
     });
   } catch (err) {
     await bestEffort(() => logReelOutcome({ video, status: 'failed', note: 'Publishing interrupted; inspect operational state before retrying.' }));

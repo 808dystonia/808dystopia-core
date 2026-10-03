@@ -136,6 +136,20 @@ export async function createReadyContainer({ label, collaborator, withCollaborat
   return { containerId: id, collaborator: null };
 }
 
+// A Story is its own post (the API can't reshare a feed post to Stories),
+// so this creates a STORIES container from the same hosted media and
+// publishes it. Stories carry no caption.
+export async function postStory({ imageUrl, videoUrl }) {
+  const media = videoUrl ? { video_url: videoUrl } : { image_url: imageUrl };
+  const result = await runTool(
+    "INSTAGRAM_CREATE_MEDIA_CONTAINER",
+    { ig_user_id: config.instagram.userId, ...media, media_type: "STORIES" },
+    accountId()
+  );
+  await waitForContainerReady(result.id);
+  return publishContainer(result.id);
+}
+
 export async function createCarouselContainer({ children, caption }) {
   const result = await runTool(
     "INSTAGRAM_CREATE_CAROUSEL_CONTAINER",

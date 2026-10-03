@@ -23,6 +23,8 @@ His Underground and Her Underground (`src/artist-pins/`) pin one artist photo a 
 
 Carousels and Reels invite the featured artist as an Instagram collaborator when Genius lists a valid Instagram handle for them. Composio's container tools have no `collaborators` field, so that final container is created through the Graph API proxy instead. If anything about the collab container fails, the pipeline creates the usual container without the collaborator and logs `collab container ... failed`. Nothing is published before that point, so a bad handle never blocks a post. The run note says `collab invite sent to @handle` when an invite went out. Accepted invites show the post on the artist's profile.
 
+After a carousel or Reel is confirmed, it is also shared to Instagram Stories (gate: `IG_STORY_SHARE_PUBLISH`, set in both workflows). The API can't reshare a feed post, so the Story is its own post: slide 1 for a carousel, the clip for a Reel. Reel clips over 60 seconds are skipped, because API Stories allow 60 seconds. The Story runs after Facebook as a follow-up. Its outcome (`posted`, `skipped`, `disabled` or `failed`) is saved with the post's other follow-ups. A failure marks the run partial, like a Facebook failure, and is never retried automatically.
+
 RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
 
 ## Durable receipts and duplicate prevention
