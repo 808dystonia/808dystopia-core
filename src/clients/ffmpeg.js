@@ -1,5 +1,5 @@
-// ffmpeg wrapper (spawned as a child process) -- formats a clip for 9:16
-// Reel output and overlays the brand watermark, top-left. Relies on the
+// ffmpeg wrapper (spawned as a child process) -- formats a clip into the
+// 9:16 808 Reel template (headline, clip, brand mark; see formatForReel). Relies on the
 // system ffmpeg binary rather than a bundled static one -- installed via
 // apt in CI (see .github/workflows/daily-reel.yml). NOTE: ubuntu-latest
 // does NOT actually ship ffmpeg preinstalled, despite this file previously
@@ -10,8 +10,6 @@ import { spawn } from "node:child_process";
 
 const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1920; // 9:16, standard Reel resolution
-const WATERMARK_WIDTH = 160;
-const WATERMARK_MARGIN = 40;
 
 function run(cmd, args) {
   return new Promise((resolve, reject) => {
@@ -28,26 +26,30 @@ function run(cmd, args) {
   });
 }
 
-// A straight center-crop from typical 16:9 source footage down to 9:16
-// only keeps about 30% of the original frame width -- confirmed live, it
-// read as "hella zoomed in" and cut off most of the actual visual content
-// (two people talking became one person's shoulder filling the frame).
-// This instead uses the standard blurred-background letterbox technique:
-// the full, un-cropped source is scaled to fit inside the 9:16 canvas and
-// shown intact in the center, while a blurred/darkened, cropped-to-fill
-// copy of the same footage fills the empty space above and below --
-// nothing from the original frame is lost, and the letterboxing doesn't
-// read as dead space since it's still moving footage from the same clip.
-// On-screen hook text, Instagram-style: each wrapped line in its own white
-// box with black text, centred in the lower third (below the letterboxed
-// clip on most sources). Lines are passed as text files so no escaping of
-// quotes or colons is needed, with expansion=none so a "%" stays literal.
-const OVERLAY_FONT_SIZE = 46;
-const OVERLAY_LINE_GAP = 4;
-const OVERLAY_TOP = 1300;
-const OVERLAY_BOX_PADDING = 18;
+// The 808 Reel template, top to bottom (Instagram's own UI covers roughly
+// the top 220px and the bottom 400px, and its buttons the right ~150px):
+//
+//   - headline: the hook in Capture It (the carousel cover font), white
+//     with a drop shadow, up to 3 lines ending just above the clip
+//   - the clip, full and uncropped, centred
+//   - brand mark: a small logo and "@808DYSTOPIA" just below the clip
+//
+// The clip uses the blurred-background letterbox: a straight centre-crop
+// of 16:9 footage to 9:16 keeps only ~30% of the frame (two people talking
+// became one person's shoulder), so the full frame is shown intact and a
+// blurred, darkened copy fills the space around it. The logo used to sit
+// top-left, where Instagram's status bar and "Reels" header cover it.
+//
+// Headline lines are passed as text files so quotes and colons need no
+// escaping, with expansion=none so a "%" stays literal.
+const HEADLINE_FONT_SIZE = 84;
+const HEADLINE_LINE_HEIGHT = 96;
+const HEADLINE_BOTTOM = 620; // just above a centred 16:9 clip (656-1264)
+const BRAND_TOP = 1300;
+const LOGO_HEIGHT = 96;
+const HANDLE_FONT_SIZE = 30;
 
-export function wrapOverlay(text, maxChars = 22, maxLines = 3) {
+export function wrapOverlay(text, maxChars = 18, maxLines = 3) {
   const words = String(text || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   const lines = [];
   for (const word of words) {
@@ -61,25 +63,38 @@ export function wrapOverlay(text, maxChars = 22, maxLines = 3) {
   return kept;
 }
 
-export function overlayFilters(lineFiles, fontPath) {
-  const step = OVERLAY_FONT_SIZE + OVERLAY_BOX_PADDING * 2 + OVERLAY_LINE_GAP;
+// Bottom-aligned: the last line always ends at HEADLINE_BOTTOM.
+export function headlineFilters(lineFiles, fontPath) {
+  const top = HEADLINE_BOTTOM - lineFiles.length * HEADLINE_LINE_HEIGHT;
   return lineFiles.map((file, i) =>
-    `drawtext=fontfile='${fontPath}':textfile='${file}':expansion=none:fontsize=${OVERLAY_FONT_SIZE}:` +
-    `fontcolor=black:box=1:boxcolor=white:boxborderw=${OVERLAY_BOX_PADDING}:` +
-    `x=(w-text_w)/2:y=${OVERLAY_TOP + i * step}`
+    `drawtext=fontfile='${fontPath}':textfile='${file}':expansion=none:fontsize=${HEADLINE_FONT_SIZE}:` +
+    `fontcolor=white:shadowcolor=black@0.85:shadowx=4:shadowy=4:` +
+    `x=(w-text_w)/2:y=${top + i * HEADLINE_LINE_HEIGHT}`
   );
 }
 
-export async function formatForReel(inputPath, watermarkPath, outputPath, { overlayLineFiles = [], overlayFontPath } = {}) {
-  const overlay = overlayLineFiles.length && overlayFontPath ? overlayFilters(overlayLineFiles, overlayFontPath) : [];
+function handleFilter(fontPath) {
+  return (
+    `drawtext=fontfile='${fontPath}':text='@808DYSTOPIA':fontsize=${HANDLE_FONT_SIZE}:` +
+    `fontcolor=white:shadowcolor=black@0.85:shadowx=2:shadowy=2:` +
+    `x=(w-text_w)/2:y=${BRAND_TOP + LOGO_HEIGHT + 14}`
+  );
+}
+
+// Without fonts (the fallback render) only the clip and logo are drawn.
+export async function formatForReel(inputPath, watermarkPath, outputPath, { headlineLineFiles = [], headlineFontPath, handleFontPath } = {}) {
+  const text = [
+    ...(headlineLineFiles.length && headlineFontPath ? headlineFilters(headlineLineFiles, headlineFontPath) : []),
+    ...(handleFontPath ? [handleFilter(handleFontPath)] : []),
+  ];
   const filter =
     `[0:v]scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT}:force_original_aspect_ratio=increase,` +
-    `crop=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT},gblur=sigma=25,eq=brightness=-0.05[bg];` +
+    `crop=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT},gblur=sigma=30,eq=brightness=-0.22:saturation=0.8[bg];` +
     `[0:v]scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT}:force_original_aspect_ratio=decrease[fg];` +
     `[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[merged];` +
-    `[1:v]scale=${WATERMARK_WIDTH}:-1[wm];` +
-    `[merged][wm]overlay=${WATERMARK_MARGIN}:${WATERMARK_MARGIN}` +
-    (overlay.length ? `,${overlay.join(",")}` : "") +
+    `[1:v]scale=-1:${LOGO_HEIGHT}[wm];` +
+    `[merged][wm]overlay=(W-w)/2:${BRAND_TOP}` +
+    (text.length ? `,${text.join(",")}` : "") +
     `[outv]`;
 
   await run("ffmpeg", [
