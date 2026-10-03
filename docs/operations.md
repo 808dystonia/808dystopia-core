@@ -27,7 +27,7 @@ After a carousel or Reel is confirmed, it is also shared to Instagram Stories (g
 
 All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
 
-RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
+RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
 
 ## Durable receipts and duplicate prevention
 
