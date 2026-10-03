@@ -32,16 +32,18 @@
 // pipeline's isAlreadyPosted — if this artist's pick turns out already
 // logged, index.js falls back to the next watchlist artist rather than
 // asking this function for a second video.
-import { searchVideos, getVideoDetails } from "../clients/youtube.js";
+import { searchVideos, searchChannels, getChannelUploads, getVideoDetails } from "../clients/youtube.js";
 import { findChannelId, getClips } from "../clients/twitch.js";
 import { mentionsArtist } from "../artist-pins/2-find-photo.js";
 import { describeError } from "../util/describeError.js";
 
 // The artist name is quoted so YouTube treats it as a phrase rather than
 // loose keywords ("SouthWes interview" used to return job-interview tips).
+// No "beat breakdown" query: third-party results for it were producers'
+// tutorials on making the artist's sound, not the artist (10/03: "How To
+// Make GYGJFACB Type Beats For BLEOOD!" posted as bleood).
 const CONTENT_TYPE_QUERIES = [
   (artist) => ({ label: "interview", query: `"${artist}" interview` }),
-  (artist) => ({ label: "beat breakdown", query: `"${artist}" beat breakdown` }),
   (artist) => ({ label: "performance", query: `"${artist}" live performance` }),
   (artist) => ({ label: "freestyle", query: `"${artist}" freestyle` }),
   (artist) => ({ label: "studio session", query: `"${artist}" studio session` }),
@@ -55,7 +57,12 @@ const MIN_NAME_LENGTH = 4;
 const compact = (value) => String(value || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 const MUSIC_CATEGORY_ID = "10";
 const MUSIC_WORDS =
-  /\b(rap|rapper|rapping|hip ?hop|freestyle|cypher|beats?|producer|prod|type beat|fl studio|studio session|verse|bars|mixtape|album|single|song|track|music|music video|official (video|audio)|lyrics?|visualizer|remix|feat|ft|concert|tour|plugg|drill|trap|rage|underground|vevo)\b/i;
+  /\b(rap|rapper|rapping|hip ?hop|freestyle|cypher|beats?|producer|prod|studio session|verse|bars|mixtape|album|single|song|track|music|music video|official (video|audio)|lyrics?|visualizer|remix|feat|ft|concert|tour|plugg|drill|trap|rage|underground|vevo)\b/i;
+
+// Videos that name the artist but are someone else making content about
+// their sound or reacting to them. Never the artist, so never featured.
+const NOT_THE_ARTIST =
+  /\b(type ?beats?|how to (make|produce|sound|flow|rap)|tutorial|drum ?kits?|sample ?packs?|loop ?kits?|presets?|free for profit|reacts?|reaction|reacting|review(s|ing)?|remake|in the style of|breakdown of)\b/i;
 
 export function isSearchableName(artist) {
   return compact(artist).length >= MIN_NAME_LENGTH;
@@ -72,8 +79,44 @@ export function isArtistMusicVideo(details, artist) {
     mentionsArtist(artist, details.channelTitle, MIN_NAME_LENGTH) ||
     compact(details.channelTitle).startsWith(target);
   if (!namesArtist) return false;
+  if (NOT_THE_ARTIST.test(details.title)) return false;
   const text = [details.title, details.channelTitle, ...(details.tags || [])].join(" ");
   return details.categoryId === MUSIC_CATEGORY_ID || MUSIC_WORDS.test(text);
+}
+
+// The artist's own channel: named exactly like them, optionally with a
+// common suffix ("bleoodMusic", "bleood VEVO", "Official bleood").
+// YouTube's auto-generated "Artist - Topic" channels are static-image audio
+// uploads, useless for a Reel.
+const CHANNEL_AFFIXES = /^(official)?$|^(music|official|vevo|tv|hq|beats)$/;
+
+export function isOwnChannel(channelTitle, artist) {
+  if (!isSearchableName(artist) || /-\s*topic$/i.test(channelTitle || "")) return false;
+  const channel = compact(channelTitle);
+  const target = compact(artist);
+  if (channel === `official${target}`) return true;
+  return channel.startsWith(target) && CHANNEL_AFFIXES.test(channel.slice(target.length));
+}
+
+function labelFromTitle(title) {
+  if (/\bfreestyle\b/i.test(title)) return "freestyle";
+  if (/\binterview\b/i.test(title)) return "interview";
+  if (/\b(live|performance|concert|set)\b/i.test(title)) return "performance";
+  if (/\bstudio\b/i.test(title)) return "studio session";
+  return "music video";
+}
+
+// First choice: something the artist posted themselves.
+async function findOwnChannelVideo(artist, isUsed) {
+  const channels = await searchChannels(`"${artist}"`);
+  const own = channels.find((channel) => isOwnChannel(channel.title, artist));
+  if (!own) return null;
+
+  const ids = await getChannelUploads(own.channelId);
+  if (ids.length === 0) return null;
+  const details = await getVideoDetails(ids);
+  const usable = details.find((d) => isUsable(d) && !isUsed(d.videoId) && !NOT_THE_ARTIST.test(d.title));
+  return usable ? { ...usable, artist, contentType: labelFromTitle(usable.title), ownChannel: true } : null;
 }
 
 const MIN_DURATION_SECONDS = 45;
@@ -121,10 +164,17 @@ async function findTwitchClip(artistHandle) {
   };
 }
 
-export async function findVideo(artistHandle) {
+export async function findVideo(artistHandle, isUsed = () => false) {
   if (!isSearchableName(artistHandle)) {
     console.log(`findVideo: skipping "${artistHandle}", name too short to search unambiguously`);
     return null;
+  }
+
+  try {
+    const own = await findOwnChannelVideo(artistHandle, isUsed);
+    if (own) return own;
+  } catch (err) {
+    console.log(`own-channel lookup for ${artistHandle} failed:`, describeError(err));
   }
 
   for (const buildQuery of CONTENT_TYPE_QUERIES) {
@@ -133,7 +183,7 @@ export async function findVideo(artistHandle) {
     if (results.length === 0) continue;
 
     const details = await getVideoDetails(results.map((r) => r.videoId));
-    const usable = details.find((d) => isUsable(d) && isArtistMusicVideo(d, artistHandle));
+    const usable = details.find((d) => isUsable(d) && !isUsed(d.videoId) && isArtistMusicVideo(d, artistHandle));
     if (usable) return { ...usable, artist: artistHandle, contentType: label };
   }
 

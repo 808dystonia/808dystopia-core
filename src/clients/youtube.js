@@ -40,6 +40,46 @@ export async function searchVideos(query, { maxResults = 5 } = {}) {
   }));
 }
 
+export async function searchChannels(query, { maxResults = 5 } = {}) {
+  const key = config.youtube.apiKey;
+  if (!key) throw new Error("YOUTUBE_API_KEY missing");
+
+  const url = `${API}/search?${new URLSearchParams({
+    part: "snippet",
+    q: query,
+    type: "channel",
+    maxResults: String(maxResults),
+    key,
+  })}`;
+  const res = await fetch(url);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`youtube channel search ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+
+  return (json.items || []).map((item) => ({ channelId: item.id.channelId, title: item.snippet.channelTitle || item.snippet.title }));
+}
+
+// A channel's uploads playlist id is its channel id with the "UC" prefix
+// swapped for "UU" -- a long-standing YouTube convention that saves a
+// channels.list call. playlistItems.list costs 1 quota unit, vs 100 for
+// a search.
+export async function getChannelUploads(channelId, { maxResults = 25 } = {}) {
+  const key = config.youtube.apiKey;
+  if (!key) throw new Error("YOUTUBE_API_KEY missing");
+  if (!/^UC/.test(channelId)) return [];
+
+  const url = `${API}/playlistItems?${new URLSearchParams({
+    part: "contentDetails",
+    playlistId: `UU${channelId.slice(2)}`,
+    maxResults: String(maxResults),
+    key,
+  })}`;
+  const res = await fetch(url);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`youtube uploads ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
+
+  return (json.items || []).map((item) => item.contentDetails.videoId).filter(Boolean);
+}
+
 // ISO 8601 duration (e.g. "PT21M5S") -> seconds.
 function parseIsoDuration(iso) {
   const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso || "");

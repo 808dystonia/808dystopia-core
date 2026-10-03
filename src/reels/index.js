@@ -86,7 +86,7 @@ export async function selectReelCandidate() {
 
     let video;
     try {
-      video = await findVideo(artist);
+      video = await findVideo(artist, (id) => isVideoAlreadyUsed(logRows, id) || Boolean(claims[contentKey(id)]));
     } catch (err) {
       console.log(`findVideo(${artist}) failed:`, describeError(err));
       continue;

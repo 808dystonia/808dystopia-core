@@ -13,6 +13,7 @@ const CONTENT_TYPE_HASHTAGS = {
   freestyle: ["#freestyle"],
   "studio session": ["#studiosession"],
   "livestream clip": ["#livestream", "#twitchclip"],
+  "music video": ["#musicvideo"],
 };
 
 function artistHashtag(artist) {

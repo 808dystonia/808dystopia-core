@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isArtistMusicVideo, isSearchableName, findVideo } from '../src/reels/2-find-video.js';
+import { isArtistMusicVideo, isSearchableName, isOwnChannel, findVideo } from '../src/reels/2-find-video.js';
+import { config } from '../src/config.js';
 import { buildReelCaption, cleanQuote } from '../src/reels/5-build-caption.js';
 
 const video = (fields) => ({ title: '', channelTitle: '', tags: [], categoryId: '22', ...fields });
@@ -53,4 +54,74 @@ test('caption without a quote falls back to the artist, and long quotes are cut'
 
   const long = cleanQuote('word '.repeat(80));
   assert.ok(long.length <= 221 && long.endsWith('…') && !long.includes('  '));
+});
+
+test('tutorials, type beats and reactions about an artist are not the artist', () => {
+  // Live 10/03: posted as bleood, collab invite and all.
+  assert.equal(isArtistMusicVideo(video({ title: 'How To Make GYGJFACB Type Beats For BLEOOD! (FREE DRUMKIT)', categoryId: '10' }), 'bleood'), false);
+  assert.equal(isArtistMusicVideo(video({ title: 'bleood type beat - "haunted"', categoryId: '10' }), 'bleood'), false);
+  assert.equal(isArtistMusicVideo(video({ title: 'Reacting to bleood for the first time', categoryId: '10' }), 'bleood'), false);
+  assert.equal(isArtistMusicVideo(video({ title: 'bleood - haunted hills (prod. jvck)', categoryId: '10' }), 'bleood'), true);
+});
+
+test('own channel means named like the artist, never a Topic channel or a lookalike', () => {
+  for (const name of ['bleood', 'bleoodMusic', 'bleood VEVO', 'Official bleood', 'BLEOOD']) assert.equal(isOwnChannel(name, 'bleood'), true, name);
+  for (const name of ['bleood - Topic', 'bleood fan edits', 'Beats By Ricky', 'bleoodlover']) assert.equal(isOwnChannel(name, 'bleood'), false, name);
+});
+
+function mockYouTube(t, { channels, uploads, details, searchResults = [] }) {
+  config.youtube.apiKey = 'test';
+  const urls = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    urls.push(String(url));
+    const u = new URL(url);
+    const body = (data) => new Response(JSON.stringify(data), { status: 200 });
+    if (u.pathname.endsWith('/search') && u.searchParams.get('type') === 'channel') {
+      return body({ items: channels.map((title, i) => ({ id: { channelId: `UC${i}abc` }, snippet: { channelTitle: title } })) });
+    }
+    if (u.pathname.endsWith('/playlistItems')) return body({ items: uploads.map((videoId) => ({ contentDetails: { videoId } })) });
+    if (u.pathname.endsWith('/search')) return body({ items: searchResults.map((videoId) => ({ id: { videoId }, snippet: { title: '', channelTitle: '' } })) });
+    if (u.pathname.endsWith('/videos')) {
+      const ids = u.searchParams.get('id').split(',');
+      return body({ items: ids.map((id) => details[id]).filter(Boolean).map((d) => ({
+        id: d.id, contentDetails: { duration: d.duration || 'PT3M' },
+        snippet: { title: d.title, channelTitle: d.channel, categoryId: '10', liveBroadcastContent: 'none', tags: [] },
+        status: { uploadStatus: 'processed', privacyStatus: 'public', embeddable: true },
+      })) });
+    }
+    return new Response('{}', { status: 404 });
+  });
+  return urls;
+}
+
+test('findVideo prefers the artist\'s own uploads, skipping used videos and tutorials', async (t) => {
+  const urls = mockYouTube(t, {
+    channels: ['bleood fan edits', 'bleood'],
+    uploads: ['v1', 'v2', 'v3'],
+    details: {
+      v1: { id: 'v1', title: 'bleood - old hit', channel: 'bleood' },
+      v2: { id: 'v2', title: 'bleood type beat tutorial', channel: 'bleood' },
+      v3: { id: 'v3', title: 'bleood - haunted hills (live)', channel: 'bleood' },
+    },
+  });
+  const found = await findVideo('bleood', (id) => id === 'v1');
+  assert.equal(found.videoId, 'v3');
+  assert.equal(found.contentType, 'performance');
+  assert.equal(found.ownChannel, true);
+  assert.ok(urls.some((u) => u.includes('playlistId=UU1abc')));
+});
+
+test('with no own channel it falls back to search, which still rejects tutorials', async (t) => {
+  mockYouTube(t, {
+    channels: ['Beats By Ricky'],
+    uploads: [],
+    searchResults: ['tut', 'int'],
+    details: {
+      tut: { id: 'tut', title: 'How To Make Type Beats For BLEOOD!', channel: 'Beats By Ricky' },
+      int: { id: 'int', title: 'bleood interview: haunted hills and the UK scene', channel: 'No Jumper' },
+    },
+  });
+  const found = await findVideo('bleood');
+  assert.equal(found.videoId, 'int');
+  assert.equal(found.contentType, 'interview');
 });
