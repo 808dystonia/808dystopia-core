@@ -28,7 +28,7 @@ const DISS_VERBS = {
 function buildContextLine(candidate, classified) {
   const title = toTitleCase(classified.title);
 
-  if (classified.type === "album_drop") {
+  if (classified.type === "album_drop" || classified.released) {
     return `${classified.artist} just dropped "${title}."`;
   }
 
@@ -56,7 +56,8 @@ const TYPE_HASHTAGS = {
 };
 
 function buildHashtags(classified) {
-  const tags = [...BASE_HASHTAGS, ...(TYPE_HASHTAGS[classified.type] || [])];
+  const type = classified.released ? "album_drop" : classified.type;
+  const tags = [...BASE_HASHTAGS, ...(TYPE_HASHTAGS[type] || [])];
   const artistTag = artistHashtag(classified.artist);
   if (artistTag && !tags.includes(artistTag)) tags.push(artistTag);
   return tags.join(" ");
