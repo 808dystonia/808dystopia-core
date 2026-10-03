@@ -9,7 +9,20 @@
 // until one isn't a repeat (or the list runs out and the day is skipped).
 import { listHeatChannelMessages, splitIntoStories } from "../clients/discord.js";
 
+// "Just dropped" carousels get the most real comments, so stories that
+// read like a new release and are under 72 hours old are tried first.
+// Everything else keeps its newest-first order behind them, so an old
+// drop never jumps ahead of today's news.
+const RELEASE_WORDS = /\b(drop(s|ped|ping)?|album|ep|mixtape|tape|project|deluxe|lp|out now|releas(e|es|ed|ing))\b/i;
+const FRESH_DROP_MS = 72 * 60 * 60 * 1000;
+
+export function prioritizeDrops(stories, now = new Date()) {
+  const isFreshDrop = (story) =>
+    RELEASE_WORDS.test(story.text) && now - new Date(story.timestamp) <= FRESH_DROP_MS;
+  return [...stories.filter(isFreshDrop), ...stories.filter((story) => !isFreshDrop(story))];
+}
+
 export async function getCandidates() {
   const messages = await listHeatChannelMessages();
-  return splitIntoStories(messages);
+  return prioritizeDrops(splitIntoStories(messages));
 }
