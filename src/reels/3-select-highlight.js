@@ -5,7 +5,7 @@
 // for a Reel highlight.
 import { downloadAudio, withTempDir } from "../clients/ytdlp.js";
 import { transcribeAudio, MAX_TRANSCRIBE_SECONDS } from "../clients/whisper.js";
-import { classifyWithDeepSeek } from "../clients/deepseek.js";
+import { generateJson } from "../clients/ai.js";
 
 const MIN_CLIP_SECONDS = 15;
 const MAX_CLIP_SECONDS = 90;
@@ -64,7 +64,7 @@ export async function selectHighlight(video) {
   if (chunks.length === 0) throw new Error("empty transcript");
 
   const transcriptText = formatTranscript(chunks);
-  const result = await classifyWithDeepSeek(buildPrompt(video, transcriptText), "highlight");
+  const result = await generateJson(buildPrompt(video, transcriptText), "highlight");
 
   // The transcript only covers the opening minutes (see clients/whisper.js),
   // so the clip must too -- the quote has to be inside the clip.

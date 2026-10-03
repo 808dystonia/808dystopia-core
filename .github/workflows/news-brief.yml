@@ -43,7 +43,6 @@ jobs:
           TZ: America/Chicago
           NEWS_BRIEF_PUBLISH: "1"
           SITE_SYNC_PUBLISH: "1"
-          DEEPSEEK_MODEL: deepseek-chat
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}

@@ -50,7 +50,7 @@ const SENSITIVE_SAME_ARTIST_WINDOW_MS = 72 * 60 * 60 * 1000;
 // exact match on the raw source text. Confirmed live: relying on artist+title
 // alone let the same karrahbooo story post twice in one day (9 AM and 12 PM)
 // with two different headlines — the Discord digest bullet was byte-identical
-// both times, but DeepSeek's classification (temperature 0.1, not 0) phrased
+// both times, but the AI's classification (temperature 0.1, not 0) phrased
 // the title differently between the two separate calls, so the exact-string
 // title match missed it. sourceText matching is the same-day safety net for
 // that; artist+title still carries the original cross-day case, where a
