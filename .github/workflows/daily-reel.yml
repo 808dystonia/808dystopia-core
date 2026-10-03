@@ -51,7 +51,6 @@ jobs:
           TZ: America/Chicago
           REEL_PUBLISH: "1"
           REEL_FACEBOOK_CROSSPOST_PUBLISH: "1"
-          IG_STORY_SHARE_PUBLISH: "1"
           GOOGLE_SHEETS_REELS_TAB: Reels
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}

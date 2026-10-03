@@ -43,7 +43,6 @@ jobs:
           TZ: America/Chicago
           CAROUSEL_PUBLISH: "1"
           FACEBOOK_CROSSPOST_PUBLISH: "1"
-          IG_STORY_SHARE_PUBLISH: "1"
           GOOGLE_SHEETS_TAB: News
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
