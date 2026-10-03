@@ -6,6 +6,8 @@ import {
   createVideoContainer,
   waitForContainerReady,
   createCarouselContainer,
+  createCollabCarouselContainer,
+  createReadyContainer,
   publishContainer,
 } from "../clients/instagram.js";
 
@@ -47,11 +49,13 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
     waitForContainerReady(closerContainerId),
   ]);
 
-  const carouselContainerId = await createCarouselContainer({
-    children: [slide1ContainerId, slide2ContainerId, closerContainerId],
-    caption: caption.caption,
+  const children = [slide1ContainerId, slide2ContainerId, closerContainerId];
+  const { containerId: carouselContainerId, collaborator } = await createReadyContainer({
+    label: "carousel",
+    collaborator: caption.collaborator,
+    withCollaborator: (collaborators) => createCollabCarouselContainer({ children, caption: caption.caption, collaborators }),
+    plain: () => createCarouselContainer({ children, caption: caption.caption }),
   });
-  await waitForContainerReady(carouselContainerId);
 
   const confirmed = await publishOnce({
     pipeline: "carousel", identity, metadata, platform: "instagram",
@@ -62,5 +66,6 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
   // slide1Url/slide2Url are returned alongside mediaId so a downstream
   // cross-post (Facebook) can reuse the exact same already-uploaded
   // slides instead of uploading them a second time.
-  return { ...confirmed, slide1Url, slide2Url, note: `Published as IG media ${mediaId}` };
+  const invite = collaborator ? `, collab invite sent to @${collaborator}` : "";
+  return { ...confirmed, slide1Url, slide2Url, note: `Published as IG media ${mediaId}${invite}` };
 }

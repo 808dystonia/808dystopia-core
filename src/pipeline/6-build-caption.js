@@ -79,5 +79,6 @@ export async function buildCaption({ candidate, classified }) {
   return {
     caption: lines.join("\n\n"),
     hashtags: buildHashtags(classified),
+    collaborator: instagramHandle,
   };
 }
