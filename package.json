@@ -13,8 +13,6 @@
     "pin-post": "node src/pin-cron.js",
     "his-pin": "node src/his-pin-cron.js",
     "her-pin": "node src/her-pin-cron.js",
-    "raptoonz": "node src/raptoonz-cron.js",
-    "boxart": "node src/boxart-cron.js",
     "trending-tuesday": "node src/trending-cron.js",
     "test": "node --test",
     "check": "node scripts/check.mjs",

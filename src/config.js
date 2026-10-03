@@ -40,15 +40,6 @@ export const config = {
     // for, since its own channel topic confirmed it's exactly the
     // intended target.
     adminChannelId: process.env.DISCORD_ADMIN_CHANNEL_ID || "1542355862079807509",
-    // #raptoonz -- Grok posts one AI-generated rapper x cartoon-style
-    // mashup image per message here (src/raptoonz/).
-    raptoonzChannelId: process.env.DISCORD_RAPTOONZ_CHANNEL_ID || "",
-    // #ps2 -- a curated photo of a female rapper/artist per message
-    // (caption "**{ARTIST}** {vibe} — {look}"), composited into a PS1-style
-    // game-case cover (src/boxart/). Found via a live
-    // DISCORDBOT_LIST_GUILD_CHANNELS call; a channel id isn't a secret, so
-    // it's defaulted here rather than needing its own Actions secret.
-    boxartChannelId: process.env.DISCORD_BOXART_CHANNEL_ID || "1549573920800116826",
     connectedAccountId: process.env.COMPOSIO_DISCORD_ACCOUNT_ID || "",
   },
 
@@ -63,12 +54,6 @@ export const config = {
     // Dystopia Pinterest account -- found directly via a live
     // PINTEREST_LIST_BOARDS call rather than asked for.
     boardId: process.env.PINTEREST_BOARD_ID || "1099230290240885517",
-    // "RapToonz" board -- created live via PINTEREST_CREATE_BOARD for the
-    // rapper x cartoon-art-style pipeline (src/raptoonz/).
-    raptoonzBoardId: process.env.PINTEREST_RAPTOONZ_BOARD_ID || "1099230290240923848",
-    // "808 Box Art" board -- created live via PINTEREST_CREATE_BOARD for
-    // the PS1/PS2-style game-case cover pipeline (src/boxart/).
-    boxartBoardId: process.env.PINTEREST_BOXART_BOARD_ID || "1099230290240924080",
     // "His Underground" / "Her Underground" public boards and the secret
     // "Underground Photo Drop" staging board -- created live via
     // PINTEREST_CREATE_BOARD for src/artist-pins/.
@@ -86,19 +71,6 @@ export const config = {
     pageId: process.env.FACEBOOK_PAGE_ID || "1326786480516977",
   },
 
-  // Custom (non-Composio) TikTok integration -- Composio's own custom-auth
-  // token exchange for TikTok failed live (its server-side call to
-  // TikTok's token endpoint never came back with an access_token; TikTok's
-  // OAuth quirk of naming the field "client_key" rather than the standard
-  // "client_id" is the likely cause, but that's on Composio's side to fix,
-  // not something an auth_config parameter could work around). See
-  // clients/tiktokAuth.js/tiktokPost.js and
-  // site/netlify/functions/tiktok-oauth-callback.mjs for the rest of this.
-  tiktok: {
-    clientKey: process.env.TIKTOK_CLIENT_KEY || "",
-    clientSecret: process.env.TIKTOK_CLIENT_SECRET || "",
-  },
-
   sheets: {
     id: process.env.GOOGLE_SHEETS_ID || "",
     tab: process.env.GOOGLE_SHEETS_TAB || "News",
@@ -106,10 +78,6 @@ export const config = {
     reelsTab: process.env.GOOGLE_SHEETS_REELS_TAB || "Reels",
     // Pin pipeline's own dedup log, same spreadsheet, its own tab.
     pinsTab: process.env.GOOGLE_SHEETS_PINS_TAB || "Pins",
-    // RapToonz's own dedup log, same spreadsheet, its own tab.
-    raptoonzTab: process.env.GOOGLE_SHEETS_RAPTOONZ_TAB || "RapToonz",
-    // BoxArt's own dedup log, same spreadsheet, its own tab.
-    boxartTab: process.env.GOOGLE_SHEETS_BOXART_TAB || "BoxArt",
     connectedAccountId: process.env.COMPOSIO_GOOGLESHEETS_ACCOUNT_ID || "",
   },
 
@@ -192,18 +160,8 @@ export const config = {
   // Same gate, for sharing each carousel and Reel to Instagram Stories
   // after the feed post is confirmed.
   storySharePublish: process.env.IG_STORY_SHARE_PUBLISH === "1",
-  // Same gate, for cross-posting the daily Reel to TikTok -- independent
-  // for the same reason as the Facebook one above, and additionally
-  // blocked until the TikTok connection itself exists (see tiktokAuth.js).
-  reelTikTokCrosspostPublish: process.env.REEL_TIKTOK_CROSSPOST_PUBLISH === "1",
   // Same gate, for the Tuesday 5 PM CT trending chart post.
   trendingTuesdayPublish: process.env.TRENDING_TUESDAY_PUBLISH === "1",
-  // Same gate, for the 10 AM/2 PM/6 PM RapToonz pin (AI-generated rapper x
-  // cartoon-art-style mashups).
-  raptoonzPublish: process.env.RAPTOONZ_PUBLISH === "1",
-  // Same gate, for the 11 AM/3 PM/7 PM BoxArt pin (PS1/PS2-style game-case
-  // covers of female rappers/artists).
-  boxartPublish: process.env.BOXART_PUBLISH === "1",
 
   canvas: { w: 1080, h: 1350 },
 };

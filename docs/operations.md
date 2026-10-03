@@ -29,7 +29,7 @@ All three Pinterest pipelines (album art, His Underground, Her Underground) pin 
 
 Prune Media (`.github/workflows/prune-media.yml`, daily at 08:41 UTC) deletes `public-media/` files more than 7 days old from main. Published URLs are pinned to the commit that added each file, and the platforms keep their own copies, so this breaks nothing. The files remain in git history.
 
-RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
+RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
 
 ## Durable receipts and duplicate prevention
 
