@@ -100,27 +100,14 @@ const TITLE_FONT_TIERS = [
   { maxLength: Infinity, size: 58 },
 ];
 
-// Keyed by track count, not text length — same idea (shrink instead of
-// overflow) but for row count. Tiers are tuned so the largest tier's
-// count times its row height (font-size * ~1.2 + gap) still fits the
-// tracklist container's actual height — verified by rendering the
-// worst case at each boundary. Column count only affects width, not
-// this vertical fit, so the same tiers apply per-column in two-column
-// mode (see buildTracklistHtml) — a column's available height is
-// identical to the single-column case.
-const TRACKLIST_FONT_TIERS = [
-  { maxLength: 8, size: 46, gap: 20 },
-  { maxLength: 12, size: 36, gap: 12 },
-  { maxLength: 16, size: 28, gap: 6 },
-  { maxLength: Infinity, size: 22, gap: 4 },
-];
-// Above this many rows, a single column stops being comfortably
-// readable — switch to two side-by-side columns instead of shrinking
-// further. MAX_TOTAL_ROWS is the hard cap across both columns combined;
-// beyond that, the list truncates with a "+N MORE" row rather than ever
-// overflowing.
-const SINGLE_COLUMN_MAX_ROWS = 18;
-const MAX_TOTAL_ROWS = SINGLE_COLUMN_MAX_ROWS * 2;
+// Tracklist layout: one column up to this many rows, two above it. The
+// font size is not picked here -- the template measures the rendered rows
+// in the browser and shrinks the font until every title fits in full and
+// the list fills the space (fixed size tiers left titles cut off with
+// "..." and a big empty band under short lists). MAX_TOTAL_ROWS is the
+// hard cap across both columns; beyond it the list ends with "+N MORE".
+const SINGLE_COLUMN_MAX_ROWS = 12;
+const MAX_TOTAL_ROWS = 36;
 
 // No reliable linguistic rule exists for which part of an arbitrary
 // release title to highlight — matches the approved reference (NOT DA 2
@@ -158,24 +145,32 @@ function buildCoverHtml({ classified, photoUrl, albumArtLocalUrl }) {
     .replace("{{LINE2_HTML}}", line2Html);
 }
 
-// A track name like "PATCHED IT UP (FEAT. LIL YACHTY)" gets its feature
-// credit pulled into its own smaller span; plain names pass through as-is.
-function buildTrackRow(name, index, fontSize) {
+// Spotify writes feature credits several ways: "Song - feat. X",
+// "Song (feat. X)", "Song [feat. X]", "Song (with X)". The credit is
+// split off and shown small after the title, so it's the part that gives
+// way when space is tight, never the title.
+const FEATURE = /^(.*?)\s*(?:[-–—]\s*|[([]\s*)(?:feat\.?|ft\.?|featuring|with)\s+([^)\]]+?)\s*[)\]]?\s*$/i;
+
+export function splitFeature(name) {
+  const match = String(name || "").match(FEATURE);
+  if (!match || !match[1].trim()) return { title: String(name || "").trim(), feat: "" };
+  return { title: match[1].trim(), feat: match[2].trim() };
+}
+
+function buildTrackRow(name, index) {
   const num = String(index + 1).padStart(2, "0");
-  const match = name.match(/^(.*?)\s*(\((?:feat\.?|ft\.?|with)\s*[^)]+\))\s*$/i);
-  const trackName = match ? match[1].trim() : name;
-  const feat = match ? match[2].trim().toUpperCase() : "";
-  return `<div class="track-row" style="font-size: ${fontSize}px;"><span class="num">${num}</span><span class="name">${escapeHtml(trackName)}</span>${
-    feat ? `<span class="feat">${escapeHtml(feat)}</span>` : ""
+  const { title, feat } = splitFeature(name);
+  return `<div class="track-row"><span class="num">${num}</span><span class="name">${escapeHtml(title)}</span>${
+    feat ? `<span class="feat">ft. ${escapeHtml(feat)}</span>` : ""
   }</div>`;
 }
 
-function buildSummaryRow(text, fontSize) {
-  return `<div class="track-row" style="font-size: ${fontSize}px;"><span class="name">${escapeHtml(text)}</span></div>`;
+function buildSummaryRow(text) {
+  return `<div class="track-row"><span class="num"></span><span class="name">${escapeHtml(text)}</span></div>`;
 }
 
-function buildTracklistColumn(rowsHtml, gap) {
-  return `<div class="tracklist-col" style="gap: ${gap}px;">${rowsHtml}</div>`;
+function buildTracklistColumn(rowsHtml) {
+  return `<div class="tracklist-col">${rowsHtml}</div>`;
 }
 
 function buildTracklistHtml({ classified }) {
@@ -191,27 +186,24 @@ function buildTracklistHtml({ classified }) {
 
   let bodyHtml;
   if (totalRows <= SINGLE_COLUMN_MAX_ROWS) {
-    const tier = pickTier(totalRows, TRACKLIST_FONT_TIERS);
-    const rows = shown.map((name, i) => buildTrackRow(name, i, tier.size));
-    if (summaryText) rows.push(buildSummaryRow(summaryText, tier.size));
-    bodyHtml = buildTracklistColumn(rows.join("\n"), tier.gap);
+    const rows = shown.map((name, i) => buildTrackRow(name, i));
+    if (summaryText) rows.push(buildSummaryRow(summaryText));
+    bodyHtml = `<div class="tracklist-cols">${buildTracklistColumn(rows.join("\n"))}</div>`;
   } else {
     // Numbering continues across the split (left holds 1..k, right
-    // continues k+1..n) rather than restarting, matching how a person
-    // would naturally read a two-column list.
+    // continues k+1..n), the way a person reads a two-column list.
     const leftCount = Math.ceil(totalRows / 2);
-    const tier = pickTier(Math.max(leftCount, totalRows - leftCount), TRACKLIST_FONT_TIERS);
-
-    const leftRows = shown.slice(0, leftCount).map((name, i) => buildTrackRow(name, i, tier.size));
-    const rightRows = shown.slice(leftCount).map((name, i) => buildTrackRow(name, leftCount + i, tier.size));
-    if (summaryText) rightRows.push(buildSummaryRow(summaryText, tier.size));
-
-    bodyHtml = `<div class="tracklist-cols">${buildTracklistColumn(leftRows.join("\n"), tier.gap)}${buildTracklistColumn(rightRows.join("\n"), tier.gap)}</div>`;
+    const leftRows = shown.slice(0, leftCount).map((name, i) => buildTrackRow(name, i));
+    const rightRows = shown.slice(leftCount).map((name, i) => buildTrackRow(name, leftCount + i));
+    if (summaryText) rightRows.push(buildSummaryRow(summaryText));
+    bodyHtml = `<div class="tracklist-cols">${buildTracklistColumn(leftRows.join("\n"))}${buildTracklistColumn(rightRows.join("\n"))}</div>`;
   }
 
+  const count = tracklist.length;
   return readTemplate("slide-tracklist.html")
     .replace("{{TITLE_FONT_SIZE}}", pickFontSize(title, TITLE_FONT_TIERS))
     .replace("{{TITLE_HTML}}", splitTitleAccent(title))
+    .replace("{{TRACK_COUNT}}", `${count} ${count === 1 ? "SONG" : "SONGS"}`)
     .replace("{{TRACKLIST_ROWS_HTML}}", bodyHtml);
 }
 
@@ -258,11 +250,17 @@ async function renderHtmlToPng(page, html, outPath) {
   fs.writeFileSync(tmpPath, html);
   try {
     await page.goto(`file://${tmpPath}`, { waitUntil: "networkidle0" });
+    // Templates that size text in the browser (slide-tracklist.html) set
+    // window.__layoutDone = false and flip it once fitted; others never
+    // set it, so this returns immediately for them.
+    await page.waitForFunction(() => window.__layoutDone !== false, { timeout: 5000 }).catch(() => {});
     await page.screenshot({ path: outPath });
   } finally {
     fs.unlinkSync(tmpPath);
   }
 }
+
+export { buildTracklistHtml };
 
 export async function renderSlides({ candidate, classified, photo, genius }) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "808-slides-"));
