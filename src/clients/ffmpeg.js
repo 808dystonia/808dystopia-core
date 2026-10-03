@@ -38,14 +38,49 @@ function run(cmd, args) {
 // copy of the same footage fills the empty space above and below --
 // nothing from the original frame is lost, and the letterboxing doesn't
 // read as dead space since it's still moving footage from the same clip.
-export async function formatForReel(inputPath, watermarkPath, outputPath) {
+// On-screen hook text, Instagram-style: each wrapped line in its own white
+// box with black text, centred in the lower third (below the letterboxed
+// clip on most sources). Lines are passed as text files so no escaping of
+// quotes or colons is needed, with expansion=none so a "%" stays literal.
+const OVERLAY_FONT_SIZE = 46;
+const OVERLAY_LINE_GAP = 4;
+const OVERLAY_TOP = 1300;
+const OVERLAY_BOX_PADDING = 18;
+
+export function wrapOverlay(text, maxChars = 22, maxLines = 3) {
+  const words = String(text || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const lines = [];
+  for (const word of words) {
+    const last = lines[lines.length - 1];
+    if (last !== undefined && `${last} ${word}`.length <= maxChars) lines[lines.length - 1] = `${last} ${word}`;
+    else lines.push(word);
+  }
+  if (lines.length <= maxLines) return lines;
+  const kept = lines.slice(0, maxLines);
+  kept[maxLines - 1] = `${kept[maxLines - 1].replace(/[\s,;:.!?-]+$/, "")}…`;
+  return kept;
+}
+
+export function overlayFilters(lineFiles, fontPath) {
+  const step = OVERLAY_FONT_SIZE + OVERLAY_BOX_PADDING * 2 + OVERLAY_LINE_GAP;
+  return lineFiles.map((file, i) =>
+    `drawtext=fontfile='${fontPath}':textfile='${file}':expansion=none:fontsize=${OVERLAY_FONT_SIZE}:` +
+    `fontcolor=black:box=1:boxcolor=white:boxborderw=${OVERLAY_BOX_PADDING}:` +
+    `x=(w-text_w)/2:y=${OVERLAY_TOP + i * step}`
+  );
+}
+
+export async function formatForReel(inputPath, watermarkPath, outputPath, { overlayLineFiles = [], overlayFontPath } = {}) {
+  const overlay = overlayLineFiles.length && overlayFontPath ? overlayFilters(overlayLineFiles, overlayFontPath) : [];
   const filter =
     `[0:v]scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT}:force_original_aspect_ratio=increase,` +
     `crop=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT},gblur=sigma=25,eq=brightness=-0.05[bg];` +
     `[0:v]scale=${OUTPUT_WIDTH}:${OUTPUT_HEIGHT}:force_original_aspect_ratio=decrease[fg];` +
     `[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[merged];` +
     `[1:v]scale=${WATERMARK_WIDTH}:-1[wm];` +
-    `[merged][wm]overlay=${WATERMARK_MARGIN}:${WATERMARK_MARGIN}[outv]`;
+    `[merged][wm]overlay=${WATERMARK_MARGIN}:${WATERMARK_MARGIN}` +
+    (overlay.length ? `,${overlay.join(",")}` : "") +
+    `[outv]`;
 
   await run("ffmpeg", [
     "-y",

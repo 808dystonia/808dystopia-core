@@ -137,6 +137,8 @@ export async function buildReelCaption(video, { write = writeCopy } = {}) {
   return {
     caption,
     hashtags: buildHashtags(video),
+    // On-screen text burned onto the clip in step 4.
+    overlay: copy?.overlay || fallbackHook,
     // Only invite the artist to collab on content they're actually in.
     collaborator: about ? null : instagramHandle,
   };

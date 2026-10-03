@@ -30,12 +30,14 @@ export const SIGN_OFF = [
 ].join("\n");
 
 const LIMITS = { hook: 160, context: 450, question: 140 };
+const MAX_OVERLAY = 60;
 
 function buildPrompt(facts) {
   return `Write Instagram caption copy for 808 Dystopia, an underground hip-hop news page. Voice: a hip-hop news page talking to fans. Casual, hyped, short sentences, "y'all" is fine. Return ONLY a JSON object with:
 
 - hook: ONE punchy sentence stating the news or what the clip shows, naming the artist. Under 140 characters.
 - context: 1-3 short sentences adding the most interesting details from the facts, with 1-2 emojis placed where a fan page would put them (e.g. "it's crazy how much he grew 😵‍💫", "the beat goes so hard 🔥"). Use "" if the facts have nothing more to add.
+- overlay: the hook as short on-screen text for a video, under 50 characters, no emojis (e.g. "Tezzus came a long way in 1 year").
 - question: ONE question that gets fans commenting, about this specific post (e.g. "Have y'all run it yet?", "What do y'all think of the remix?"). Under 120 characters.
 
 Rules:
@@ -73,6 +75,9 @@ export async function writeCopy(facts, generate = generateJson) {
     const copy = { hook: strip(result.hook), context: limitEmojis(result.context, MAX_CONTEXT_EMOJIS), question: strip(result.question) };
     if (!copy.hook || !copy.question) return null;
     if (Object.entries(LIMITS).some(([key, max]) => copy[key].length > max)) return null;
+    // An over-long overlay only loses the overlay, not the whole caption.
+    const overlay = strip(result.overlay);
+    copy.overlay = overlay.length <= MAX_OVERLAY ? overlay : "";
     return copy;
   } catch (err) {
     console.log("caption copy:", err.message);
