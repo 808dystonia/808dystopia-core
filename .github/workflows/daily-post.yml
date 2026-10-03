@@ -16,7 +16,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OPS_STATE_ENABLED: "1"
@@ -35,6 +35,15 @@ jobs:
         if: steps.gate.outputs.due == 'true'
         env:
           PUPPETEER_SKIP_DOWNLOAD: "false"
+      # yt-dlp + ffmpeg for the video-drop clip slide (same setup as the Reel).
+      - run: pip install --quiet yt-dlp yt-dlp-ejs curl_cffi
+        if: steps.gate.outputs.due == 'true'
+      - uses: denoland/setup-deno@v2
+        if: steps.gate.outputs.due == 'true'
+        with:
+          deno-version: v2.x
+      - run: sudo apt-get update -qq && sudo apt-get install -qq -y ffmpeg
+        if: steps.gate.outputs.due == 'true'
       - name: Run carousel
         if: steps.gate.outputs.due == 'true'
         run: npm start
@@ -49,6 +58,8 @@ jobs:
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}
           COMPOSIO_PINTEREST_ACCOUNT_ID: ${{ secrets.COMPOSIO_PINTEREST_ACCOUNT_ID }}
           COMPOSIO_FACEBOOK_ACCOUNT_ID: ${{ secrets.COMPOSIO_FACEBOOK_ACCOUNT_ID }}

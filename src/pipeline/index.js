@@ -5,6 +5,7 @@ import { classifyArticle } from "./2-classify.js";
 import { getPhoto } from "./3-get-photo.js";
 import { getGeniusContent } from "./4-get-diss-content.js";
 import { renderSlides } from "./5-render-slides.js";
+import { buildVideoClipSlide } from "./video-drop.js";
 import { buildCaption } from "./6-build-caption.js";
 import { publishCarousel } from "./7-publish.js";
 import { logAndReport } from "./8-log-and-report.js";
@@ -69,6 +70,10 @@ export async function runDailyFlow() {
     }
   }
   const slides = await renderSlides({ candidate, classified, photo, genius });
+  // Best-effort: null (no fourth slide) unless this is a video drop and
+  // the clip was found and rendered.
+  const clip = await buildVideoClipSlide({ candidate, classified });
+  if (clip) slides.videoClipPath = clip.clipPath;
   const caption = await buildCaption({ candidate, classified });
 
   try {

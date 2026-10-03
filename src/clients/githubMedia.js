@@ -90,6 +90,11 @@ export async function publishImageToRepo(localPath, filename) {
   return commitMediaToRepo(localPath, filename, "Add carousel media");
 }
 
+// The music-video clip slide of a video-drop carousel.
+export async function publishCarouselVideoToRepo(localPath, filename) {
+  return commitMediaToRepo(localPath, filename, "Add carousel media");
+}
+
 // Same approach, for the Reel pipeline's finished clip — Instagram needs a
 // publicly-fetchable video_url for Reels too, same constraint as the
 // carousel's images/closer video (see the file header for why this beats

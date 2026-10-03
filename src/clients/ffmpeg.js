@@ -128,3 +128,49 @@ export async function formatForReel(inputPath, watermarkPath, outputPath, { head
 
   return outputPath;
 }
+
+// A 4:5 carousel slide made from a music-video clip (the "new video" slide
+// of a video-drop carousel): the clip uncropped over a blurred, darkened
+// copy of itself, "NOW PLAYING" above it, the song and artist below in the
+// carousel's Capture It font, and the logo bottom-left like the other
+// slides. Instagram carousel videos must be 3-60s; the clip is cut to
+// maxSeconds regardless of what was downloaded.
+const SLIDE_WIDTH = 1080;
+const SLIDE_HEIGHT = 1350;
+
+export function carouselClipFilters({ kickerFile, titleLineFiles = [], kickerFontPath, titleFontPath }) {
+  const kicker =
+    `drawtext=fontfile='${kickerFontPath}':textfile='${kickerFile}':expansion=none:fontsize=44:` +
+    `fontcolor=0xE01717:shadowcolor=black@0.85:shadowx=2:shadowy=2:x=(w-text_w)/2:y=250`;
+  const titles = titleLineFiles.map(
+    (file, i) =>
+      `drawtext=fontfile='${titleFontPath}':textfile='${file}':expansion=none:fontsize=64:` +
+      `fontcolor=white:shadowcolor=black@0.85:shadowx=3:shadowy=3:x=(w-text_w)/2:y=${1010 + i * 74}`
+  );
+  return [kicker, ...titles];
+}
+
+export async function formatForCarouselClip(inputPath, watermarkPath, outputPath, { maxSeconds = 20, ...text } = {}) {
+  const drawn = text.kickerFile && text.kickerFontPath && text.titleFontPath ? carouselClipFilters(text) : [];
+  const filter =
+    `[0:v]scale=${SLIDE_WIDTH}:${SLIDE_HEIGHT}:force_original_aspect_ratio=increase,` +
+    `crop=${SLIDE_WIDTH}:${SLIDE_HEIGHT},gblur=sigma=30,eq=brightness=-0.25:saturation=0.8[bg];` +
+    `[0:v]scale=${SLIDE_WIDTH}:${SLIDE_HEIGHT}:force_original_aspect_ratio=decrease[fg];` +
+    `[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1[merged];` +
+    `[1:v]scale=110:-1[wm];` +
+    `[merged][wm]overlay=24:1190` +
+    (drawn.length ? `,${drawn.join(",")}` : "") +
+    `[outv]`;
+
+  await run("ffmpeg", [
+    "-y", "-i", inputPath, "-i", watermarkPath,
+    "-filter_complex", filter,
+    "-map", "[outv]", "-map", "0:a?",
+    "-t", String(maxSeconds),
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "128k",
+    "-movflags", "+faststart",
+    outputPath,
+  ]);
+  return outputPath;
+}
