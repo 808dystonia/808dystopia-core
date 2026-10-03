@@ -88,6 +88,10 @@ export async function classifyArticle(candidate) {
 
   return {
     type: effectiveType,
+    // True for every release, including one downgraded to "other" above
+    // because Spotify can't confirm its tracklist yet -- the caption still
+    // calls it a drop.
+    released: type === "album_drop",
     artist,
     title,
     tracklist,
