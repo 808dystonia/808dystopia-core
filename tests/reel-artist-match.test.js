@@ -35,22 +35,26 @@ test('findVideo skips short names without calling YouTube', async (t) => {
   assert.equal(fetchMock.mock.callCount(), 0);
 });
 
-test('caption leads with the cleaned quote and never uses the AI reason', async (t) => {
+test('Reel caption: hook, artist quote, question, credit, sign-off; never the AI reason', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 500 }));
   const { caption } = await buildReelCaption({
     artist: 'SouthWes', contentType: 'interview', channelTitle: 'No Jumper', source: 'youtube',
     highlight: { quote: '  "I made that beat\n in my  mom\'s basement"  ', reason: 'This is a self-contained, quotable moment.' },
-  });
-  const lines = caption.split('\n\n');
-  assert.equal(lines[0], '“I made that beat in my mom\'s basement”');
-  assert.equal(lines[1], '— SouthWes, in an interview · 🎥 via No Jumper (YouTube)');
+  }, { write: async () => null });
+  const blocks = caption.split('\n\n');
+  assert.equal(blocks[0], '#SouthWes in an interview 🎙️👀');
+  assert.equal(blocks[1], '“I made that beat in my mom\'s basement” — SouthWes');
+  assert.equal(blocks[2], "What do y'all think⁉️ 🤔⬇️");
+  assert.equal(blocks[3], '🎥 Via No Jumper (YouTube)');
+  assert.match(blocks[4], /^🎧 Follow @808dystopia/);
   assert.ok(!caption.includes('self-contained'));
 });
 
-test('caption without a quote falls back to the artist, and long quotes are cut', async (t) => {
+test('Reel caption uses the AI hook when there is one; long quotes are cut', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 500 }));
-  const { caption } = await buildReelCaption({ artist: 'Pixy', contentType: 'performance', source: 'twitch', highlight: { quote: '', reason: 'x' } });
-  assert.ok(caption.startsWith('🎤 Pixy\n\n— Pixy, live · 🎥 via Twitch (Twitch)'));
+  const { caption } = await buildReelCaption({ artist: 'Pixy', contentType: 'performance', source: 'twitch', highlight: { quote: '' } },
+    { write: async () => ({ hook: 'Pixy shut the whole venue down', context: 'The crowd knew every word 😮‍💨', question: 'Who caught this set?' }) });
+  assert.ok(caption.startsWith('#Pixy shut the whole venue down 🎤🔥\n\nThe crowd knew every word 😮‍💨\n\nWho caught this set⁉️ 🤔⬇️\n\n🎥 Via Twitch (Twitch)'));
 
   const long = cleanQuote('word '.repeat(80));
   assert.ok(long.length <= 221 && long.endsWith('…') && !long.includes('  '));
@@ -140,11 +144,11 @@ test('an about-the-artist caption says what it is, credits the creator, and send
   const { caption, collaborator, hashtags } = await buildReelCaption({
     artist: 'bleood', contentType: 'type beat tutorial', relation: 'about', channelTitle: 'Beats By Ricky',
     highlight: { quote: 'start with a detuned 808 and keep the hats sparse' },
-  });
-  const lines = caption.split('\n\n');
-  assert.match(lines[0], /^🎛 Type beat tutorial: a producer breaks down how to make beats in the style of bleood\.$/);
-  assert.equal(lines[1], '“start with a detuned 808 and keep the hats sparse” — Beats By Ricky');
-  assert.equal(lines[2], "🎥 via Beats By Ricky (YouTube) · not bleood's own upload");
+  }, { write: async () => null });
+  const blocks = caption.split('\n\n');
+  assert.equal(blocks[0], 'A producer broke down how to make beats in the style of #bleood 🎛️👀');
+  assert.equal(blocks[1], '“start with a detuned 808 and keep the hats sparse” — Beats By Ricky');
+  assert.equal(blocks[3], "🎥 Via Beats By Ricky (YouTube) · not bleood's own upload");
   assert.equal(collaborator, null);
   assert.match(hashtags, /#typebeat/);
 });

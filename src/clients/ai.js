@@ -6,6 +6,7 @@ export const SCHEMAS = {
   highlight: object({ startSeconds: { type: 'number' }, endSeconds: { type: 'number' }, quote: string, reason: string }),
   digest: object({ stories: { type: 'array', items: object({ summary: string, source: string }) } }),
   recommendations: object({ recommendations: { type: 'array', items: string } }),
+  caption: object({ hook: string, context: string, question: string }),
 };
 export function validate(value, schema, path = 'response') {
   if (schema.type === 'object') {

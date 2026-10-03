@@ -1,11 +1,12 @@
-// Step 6: build the caption (a brief factual line, then @-mention the
-// artist's IG handle when we have one, then "Follow for more.") and a
-// separate hashtag block for the first comment. The IG handle comes from
-// the artist's Genius profile (instagram_name) — Genius is already our
-// artist source of record for photo/lyric lookups, and most working
-// artists self-report their Instagram there. A miss just means no
-// @-mention, never a guessed handle.
+// Step 6: build the caption in the shared news-page voice (see
+// src/captions/voice.js): a hook naming the artist, a little context, a
+// question for the comments, the artist's IG handle, then the 808 sign-off.
+// The full hashtag block still goes in the first comment. The IG handle
+// comes from the artist's Genius profile (instagram_name); a miss just
+// means no @-mention, never a guessed handle. If the AI copy is
+// unavailable, the plain news line below is the hook.
 import { getArtistInstagramHandle } from "../clients/genius.js";
+import { writeCopy, assembleCaption } from "../captions/voice.js";
 
 function toTitleCase(text) {
   return (text || "")
@@ -63,8 +64,32 @@ function buildHashtags(classified) {
   return tags.join(" ");
 }
 
-export async function buildCaption({ candidate, classified }) {
-  const contextLine = buildContextLine(candidate, classified);
+const HOOK_EMOJI = { album_drop: "💿🔥", diss: "‼️👀", other: "👀" };
+const FALLBACK_QUESTIONS = {
+  album_drop: "Have y'all checked it out yet",
+  diss: "Who y'all got",
+  other: "What do y'all think",
+};
+
+function captionKind(classified) {
+  return classified.released ? "album_drop" : classified.type;
+}
+
+function factsFor(candidate, classified) {
+  const lines = [
+    `Artist: ${classified.artist}`,
+    `Story type: ${captionKind(classified) === "album_drop" ? "new release" : classified.type === "diss" ? `lyric moment (${classified.lyricTag})` : "news"}`,
+    `Title: ${classified.title}`,
+    `Source text: ${candidate.text}`,
+  ];
+  if (classified.context) lines.push(`Background already written for the slide: ${classified.context}`);
+  if (classified.tracklist?.length) lines.push(`Track count: ${classified.tracklist.length}`);
+  return lines.join("\n");
+}
+
+export async function buildCaption({ candidate, classified }, { write = writeCopy } = {}) {
+  const kind = captionKind(classified);
+  const copy = await write(factsFor(candidate, classified));
 
   let instagramHandle = null;
   try {
@@ -73,12 +98,17 @@ export async function buildCaption({ candidate, classified }) {
     console.log("genius instagram handle lookup:", err.message);
   }
 
-  const lines = [contextLine];
-  if (instagramHandle) lines.push(`@${instagramHandle}`);
-  lines.push("Follow for more.");
+  const caption = assembleCaption({
+    artist: classified.artist,
+    hook: copy?.hook || buildContextLine(candidate, classified),
+    hookEmoji: HOOK_EMOJI[kind],
+    context: copy?.context || "",
+    question: copy?.question || FALLBACK_QUESTIONS[kind] || FALLBACK_QUESTIONS.other,
+    handleLine: instagramHandle ? `@${instagramHandle}` : "",
+  });
 
   return {
-    caption: lines.join("\n\n"),
+    caption,
     hashtags: buildHashtags(classified),
     collaborator: instagramHandle,
   };

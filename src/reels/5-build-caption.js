@@ -1,12 +1,14 @@
-// Step 5: build the Reel caption. It always says plainly what the clip is.
-// When the artist is in it (their own upload, an interview, a live set),
-// it leads with their words (step 3's highlight.quote, cleaned up) and
-// credits them. When it's someone else talking about the artist (a
-// type-beat tutorial, a reaction, a review), it says so first, credits the
-// quote to that creator, and only @-mentions the artist -- no collab
-// invite. highlight.reason is the AI's internal note on why it picked the
-// moment, so it never appears in the caption.
+// Step 5: build the Reel caption in the shared news-page voice (see
+// src/captions/voice.js): a hook saying what the clip is, a little context,
+// the quote, a question for the comments, the credit, then the 808 sign-off.
+// When the artist is in the clip (their own upload, an interview, a live
+// set), the quote is credited to them and they get a collab invite. When
+// it's someone else talking about the artist (a type-beat tutorial, a
+// reaction, a review), the hook says so, the quote is credited to that
+// creator, and the artist is only @-mentioned. highlight.reason is the AI's
+// internal note on why it picked the moment, so it never appears.
 import { getArtistInstagramHandle } from "../clients/genius.js";
+import { writeCopy, assembleCaption } from "../captions/voice.js";
 
 const BASE_HASHTAGS = ["#hiphop", "#rap", "#undergroundhiphop", "#hiphopreels"];
 const CONTENT_TYPE_HASHTAGS = {
@@ -46,11 +48,32 @@ const CONTENT_TYPE_LABELS = {
   "music video": "in the video",
 };
 
-// Lead lines for content about the artist rather than by or featuring them.
-const ABOUT_LEADS = {
-  "type beat tutorial": (artist) => `🎛 Type beat tutorial: a producer breaks down how to make beats in the style of ${artist}.`,
-  reaction: (artist) => `👀 Reaction: a creator reacts to ${artist}.`,
-  review: (artist) => `📝 Review: a creator breaks down ${artist}'s music.`,
+// Fallback hooks when the AI copy is unavailable. "About" content always
+// says what it is.
+const ABOUT_HOOKS = {
+  "type beat tutorial": (artist) => `A producer broke down how to make beats in the style of ${artist}`,
+  reaction: (artist) => `A creator reacted to ${artist}`,
+  review: (artist) => `A creator broke down ${artist}'s music`,
+};
+
+const HOOK_EMOJI = {
+  interview: "🎙️👀",
+  performance: "🎤🔥",
+  freestyle: "🎤🔥",
+  "studio session": "🎛️🔥",
+  "music video": "🎬🔥",
+  "livestream clip": "📺👀",
+  "beat breakdown": "🎛️🔥",
+  "type beat tutorial": "🎛️👀",
+  reaction: "👀😳",
+  review: "📝👀",
+};
+
+const FALLBACK_QUESTIONS = {
+  "type beat tutorial": "Could y'all make a beat like this",
+  reaction: "Do y'all agree with the reaction",
+  review: "Do y'all agree",
+  interview: "What do y'all think",
 };
 
 const MAX_QUOTE_LENGTH = 220;
@@ -67,29 +90,26 @@ export function cleanQuote(quote) {
   return `${text.replace(/[\s,;:.!?-]+$/, "")}…`;
 }
 
-// Who said it and where the clip came from: the featured artist plus
-// whoever posted it (video.channelTitle -- the YouTube channel, Twitch
-// broadcaster, or TikTok uploader).
-function creditLine(video) {
+function factsFor(video, quote, about) {
   const platform = PLATFORM_LABELS[video.source] || "YouTube";
-  const source = video.channelTitle || platform;
-  const context = CONTENT_TYPE_LABELS[video.contentType];
-  return `— ${video.artist}${context ? `, ${context}` : ""} · 🎥 via ${source} (${platform})`;
+  return [
+    `Artist: ${video.artist}`,
+    `Clip type: ${video.contentType}`,
+    about
+      ? `Who's in it: ${video.channelTitle || "another creator"}, talking about ${video.artist}. ${video.artist} is NOT in this clip.`
+      : `Who's in it: ${video.artist}`,
+    `Video title: ${video.title || ""}`,
+    `Posted by: ${video.channelTitle || platform} on ${platform}`,
+    quote ? `What's said in the clip: "${quote}"` : "",
+  ].filter(Boolean).join("\n");
 }
 
-function aboutLines(video, quote) {
-  const platform = PLATFORM_LABELS[video.source] || "YouTube";
-  const creator = video.channelTitle || platform;
-  const lead = (ABOUT_LEADS[video.contentType] || ((artist) => `A creator talks about ${artist}.`))(video.artist);
-  const lines = [lead];
-  if (quote) lines.push(`“${quote}” — ${creator}`);
-  lines.push(`🎥 via ${creator} (${platform}) · not ${video.artist}'s own upload`);
-  return lines;
-}
-
-export async function buildReelCaption(video) {
+export async function buildReelCaption(video, { write = writeCopy } = {}) {
   const quote = cleanQuote(video.highlight?.quote);
   const about = video.relation === "about";
+  const platform = PLATFORM_LABELS[video.source] || "YouTube";
+  const source = video.channelTitle || platform;
+  const copy = await write(factsFor(video, quote, about));
 
   let instagramHandle = null;
   try {
@@ -98,12 +118,24 @@ export async function buildReelCaption(video) {
     console.log("genius instagram handle lookup:", err.message);
   }
 
-  const lines = about ? aboutLines(video, quote) : [quote ? `“${quote}”` : `🎤 ${video.artist}`, creditLine(video)];
-  if (instagramHandle) lines.push(about ? `Artist: @${instagramHandle}` : `@${instagramHandle}`);
-  lines.push("Follow for more.");
+  const context = CONTENT_TYPE_LABELS[video.contentType];
+  const fallbackHook = about
+    ? (ABOUT_HOOKS[video.contentType] || ((artist) => `A creator talked about ${artist}`))(video.artist)
+    : `${video.artist}${context ? ` ${context}` : ""}`;
+
+  const caption = assembleCaption({
+    artist: video.artist,
+    hook: copy?.hook || fallbackHook,
+    hookEmoji: HOOK_EMOJI[video.contentType] || "👀🔥",
+    context: copy?.context || "",
+    quote: quote ? `“${quote}” — ${about ? source : video.artist}` : "",
+    question: copy?.question || FALLBACK_QUESTIONS[video.contentType] || "What do y'all think",
+    credit: `🎥 Via ${source} (${platform})${about ? ` · not ${video.artist}'s own upload` : ""}`,
+    handleLine: instagramHandle ? (about ? `Artist: @${instagramHandle}` : `@${instagramHandle}`) : "",
+  });
 
   return {
-    caption: lines.join("\n\n"),
+    caption,
     hashtags: buildHashtags(video),
     // Only invite the artist to collab on content they're actually in.
     collaborator: about ? null : instagramHandle,

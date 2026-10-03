@@ -31,11 +31,13 @@ test('no drops leaves the list untouched; "droplet"-style words do not count', (
 test('a release Spotify cannot confirm yet is still captioned as a drop', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response('{}', { status: 500 }));
   const classified = { type: 'other', released: true, artist: 'Pixy', title: 'legacy', context: 'Pixy released a new EP.' };
-  const { caption, hashtags } = await buildCaption({ candidate: { text: 'x' }, classified });
-  assert.ok(caption.startsWith('Pixy just dropped "Legacy."'));
+  const noAi = { write: async () => null };
+  const { caption, hashtags } = await buildCaption({ candidate: { text: 'x' }, classified }, noAi);
+  assert.ok(caption.startsWith('#Pixy just dropped "Legacy" 💿🔥'));
+  assert.match(caption, /Have y'all checked it out yet⁉️ 🤔⬇️/);
   assert.ok(hashtags.includes('#newmusic') && hashtags.includes('#albumdrop'));
 
-  const news = await buildCaption({ candidate: { text: 'x' }, classified: { ...classified, released: false } });
-  assert.ok(news.caption.startsWith('Pixy released a new EP.'));
+  const news = await buildCaption({ candidate: { text: 'x' }, classified: { ...classified, released: false } }, noAi);
+  assert.ok(news.caption.startsWith('#Pixy released a new EP 👀'));
   assert.ok(!news.hashtags.includes('#newmusic'));
 });
