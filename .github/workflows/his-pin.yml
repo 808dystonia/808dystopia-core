@@ -17,7 +17,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OPS_STATE_ENABLED: "1"
@@ -35,7 +35,7 @@ jobs:
       - run: npm ci
         if: steps.gate.outputs.due == 'true'
         env:
-          PUPPETEER_SKIP_DOWNLOAD: "true"
+          PUPPETEER_SKIP_DOWNLOAD: "false"
       - name: Run his-pin
         if: steps.gate.outputs.due == 'true'
         run: npm run his-pin

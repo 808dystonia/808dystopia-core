@@ -25,6 +25,8 @@ Carousels and Reels invite the featured artist as an Instagram collaborator when
 
 After a carousel or Reel is confirmed, it is also shared to Instagram Stories (gate: `IG_STORY_SHARE_PUBLISH`, set in both workflows). The API can't reshare a feed post, so the Story is its own post: slide 1 for a carousel, the clip for a Reel. Reel clips over 60 seconds are skipped, because API Stories allow 60 seconds. The Story runs after Facebook as a follow-up. Its outcome (`posted`, `skipped`, `disabled` or `failed`) is saved with the post's other follow-ups. A failure marks the run partial, like a Facebook failure, and is never retried automatically.
 
+All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
+
 RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
 
 ## Durable receipts and duplicate prevention

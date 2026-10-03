@@ -1,0 +1,70 @@
+<!doctype html>
+<!-- Vertical 2:3 Pinterest pin (1000x1500): brand bar, the photo or album
+     cover, a kicker badge, a headline and a footer. Same type and colour
+     language as cover.html. Filled in by src/pins/render-pin.js. -->
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  @font-face { font-family: "Capture It"; src: url("assets/Capture_it.ttf") format("truetype"); }
+  @font-face { font-family: "Michroma"; src: url("assets/Michroma.ttf") format("truetype"); }
+
+  html, body { margin: 0; width: 1000px; height: 1500px; background: #000; overflow: hidden; }
+  .canvas { position: relative; width: 1000px; height: 1500px; color: #fff; }
+
+  .brand {
+    position: absolute; top: 0; left: 0; right: 0; height: 120px;
+    display: flex; align-items: center; justify-content: center; gap: 24px;
+  }
+  .brand img { height: 84px; }
+  .brand span { font-family: "Capture It", Impact, sans-serif; font-size: 68px; letter-spacing: 2px; }
+
+  .photo {
+    position: absolute; top: 120px; left: 0; width: 1000px; height: 1000px;
+    object-fit: cover; object-position: center 25%;
+  }
+  .fade {
+    position: absolute; top: 960px; left: 0; width: 1000px; height: 160px;
+    background: linear-gradient(to bottom, transparent, #000);
+  }
+
+  .badge {
+    position: absolute; top: 1090px; left: 50%; transform: translateX(-50%);
+    padding: 6px 36px; border-top: 3px solid #fff; border-bottom: 3px solid #fff;
+    border-left: 14px solid #fff; border-right: 14px solid #fff;
+    font-family: Georgia, "Times New Roman", serif; font-weight: 700; font-style: italic;
+    font-size: 34px; white-space: nowrap;
+  }
+
+  .headline {
+    position: absolute; top: 1170px; left: 40px; right: 40px; height: 190px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; text-transform: uppercase; line-height: 1.05;
+    font-family: "Capture It", Impact, sans-serif; overflow-wrap: anywhere;
+  }
+  .headline .title { font-size: {{TITLE_SIZE}}px; }
+  .headline .subtitle { margin-top: 14px; font-family: "Michroma", sans-serif; font-size: 30px; color: #e01717; }
+
+  .glow { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.85)); }
+  .rule { position: absolute; top: 1395px; left: 60px; right: 60px; height: 3px; background: #fff; }
+  .footer {
+    position: absolute; top: 1420px; left: 0; right: 0; text-align: center;
+    font-family: "Michroma", sans-serif; font-size: 28px; letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="brand"><img src="assets/logo.png" /><span>808 DYSTOPIA</span></div>
+    <img class="photo" src="{{PHOTO_URL}}" />
+    <div class="fade"></div>
+    <div class="badge glow">{{KICKER}}</div>
+    <div class="headline">
+      <div class="title">{{TITLE}}</div>
+      <div class="subtitle">{{SUBTITLE}}</div>
+    </div>
+    <div class="rule glow"></div>
+    <div class="footer">@808DYSTOPIA · 808DYSTOPIA.WIN</div>
+  </div>
+</body>
+</html>
