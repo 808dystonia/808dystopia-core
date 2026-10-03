@@ -41,10 +41,13 @@ export async function getReferents(songId, perPage = 20) {
   return json?.response?.referents || [];
 }
 
-// Genius shows a generic placeholder for artists with no uploaded photo —
-// treat that as "no real photo" rather than a usable one.
-function isPlaceholderAvatar(url) {
-  return !url || url.includes("default_avatar");
+// Genius serves generic placeholders for artists with no uploaded photo,
+// and has more than one: default_avatar (a baby silhouette) and, for most
+// artists now, default_cover_image.png (the grey Genius logo, which went
+// out as Riconoflow's carousel cover on 9/18). Anything from Genius's own
+// assets/images/default_* or sharing_fallback is not a real photo.
+export function isPlaceholderAvatar(url) {
+  return !url || /assets\.genius\.com\/images\/(default_|sharing_fallback)/i.test(url);
 }
 
 // Finds the hit whose primary_artist name matches (case-insensitive) —
