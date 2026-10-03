@@ -34,15 +34,47 @@
 // asking this function for a second video.
 import { searchVideos, getVideoDetails } from "../clients/youtube.js";
 import { findChannelId, getClips } from "../clients/twitch.js";
+import { mentionsArtist } from "../artist-pins/2-find-photo.js";
 import { describeError } from "../util/describeError.js";
 
+// The artist name is quoted so YouTube treats it as a phrase rather than
+// loose keywords ("SouthWes interview" used to return job-interview tips).
 const CONTENT_TYPE_QUERIES = [
-  (artist) => ({ label: "interview", query: `${artist} interview` }),
-  (artist) => ({ label: "beat breakdown", query: `${artist} beat breakdown` }),
-  (artist) => ({ label: "performance", query: `${artist} live performance` }),
-  (artist) => ({ label: "freestyle", query: `${artist} freestyle` }),
-  (artist) => ({ label: "studio session", query: `${artist} studio session` }),
+  (artist) => ({ label: "interview", query: `"${artist}" interview` }),
+  (artist) => ({ label: "beat breakdown", query: `"${artist}" beat breakdown` }),
+  (artist) => ({ label: "performance", query: `"${artist}" live performance` }),
+  (artist) => ({ label: "freestyle", query: `"${artist}" freestyle` }),
+  (artist) => ({ label: "studio session", query: `"${artist}" studio session` }),
 ];
+
+// Search matched strangers for ambiguous names ("OK" became a college
+// football player, "Rok" an unrelated band, "Caneva" a Canva talk), so a
+// result is only used when it plainly belongs to the artist and is music.
+// Names shorter than this are too ambiguous to search for at all.
+const MIN_NAME_LENGTH = 4;
+const compact = (value) => String(value || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+const MUSIC_CATEGORY_ID = "10";
+const MUSIC_WORDS =
+  /\b(rap|rapper|rapping|hip ?hop|freestyle|cypher|beats?|producer|prod|type beat|fl studio|studio session|verse|bars|mixtape|album|single|song|track|music|music video|official (video|audio)|lyrics?|visualizer|remix|feat|ft|concert|tour|plugg|drill|trap|rage|underground|vevo)\b/i;
+
+export function isSearchableName(artist) {
+  return compact(artist).length >= MIN_NAME_LENGTH;
+}
+
+// The title or channel has to name the artist (a channel like
+// "SouthWesMusic" counts), and the title, tags, channel or YouTube's own
+// Music category has to say it's music.
+export function isArtistMusicVideo(details, artist) {
+  if (!isSearchableName(artist)) return false;
+  const target = compact(artist);
+  const namesArtist =
+    mentionsArtist(artist, details.title, MIN_NAME_LENGTH) ||
+    mentionsArtist(artist, details.channelTitle, MIN_NAME_LENGTH) ||
+    compact(details.channelTitle).startsWith(target);
+  if (!namesArtist) return false;
+  const text = [details.title, details.channelTitle, ...(details.tags || [])].join(" ");
+  return details.categoryId === MUSIC_CATEGORY_ID || MUSIC_WORDS.test(text);
+}
 
 const MIN_DURATION_SECONDS = 45;
 // Kept modest (not the 45 min originally planned) because step 3 transcribes
@@ -90,13 +122,18 @@ async function findTwitchClip(artistHandle) {
 }
 
 export async function findVideo(artistHandle) {
+  if (!isSearchableName(artistHandle)) {
+    console.log(`findVideo: skipping "${artistHandle}", name too short to search unambiguously`);
+    return null;
+  }
+
   for (const buildQuery of CONTENT_TYPE_QUERIES) {
     const { label, query } = buildQuery(artistHandle);
     const results = await searchVideos(query, { maxResults: 5 });
     if (results.length === 0) continue;
 
     const details = await getVideoDetails(results.map((r) => r.videoId));
-    const usable = details.find(isUsable);
+    const usable = details.find((d) => isUsable(d) && isArtistMusicVideo(d, artistHandle));
     if (usable) return { ...usable, artist: artistHandle, contentType: label };
   }
 
