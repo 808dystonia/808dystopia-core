@@ -1,16 +1,16 @@
-// Step 2: DeepSeek selects and summarizes the genuinely notable
+// Step 2: the AI provider selects and summarizes the genuinely notable
 // underground/hip-hop stories from today's pooled RSS articles —
-// DeepSeek never sees the open web itself here, only the real fetched
+// The AI never sees the open web itself here, only the real fetched
 // titles from step 1, so it's summarizing/selecting real content, not
 // generating news from nothing (see the conversation that led to this
-// design: DeepSeek has no live search, unlike Grok).
+// design: the AI has no live search, unlike Grok).
 //
 // Formats output to match the exact shape the carousel pipeline's own
 // splitIntoStories() already parses from the morning Grok digest ("• "
 // bulleted lines, source cited inline in parens) — built in code from
-// DeepSeek's structured {summary, source} pairs rather than trusting the
+// The AI's structured {summary, source} pairs rather than trusting the
 // model to get the literal bullet punctuation right every time.
-import { classifyWithDeepSeek } from "../clients/deepseek.js";
+import { generateJson } from "../clients/ai.js";
 
 const MAX_STORIES = 6;
 
@@ -36,7 +36,7 @@ Return ONLY the JSON object.`;
 export async function buildDigest(articles) {
   if (articles.length === 0) return [];
 
-  const result = await classifyWithDeepSeek(buildPrompt(articles), "digest");
+  const result = await generateJson(buildPrompt(articles), "digest");
   const stories = Array.isArray(result.stories) ? result.stories : [];
   return stories
     .filter((s) => s.summary && articles.some(a => a.source === s.source))

@@ -49,13 +49,6 @@ export async function createVideoContainer(videoUrl) {
 // for a single-item post) carousel container. media_type: "REELS" is
 // Meta's own Graph API value for this (POST /{ig-user-id}/media docs),
 // analogous to the VIDEO override above for carousel video items.
-// NOT YET LIVE-VALIDATED: this session's local COMPOSIO_API_KEY is stale
-// (401 against Composio's API, same issue seen earlier reading Discord/
-// Sheets locally — a local-only mismatch, not a production issue, since
-// the real GitHub Actions secret has worked for every carousel post so
-// far) so the exact param shape couldn't be confirmed against a live
-// call the way every other step in this pipeline was. Confirm this on
-// the first real test run before fully trusting it.
 export async function createReelContainer(videoUrl, caption) {
   const result = await runTool(
     "INSTAGRAM_CREATE_MEDIA_CONTAINER",

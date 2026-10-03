@@ -27,6 +27,8 @@ After a carousel or Reel is confirmed, it is also shared to Instagram Stories (g
 
 All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
 
+Prune Media (`.github/workflows/prune-media.yml`, daily at 08:41 UTC) deletes `public-media/` files more than 7 days old from main. Published URLs are pinned to the commit that added each file, and the platforms keep their own copies, so this breaks nothing. The files remain in git history.
+
 RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
 
 ## Durable receipts and duplicate prevention
@@ -62,18 +64,20 @@ Weekly Performance collects a cohort of posts aged 1–8 days, using stored post
 
 Reports appear in Actions summaries and downloadable JSON/Markdown artifacts. The latest aggregates are also stored in `ops-state/performance.json`. Historical posts without durable IDs/metadata are not fabricated or backfilled. The first useful comparison requires new posts and enough observations. Per-post analytics permissions and response shapes must be confirmed by the first production report; unavailable metrics are explicitly flagged. Facebook performance collection is not implemented; Facebook publishing outcomes are tracked separately.
 
-## Optional OpenAI API
+## AI provider
 
-The existing DeepSeek provider remains the default. Both providers use the shared gateway with task-specific schema validation, per-request timeouts, at most two attempts for transient generation errors, an 80,000-character input limit, a 3,000-token output limit, and a 30-call per-process ceiling. A retry can incur another generation charge. No provider fallback occurs silently. Text generation cannot publish, change schedules, or override dedup state.
+Production uses **Gemini on the free tier**: the Actions variable `AI_PROVIDER=gemini` plus the secret `GEMINI_API_KEY`. The default model is `gemini-flash-lite-latest`; override it with the `GEMINI_MODEL` variable. DeepSeek is the code default when `AI_PROVIDER` is unset, but its account ran out of credit in September 2026. OpenAI (`AI_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_MODEL`) is also supported.
 
-To enable OpenAI after the PR is approved:
+All providers use the shared gateway in `src/clients/ai.js`. It provides:
 
-1. Add `OPENAI_API_KEY` as a repository Actions **secret**. Never place it in code, chat, or an Actions variable.
-2. Set the Actions **variable** `OPENAI_MODEL` to a model available to that API project that supports the Responses API and Structured Outputs.
-3. Set the Actions **variable** `AI_PROVIDER` to `openai`. Set it back to `deepseek` to revert.
-4. Check API project billing/rate limits and the first scheduled run. Missing keys/models, incomplete responses, refusals, and invalid JSON schemas fail visibly. This PR does not provision credentials or activate OpenAI billing.
+- task-specific JSON schema validation
+- per-request timeouts
+- at most two attempts for transient errors
+- an 80,000-character input limit
+- a 3,000-token output limit
+- a 30-call per-process ceiling
 
-OpenAI uses `POST /v1/responses`, strict `text.format` JSON schemas, and `store: false`. Existing source-grounding rules remain; structured JSON is not a guarantee of factual accuracy. No hosted tools or web search are enabled. See [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Selection is always explicit. There is never a silent fallback to another provider, and switching providers must not activate API spending without a decision. Missing keys or models, refusals and invalid JSON fail visibly. Text generation cannot publish, change schedules, or override dedup state. Structured JSON is not a guarantee of factual accuracy; the source-grounding rules in each prompt still apply.
 
 ## Development
 

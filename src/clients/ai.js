@@ -22,9 +22,11 @@ export function validate(value, schema, path = 'response') {
   if (schema.enum && !schema.enum.includes(value)) throw new Error(`${path} has invalid value`);
   return value;
 }
-// Providers: deepseek (default), openai, and gemini -- Google's free tier
-// via its OpenAI-compatible endpoint (free API key from aistudio.google.com,
-// no card). Selection is always explicit via AI_PROVIDER; never a fallback.
+// Providers: deepseek (the default when AI_PROVIDER is unset), openai,
+// and gemini -- Google's free tier via its OpenAI-compatible endpoint
+// (free API key from aistudio.google.com, no card). Production runs
+// gemini (AI_PROVIDER=gemini) since DeepSeek's credit ran out in 9/2026.
+// Selection is always explicit via AI_PROVIDER; never a fallback.
 const PROVIDERS = {
   deepseek: { keyEnv: 'DEEPSEEK_API_KEY', model: () => process.env.DEEPSEEK_MODEL || 'deepseek-chat', url: 'https://api.deepseek.com/chat/completions', label: 'DeepSeek' },
   openai: { keyEnv: 'OPENAI_API_KEY', model: () => process.env.OPENAI_MODEL, url: 'https://api.openai.com/v1/responses', label: 'OpenAI' },

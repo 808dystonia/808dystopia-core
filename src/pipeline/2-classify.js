@@ -1,24 +1,24 @@
-// Step 2: classify a candidate story via DeepSeek into album_drop / diss /
+// Step 2: classify a candidate story via the AI provider into album_drop / diss /
 // other, plus extracted fields. "diss" is an umbrella for any notable
 // lyric moment naming another artist (diss, cosign, shoutout, callout) —
 // lyricTag says which; the pipeline routing/slide format is the same for
 // all of them (step 4's Genius lyric+annotation lookup doesn't care about
 // sentiment). For album_drop, the tracklist is upgraded to Spotify's
-// authoritative track list when a confident match is found — DeepSeek's
+// authoritative track list when a confident match is found — the AI's
 // inferred tracklist (from a two-sentence blurb) is only the fallback.
 // albumArtUrl also comes from that same Spotify lookup (null for
 // non-album_drop, or when Spotify has no confident match).
 //
-// The returned `type` can differ from DeepSeek's raw classification: an
+// The returned `type` can differ from the AI's raw classification: an
 // album_drop with no confirmed tracklist (source text didn't list tracks
 // AND Spotify has no match — a release too new to be indexed anywhere)
 // downgrades to "other" rather than posting a half-empty carousel with no
 // tracklist or cover art. headlineLine2/Accent are synthesized
 // deterministically for that downgrade case (an "ARTIST DROPS TITLE"
 // headline, matching what a confirmed album_drop cover would have shown)
-// rather than requesting them from DeepSeek — they only depend on data
+// rather than requesting them from the AI — they only depend on data
 // already in hand.
-import { classifyWithDeepSeek } from "../clients/deepseek.js";
+import { generateJson } from "../clients/ai.js";
 import { getAlbumInfo } from "../clients/spotify.js";
 
 const VALID_TYPES = new Set(["album_drop", "diss", "other"]);
@@ -47,7 +47,7 @@ Return ONLY the JSON object.`;
 const VALID_LYRIC_TAGS = new Set(["DISS", "COSIGN", "SHOUTOUT", "CALLOUT"]);
 
 export async function classifyArticle(candidate) {
-  const result = await classifyWithDeepSeek(buildPrompt(candidate.text), "article");
+  const result = await generateJson(buildPrompt(candidate.text), "article");
 
   const type = VALID_TYPES.has(result.type) ? result.type : "other";
   const artist = result.artist || "";

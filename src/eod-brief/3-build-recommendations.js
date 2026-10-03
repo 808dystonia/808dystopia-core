@@ -1,9 +1,9 @@
-// Step 3: DeepSeek-generated recommendations for STOKELY and FRZA,
+// Step 3: AI-generated recommendations for STOKELY and FRZA,
 // grounded strictly in today's actual accomplishments + analytics —
 // never invented suggestions disconnected from what actually happened
 // today. Returns an empty array (not generic filler advice) when the
 // data genuinely doesn't support a specific recommendation.
-import { classifyWithDeepSeek } from "../clients/deepseek.js";
+import { generateJson } from "../clients/ai.js";
 
 function formatMetrics(metrics) {
   const entries = Object.entries(metrics || {});
@@ -35,6 +35,6 @@ Return ONLY the JSON object.`;
 }
 
 export async function buildRecommendations(accomplishments, analytics) {
-  const result = await classifyWithDeepSeek(buildPrompt(accomplishments, analytics), "recommendations");
+  const result = await generateJson(buildPrompt(accomplishments, analytics), "recommendations");
   return Array.isArray(result.recommendations) ? result.recommendations : [];
 }
