@@ -1,0 +1,41 @@
+# Daily maintenance: remove post media older than 7 days from
+# public-media/ on main (see scripts/prune-media.mjs). Not a posting
+# pipeline, so it isn't on the Chicago schedule; 08:41 UTC is overnight
+# in Chicago, away from every posting window.
+name: Prune Media
+on:
+  schedule:
+    - cron: "41 8 * * *"
+  workflow_dispatch: {}
+concurrency:
+  group: 808-prune-media
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/prune-media.mjs
+      - name: Commit and push
+        run: |
+          git add -A public-media
+          if git diff --cached --quiet; then echo "Nothing to prune."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Prune post media older than 7 days"
+          # A media upload can land on main mid-run; its new file never
+          # conflicts with a deletion, so fetch + rebase and retry.
+          for attempt in 1 2 3 4 5; do
+            git push origin HEAD:main && exit 0
+            git fetch origin main && git rebase origin/main
+            sleep $((attempt * 2))
+          done
+          exit 1

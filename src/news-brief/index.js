@@ -5,7 +5,7 @@
 //
 // Complements, doesn't replace, the existing morning Grok-native
 // scheduled task (a separate, external automation this repo has never
-// controlled) — DeepSeek has no live web search of its own, so this
+// controlled) — the AI provider has no live web search of its own, so this
 // pairs it with real fetched RSS articles (step 1) rather than asking it
 // to generate news from nothing. Posts to the same #underground-news
 // channel in the same digest format the carousel pipeline already

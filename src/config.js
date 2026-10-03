@@ -118,11 +118,6 @@ export const config = {
     userId: process.env.COMPOSIO_USER_ID || "",
   },
 
-  deepseek: {
-    apiKey: process.env.DEEPSEEK_API_KEY || "",
-    model: process.env.DEEPSEEK_MODEL || "deepseek-chat",
-  },
-
   genius: {
     accessToken: process.env.GENIUS_ACCESS_TOKEN || "",
   },

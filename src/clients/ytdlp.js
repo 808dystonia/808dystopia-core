@@ -7,7 +7,7 @@
 // harmless since yt-dlp only applies cookies to the domains they match.
 //
 // Validated live end-to-end (real download, real transcription, real
-// DeepSeek highlight pick) after working through two separate blockers:
+// AI highlight pick) after working through two separate blockers:
 //   1. Every cookie-less approach fails -- the default client needs a JS
 //      runtime yt-dlp couldn't find, adding one (--js-runtimes node) still
 //      got HTTP 403, and the "tv" client demands an interactive OAuth
