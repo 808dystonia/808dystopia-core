@@ -45,8 +45,9 @@ const outOfTime = (startedAt) => Date.now() - startedAt > TIME_BUDGET_MS - CANDI
 async function finishCandidate(video, label) {
   try {
     const highlighted = await selectHighlight(video);
-    const processed = await processClip(highlighted);
-    const caption = await buildReelCaption(processed);
+    // Caption first: its on-screen hook is burned onto the clip.
+    const caption = await buildReelCaption(highlighted);
+    const processed = await processClip(highlighted, caption.overlay);
     return { video: processed, caption };
   } catch (err) {
     console.log(`pipeline failed for ${label} (${video.videoId}):`, describeError(err));
