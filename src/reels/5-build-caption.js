@@ -80,5 +80,6 @@ export async function buildReelCaption(video) {
   return {
     caption: lines.join("\n\n"),
     hashtags: buildHashtags(video),
+    collaborator: instagramHandle,
   };
 }

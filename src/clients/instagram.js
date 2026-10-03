@@ -81,6 +81,61 @@ export async function waitForContainerReady(creationId) {
   throw new Error(`container ${creationId} timed out waiting to process`);
 }
 
+// Collab invites: Composio's container tools have no `collaborators`
+// field, so a post with a collaborator creates its final container
+// through the raw Graph API proxy instead (POST /{ig-user-id}/media,
+// same connected account as postComment). The artist gets an invite when
+// the post publishes; if they accept, it also shows on their profile.
+// Genius handles are self-reported, so anything that isn't a plain IG
+// username is ignored rather than guessed at.
+const IG_USERNAME = /^[a-z0-9._]{1,30}$/i;
+const OWN_USERNAME = "808dystopia";
+
+export function collaboratorHandle(handle) {
+  const clean = String(handle || "").trim().replace(/^@/, "");
+  if (!IG_USERNAME.test(clean) || clean.toLowerCase() === OWN_USERNAME) return null;
+  return clean;
+}
+
+async function createContainerViaProxy(params) {
+  const result = await runProxy({
+    connectedAccountId: accountId(),
+    endpoint: `/${config.instagram.userId}/media`,
+    method: "POST",
+    body: params,
+  });
+  if (!result?.id) throw new Error(`container create returned no id: ${JSON.stringify(result).slice(0, 300)}`);
+  return result.id;
+}
+
+export function createCollabReelContainer(videoUrl, caption, collaborators) {
+  return createContainerViaProxy({ media_type: "REELS", video_url: videoUrl, caption, collaborators });
+}
+
+export function createCollabCarouselContainer({ children, caption, collaborators }) {
+  return createContainerViaProxy({ media_type: "CAROUSEL", children, caption, collaborators });
+}
+
+// Creates the final container with the collaborator when there is one,
+// and falls back to the plain container on any failure (private account,
+// stale handle, proxy error). Nothing is published at this stage, so
+// creating a second container is safe; an unused one expires on its own.
+export async function createReadyContainer({ label, collaborator, withCollaborator, plain }) {
+  const handle = collaboratorHandle(collaborator);
+  if (handle) {
+    try {
+      const id = await withCollaborator([handle]);
+      await waitForContainerReady(id);
+      return { containerId: id, collaborator: handle };
+    } catch (err) {
+      console.log(`${label}: collab container with @${handle} failed, posting without it:`, err.message);
+    }
+  }
+  const id = await plain();
+  await waitForContainerReady(id);
+  return { containerId: id, collaborator: null };
+}
+
 export async function createCarouselContainer({ children, caption }) {
   const result = await runTool(
     "INSTAGRAM_CREATE_CAROUSEL_CONTAINER",

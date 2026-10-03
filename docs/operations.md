@@ -21,6 +21,8 @@ These are posting windows, not exact delivery guarantees. GitHub may delay or dr
 
 His Underground and Her Underground (`src/artist-pins/`) pin one artist photo a day each. Artists come only from Grok's 808 TV board in `#reels`, and only names listed under an explicit **MALE** or **FEMALE** label; gender is never inferred. Photo sources, in order: the secret "Underground Photo Drop" Pinterest board (save a photo there with the artist's name in its title or description), Google Images via Composio (only when the result's own page names the artist, at least 600px on the short side), the Spotify profile photo, then the Genius photo. An artist rests for 7 days after a pin (the labelled pool is small), and a photo is never pinned twice to the same board. The pool is the last 100 `#reels` messages. Gate: `ARTIST_PIN_PUBLISH`.
 
+Carousels and Reels invite the featured artist as an Instagram collaborator when Genius lists a valid Instagram handle for them. Composio's container tools have no `collaborators` field, so that final container is created through the Graph API proxy instead. If anything about the collab container fails, the pipeline creates the usual container without the collaborator and logs `collab container ... failed`. Nothing is published before that point, so a bad handle never blocks a post. The run note says `collab invite sent to @handle` when an invite went out. Accepted invites show the post on the artist's profile.
+
 RapToonz, BoxArt, and TikTok publishing remain discontinued. Their retained modules are historical code, not active workflows. Curated TikTok video links are still supported as Reel source material.
 
 ## Durable receipts and duplicate prevention
