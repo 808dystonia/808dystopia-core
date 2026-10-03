@@ -148,6 +148,33 @@ export function parseTvBoardByGender(messages) {
   return { male: [...found.male.values()], female: [...found.female.values()] };
 }
 
+// Trending Tuesday's name pool: every rapper listed under a **RAPPERS**
+// header (labelled MALE/FEMALE or not), newest board first, deduplicated.
+// Numbers come from Spotify, not from this text -- the board stopped
+// carrying listener figures in its 9/27 format.
+export function parseTvRapperNames(messages) {
+  const names = new Map();
+  for (const message of messages) {
+    let inRappers = false;
+    for (const raw of (message.content || "").split("\n")) {
+      const line = raw.trim();
+      const roleMatch = line.match(ROLE_HEADER);
+      if (roleMatch) {
+        inRappers = roleMatch[1].toUpperCase() === "RAPPERS";
+        continue;
+      }
+      if (!inRappers) continue;
+      const match = line.match(TV_BOARD_LINE);
+      if (!match) continue;
+      for (const part of match[1].split("/")) {
+        const name = part.trim();
+        if (name && !names.has(name.toLowerCase())) names.set(name.toLowerCase(), name);
+      }
+    }
+  }
+  return [...names.values()];
+}
+
 // Trending Tuesdays' data source: the most recent RAPPERS board message
 // only (not every one in the fetched window -- the board refreshes
 // daily, so anything older is stale and would mix names into a chart

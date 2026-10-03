@@ -90,6 +90,7 @@ export async function getArtistProfile(name) {
     imageUrl: image?.url || null,
     width: image?.width || null,
     height: image?.height || null,
+    followers: Number.isFinite(artist.followers?.total) ? artist.followers.total : null,
   };
 }
 

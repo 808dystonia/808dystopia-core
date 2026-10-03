@@ -1,5 +1,5 @@
-// Weekly "808 Trending Tuesday" chart -- top 10 underground rappers by
-// the listener figure Grok's own #tv board already carries, rendered
+// Weekly "808 Trending Tuesday" chart -- top 10 rappers on Grok's #reels
+// board, ranked by real Spotify follower counts, rendered
 // into a branded chart image and posted to Instagram. Invoked by
 // src/trending-cron.js (the GitHub Actions entry point, which gates the
 // scheduled trigger to Tuesday 5 PM Chicago time) -- running this file
@@ -12,7 +12,7 @@ import { publishChart } from "./3-publish.js";
 export async function runTrendingTuesday() {
   const rankings = await getTopTen();
   if (rankings.length === 0) {
-    return { published: false, note: "No rappers with a parseable listener figure this week." };
+    return { published: false, note: "No board rappers with a confident Spotify match this week." };
   }
 
   const { chartPath } = await renderChart(rankings);

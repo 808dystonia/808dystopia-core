@@ -32,7 +32,7 @@ function buildRowHtml(entry, rank) {
 function buildSubtitle() {
   const [year, month] = chicagoDateString(new Date()).split("-");
   const monthName = new Date(Number(year), Number(month) - 1, 1).toLocaleString("en-US", { month: "long" });
-  return `TOP 10 UNDERGROUND · ${monthName.toUpperCase()} ${year}`;
+  return `TOP 10 UNDERGROUND · SPOTIFY FOLLOWERS · ${monthName.toUpperCase()} ${year}`;
 }
 
 function buildChartHtml(rankings) {

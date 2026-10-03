@@ -1,15 +1,32 @@
 // Step 3: download the candidate video's audio, transcribe it locally with
 // Whisper (see clients/whisper.js -- no third-party YouTube transcript is
 // reachable, see clients/youtube.js), then feed the timestamped transcript
-// to DeepSeek (swapped in for the spec's original "Gemini" -- same
-// reasoning as the news pipeline's classifier: Gemini's free tier caps at
-// 20 requests/day) to pick the best short window for a Reel highlight.
+// to the configured AI provider (clients/ai.js) to pick the best short window
+// for a Reel highlight.
 import { downloadAudio, withTempDir } from "../clients/ytdlp.js";
-import { transcribeAudio } from "../clients/whisper.js";
+import { transcribeAudio, MAX_TRANSCRIBE_SECONDS } from "../clients/whisper.js";
 import { classifyWithDeepSeek } from "../clients/deepseek.js";
 
 const MIN_CLIP_SECONDS = 15;
 const MAX_CLIP_SECONDS = 90;
+
+// Models often return a window a few seconds outside the allowed length
+// (confirmed live 10/01: Gemini picked 11-12s clips, each one rejected,
+// burning the run's time budget). A near-miss is stretched or trimmed
+// around the chosen start instead, staying inside the video and the
+// transcribed span; only an unusable answer (non-numbers, start past the
+// end) is still rejected.
+export function normalizeWindow(start, end, limitSeconds) {
+  if (!Number.isFinite(start) || !Number.isFinite(end) || !Number.isFinite(limitSeconds)) return null;
+  if (limitSeconds < MIN_CLIP_SECONDS || start < 0 || start >= limitSeconds) return null;
+  let s = start;
+  let e = Math.min(Math.max(end, s + MIN_CLIP_SECONDS), s + MAX_CLIP_SECONDS);
+  if (e > limitSeconds) {
+    e = limitSeconds;
+    s = Math.min(s, e - MIN_CLIP_SECONDS);
+  }
+  return { startSeconds: s, endSeconds: e };
+}
 
 function formatTranscript(chunks) {
   return chunks
@@ -49,19 +66,12 @@ export async function selectHighlight(video) {
   const transcriptText = formatTranscript(chunks);
   const result = await classifyWithDeepSeek(buildPrompt(video, transcriptText), "highlight");
 
-  const startSeconds = Number(result.startSeconds);
-  const endSeconds = Number(result.endSeconds);
-  const duration = endSeconds - startSeconds;
-  if (
-    !Number.isFinite(startSeconds) ||
-    !Number.isFinite(endSeconds) ||
-    startSeconds < 0 ||
-    endSeconds > video.durationSeconds ||
-    duration < MIN_CLIP_SECONDS ||
-    duration > MAX_CLIP_SECONDS
-  ) {
-    throw new Error(`invalid highlight window: ${JSON.stringify(result)}`);
-  }
+  // The transcript only covers the opening minutes (see clients/whisper.js),
+  // so the clip must too -- the quote has to be inside the clip.
+  const limit = Math.min(video.durationSeconds, MAX_TRANSCRIBE_SECONDS);
+  const window = normalizeWindow(Number(result.startSeconds), Number(result.endSeconds), limit);
+  if (!window) throw new Error(`invalid highlight window: ${JSON.stringify(result)}`);
+  const { startSeconds, endSeconds } = window;
 
   return {
     ...video,

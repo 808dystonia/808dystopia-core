@@ -105,3 +105,14 @@ test('pin text credits the photo and links Spotify; publish gate off is a dry ru
   assert.equal(pinned, 0);
   assert.equal((await postArtistPin('male', null, null)).published, false);
 });
+
+test('short ambiguous names only use a hand-picked Photo Drop photo', async () => {
+  let looked = 0;
+  const deps = { searchImages: async () => { looked++; return []; }, getArtistProfile: async () => { looked++; return { imageUrl: 'https://i.scdn.co/x.jpg', width: 640, height: 640 }; }, getArtistPhoto: async () => { looked++; return 'g.jpg'; } };
+  assert.equal(await findPhoto({ name: 'OK', role: 'producer' }, new Set(), [], deps), null);
+  assert.equal(looked, 0);
+  const drop = await findPhoto({ name: 'OK', role: 'producer' }, new Set(), [{ imageUrl: 'https://i.pinimg.com/ok.jpg', text: 'OK producer', link: null }], deps);
+  assert.equal(drop.source, 'photo-drop');
+  assert.equal(drop.spotifyUrl, null);
+  assert.equal(looked, 0);
+});
