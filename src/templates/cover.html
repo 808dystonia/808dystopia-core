@@ -31,11 +31,14 @@
     height: 1350px;
   }
 
+  /* Only the top ~62% shows (the gradient below is solid black), so the
+     photo is sized to that box instead of being upscaled to full height. */
   .photo {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
-    height: 100%;
+    height: 62.3%;
     object-fit: cover;
     object-position: center 25%;
   }

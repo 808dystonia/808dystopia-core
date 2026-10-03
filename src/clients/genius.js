@@ -62,6 +62,17 @@ function findConfidentArtistMatch(hits, artist) {
   return null;
 }
 
+// Both images on a confident artist match: the profile photo and the wide
+// header banner, placeholders dropped. The carousel checks their real
+// resolution before using either.
+export async function getArtistImages(artist) {
+  const hits = await searchGenius(artist);
+  const match = findConfidentArtistMatch(hits, artist);
+  if (!match) return { image: null, header: null };
+  const usable = (url) => (isPlaceholderAvatar(url) ? null : url);
+  return { image: usable(match.image_url), header: usable(match.header_image_url) };
+}
+
 export async function getArtistPhoto(artist) {
   const hits = await searchGenius(artist);
   for (const hit of hits) {
