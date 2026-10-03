@@ -39,14 +39,15 @@ import { describeError } from "../util/describeError.js";
 
 // The artist name is quoted so YouTube treats it as a phrase rather than
 // loose keywords ("SouthWes interview" used to return job-interview tips).
-// No "beat breakdown" query: third-party results for it were producers'
-// tutorials on making the artist's sound, not the artist (10/03: "How To
-// Make GYGJFACB Type Beats For BLEOOD!" posted as bleood).
+// Queries for content the artist is in come first; "beat breakdown" last,
+// since its results are mostly other producers' tutorials on the artist's
+// sound (classified and captioned as such below).
 const CONTENT_TYPE_QUERIES = [
   (artist) => ({ label: "interview", query: `"${artist}" interview` }),
   (artist) => ({ label: "performance", query: `"${artist}" live performance` }),
   (artist) => ({ label: "freestyle", query: `"${artist}" freestyle` }),
   (artist) => ({ label: "studio session", query: `"${artist}" studio session` }),
+  (artist) => ({ label: "beat breakdown", query: `"${artist}" beat breakdown` }),
 ];
 
 // Search matched strangers for ambiguous names ("OK" became a college
@@ -59,10 +60,25 @@ const MUSIC_CATEGORY_ID = "10";
 const MUSIC_WORDS =
   /\b(rap|rapper|rapping|hip ?hop|freestyle|cypher|beats?|producer|prod|studio session|verse|bars|mixtape|album|single|song|track|music|music video|official (video|audio)|lyrics?|visualizer|remix|feat|ft|concert|tour|plugg|drill|trap|rage|underground|vevo)\b/i;
 
-// Videos that name the artist but are someone else making content about
-// their sound or reacting to them. Never the artist, so never featured.
-const NOT_THE_ARTIST =
-  /\b(type ?beats?|how to (make|produce|sound|flow|rap)|tutorial|drum ?kits?|sample ?packs?|loop ?kits?|presets?|free for profit|reacts?|reaction|reacting|review(s|ing)?|remake|in the style of|breakdown of)\b/i;
+// Videos that name the artist but are someone else talking about them:
+// a producer's type-beat tutorial, a reaction, a review. They're allowed,
+// but the caption must say what they are, the quote is the creator's (not
+// the artist's), and the artist gets no collab invite. 10/03: "How To Make
+// GYGJFACB Type Beats For BLEOOD!" went out captioned as bleood.
+const ABOUT_TYPES = [
+  [/\b(type ?beats?|how to (make|produce|sound|flow|rap)|tutorial|drum ?kits?|sample ?packs?|loop ?kits?|presets?|free for profit|remake|in the style of)\b/i, "type beat tutorial"],
+  [/\b(reacts?|reaction|reacting)\b/i, "reaction"],
+  [/\b(review|reviews|reviewing|breakdown of)\b/i, "review"],
+];
+
+// relation: "by" (the artist's own upload), "featuring" (a third-party
+// video the artist is in: interview, live set, freestyle), or "about"
+// (someone else discussing the artist).
+export function classifyVideo(title, fallbackLabel, ownChannel = false) {
+  const about = ABOUT_TYPES.find(([pattern]) => pattern.test(title || ""));
+  if (about) return { contentType: about[1], relation: ownChannel ? "by" : "about" };
+  return { contentType: ownChannel ? labelFromTitle(title) : labelFromTitle(title, fallbackLabel), relation: ownChannel ? "by" : "featuring" };
+}
 
 export function isSearchableName(artist) {
   return compact(artist).length >= MIN_NAME_LENGTH;
@@ -79,7 +95,6 @@ export function isArtistMusicVideo(details, artist) {
     mentionsArtist(artist, details.channelTitle, MIN_NAME_LENGTH) ||
     compact(details.channelTitle).startsWith(target);
   if (!namesArtist) return false;
-  if (NOT_THE_ARTIST.test(details.title)) return false;
   const text = [details.title, details.channelTitle, ...(details.tags || [])].join(" ");
   return details.categoryId === MUSIC_CATEGORY_ID || MUSIC_WORDS.test(text);
 }
@@ -98,12 +113,12 @@ export function isOwnChannel(channelTitle, artist) {
   return channel.startsWith(target) && CHANNEL_AFFIXES.test(channel.slice(target.length));
 }
 
-function labelFromTitle(title) {
+function labelFromTitle(title, fallback = "music video") {
   if (/\bfreestyle\b/i.test(title)) return "freestyle";
-  if (/\binterview\b/i.test(title)) return "interview";
+  if (/\b(interview|podcast)\b/i.test(title)) return "interview";
   if (/\b(live|performance|concert|set)\b/i.test(title)) return "performance";
   if (/\bstudio\b/i.test(title)) return "studio session";
-  return "music video";
+  return fallback;
 }
 
 // First choice: something the artist posted themselves.
@@ -115,8 +130,8 @@ async function findOwnChannelVideo(artist, isUsed) {
   const ids = await getChannelUploads(own.channelId);
   if (ids.length === 0) return null;
   const details = await getVideoDetails(ids);
-  const usable = details.find((d) => isUsable(d) && !isUsed(d.videoId) && !NOT_THE_ARTIST.test(d.title));
-  return usable ? { ...usable, artist, contentType: labelFromTitle(usable.title), ownChannel: true } : null;
+  const usable = details.find((d) => isUsable(d) && !isUsed(d.videoId));
+  return usable ? { ...usable, artist, ...classifyVideo(usable.title, null, true) } : null;
 }
 
 const MIN_DURATION_SECONDS = 45;
@@ -160,6 +175,7 @@ async function findTwitchClip(artistHandle) {
     durationSeconds: usable.duration,
     artist: artistHandle,
     contentType: "livestream clip",
+    relation: "by",
     source: "twitch",
   };
 }
@@ -177,15 +193,23 @@ export async function findVideo(artistHandle, isUsed = () => false) {
     console.log(`own-channel lookup for ${artistHandle} failed:`, describeError(err));
   }
 
+  // A video the artist is in wins over one about them, even from a later
+  // query; the first "about" video is kept as the fallback.
+  let aboutFallback = null;
   for (const buildQuery of CONTENT_TYPE_QUERIES) {
     const { label, query } = buildQuery(artistHandle);
     const results = await searchVideos(query, { maxResults: 5 });
     if (results.length === 0) continue;
 
     const details = await getVideoDetails(results.map((r) => r.videoId));
-    const usable = details.find((d) => isUsable(d) && !isUsed(d.videoId) && isArtistMusicVideo(d, artistHandle));
-    if (usable) return { ...usable, artist: artistHandle, contentType: label };
+    for (const d of details) {
+      if (!isUsable(d) || isUsed(d.videoId) || !isArtistMusicVideo(d, artistHandle)) continue;
+      const video = { ...d, artist: artistHandle, ...classifyVideo(d.title, label) };
+      if (video.relation !== "about") return video;
+      aboutFallback ||= video;
+    }
   }
+  if (aboutFallback) return aboutFallback;
 
   try {
     const twitchClip = await findTwitchClip(artistHandle);

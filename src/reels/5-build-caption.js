@@ -1,8 +1,11 @@
-// Step 5: build the Reel caption. It leads with the artist's own words
-// (step 3's highlight.quote, cleaned up and capped), then a credit line
-// saying who said it and where the footage came from. highlight.reason is
-// the AI's internal note on why it picked the moment ("This is a
-// self-contained, quotable..."), so it never appears in the caption.
+// Step 5: build the Reel caption. It always says plainly what the clip is.
+// When the artist is in it (their own upload, an interview, a live set),
+// it leads with their words (step 3's highlight.quote, cleaned up) and
+// credits them. When it's someone else talking about the artist (a
+// type-beat tutorial, a reaction, a review), it says so first, credits the
+// quote to that creator, and only @-mentions the artist -- no collab
+// invite. highlight.reason is the AI's internal note on why it picked the
+// moment, so it never appears in the caption.
 import { getArtistInstagramHandle } from "../clients/genius.js";
 
 const BASE_HASHTAGS = ["#hiphop", "#rap", "#undergroundhiphop", "#hiphopreels"];
@@ -14,6 +17,9 @@ const CONTENT_TYPE_HASHTAGS = {
   "studio session": ["#studiosession"],
   "livestream clip": ["#livestream", "#twitchclip"],
   "music video": ["#musicvideo"],
+  "type beat tutorial": ["#typebeat", "#producer", "#beatmaking"],
+  reaction: ["#reaction"],
+  review: ["#review"],
 };
 
 function artistHashtag(artist) {
@@ -37,6 +43,14 @@ const CONTENT_TYPE_LABELS = {
   freestyle: "freestyling",
   "studio session": "in the studio",
   "livestream clip": "on stream",
+  "music video": "in the video",
+};
+
+// Lead lines for content about the artist rather than by or featuring them.
+const ABOUT_LEADS = {
+  "type beat tutorial": (artist) => `🎛 Type beat tutorial: a producer breaks down how to make beats in the style of ${artist}.`,
+  reaction: (artist) => `👀 Reaction: a creator reacts to ${artist}.`,
+  review: (artist) => `📝 Review: a creator breaks down ${artist}'s music.`,
 };
 
 const MAX_QUOTE_LENGTH = 220;
@@ -63,9 +77,19 @@ function creditLine(video) {
   return `— ${video.artist}${context ? `, ${context}` : ""} · 🎥 via ${source} (${platform})`;
 }
 
+function aboutLines(video, quote) {
+  const platform = PLATFORM_LABELS[video.source] || "YouTube";
+  const creator = video.channelTitle || platform;
+  const lead = (ABOUT_LEADS[video.contentType] || ((artist) => `A creator talks about ${artist}.`))(video.artist);
+  const lines = [lead];
+  if (quote) lines.push(`“${quote}” — ${creator}`);
+  lines.push(`🎥 via ${creator} (${platform}) · not ${video.artist}'s own upload`);
+  return lines;
+}
+
 export async function buildReelCaption(video) {
   const quote = cleanQuote(video.highlight?.quote);
-  const lead = quote ? `“${quote}”` : `🎤 ${video.artist}`;
+  const about = video.relation === "about";
 
   let instagramHandle = null;
   try {
@@ -74,13 +98,14 @@ export async function buildReelCaption(video) {
     console.log("genius instagram handle lookup:", err.message);
   }
 
-  const lines = [lead, creditLine(video)];
-  if (instagramHandle) lines.push(`@${instagramHandle}`);
+  const lines = about ? aboutLines(video, quote) : [quote ? `“${quote}”` : `🎤 ${video.artist}`, creditLine(video)];
+  if (instagramHandle) lines.push(about ? `Artist: @${instagramHandle}` : `@${instagramHandle}`);
   lines.push("Follow for more.");
 
   return {
     caption: lines.join("\n\n"),
     hashtags: buildHashtags(video),
-    collaborator: instagramHandle,
+    // Only invite the artist to collab on content they're actually in.
+    collaborator: about ? null : instagramHandle,
   };
 }
