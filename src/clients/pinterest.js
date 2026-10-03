@@ -52,18 +52,23 @@ export async function listBoardPins(boardId, pageSize = 100) {
   });
 }
 
-// Creates an image Pin from a public image URL (Pinterest fetches it
-// itself — no upload/base64 needed). Confirmed live: this Pinterest
+// Creates an image Pin, either from a public image URL (Pinterest fetches
+// it itself) or from a rendered JPEG passed as base64 (the branded
+// template, src/pins/render-pin.js). Confirmed live: this Pinterest
 // connection has full Standard write access, not the Trial-tier sandbox
 // restriction PINTEREST_CREATE_PIN's own docs warn about.
-export async function createPin({ boardId, title, description, imageUrl, link }) {
+export async function createPin({ boardId, title, description, altText, imageUrl, imageBase64, link }) {
+  const mediaSource = imageBase64
+    ? { source_type: "image_base64", content_type: "image/jpeg", data: imageBase64 }
+    : { source_type: "image_url", url: imageUrl };
   return runTool(
     "PINTEREST_CREATE_PIN",
     {
       board_id: boardId,
-      media_source: { source_type: "image_url", url: imageUrl },
-      ...(title ? { title } : {}),
-      ...(description ? { description } : {}),
+      media_source: mediaSource,
+      ...(title ? { title: title.slice(0, 100) } : {}),
+      ...(description ? { description: description.slice(0, 800) } : {}),
+      ...(altText ? { alt_text: altText.slice(0, 500) } : {}),
       ...(link ? { link } : {}),
     },
     config.pinterest.connectedAccountId || undefined

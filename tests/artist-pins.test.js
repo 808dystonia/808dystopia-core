@@ -96,7 +96,9 @@ test('photo sources are tried in order and failures fall through', async () => {
 test('pin text credits the photo and links Spotify; publish gate off is a dry run', async () => {
   const photo = { imageUrl: 'https://img.example/a.jpg', source: 'web', credit: 'dazed.com', sourceUrl: 'https://dazed.com/pixy', spotifyUrl: 'https://open.spotify.com/artist/1' };
   const text = buildPinText({ name: 'Pixy', role: 'rapper' }, photo, 'female');
-  assert.equal(text.title, 'Pixy — Her Underground');
+  assert.equal(text.title, 'Pixy — Underground Rapper | Her Underground');
+  assert.match(text.description, /female rappers and producers to know/);
+  assert.equal(text.altText, 'Photo of Pixy, underground rapper');
   assert.match(text.description, /Photo: dazed\.com/);
   assert.equal(text.link, 'https://open.spotify.com/artist/1');
   let pinned = 0;
