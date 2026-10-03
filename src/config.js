@@ -194,6 +194,9 @@ export const config = {
   // independent of the carousel's gate above so the (new, unvalidated)
   // video cross-post can be tested on its own before going live.
   reelFacebookCrosspostPublish: process.env.REEL_FACEBOOK_CROSSPOST_PUBLISH === "1",
+  // Same gate, for sharing each carousel and Reel to Instagram Stories
+  // after the feed post is confirmed.
+  storySharePublish: process.env.IG_STORY_SHARE_PUBLISH === "1",
   // Same gate, for cross-posting the daily Reel to TikTok -- independent
   // for the same reason as the Facebook one above, and additionally
   // blocked until the TikTok connection itself exists (see tiktokAuth.js).

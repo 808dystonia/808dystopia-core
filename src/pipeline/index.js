@@ -13,6 +13,7 @@ import { readLogRows, isAlreadyPosted } from "../clients/googleSheets.js";
 import { config } from "../config.js";
 import { contentKey, claimedPosts, bestEffort } from "../ops/publishing.js";
 import { finishPost } from "../ops/followups.js";
+import { shareToStory } from "../ops/story-share.js";
 import { postComment } from "../clients/instagram.js";
 import { isSensitiveClaim } from "../util/sensitiveContent.js";
 
@@ -77,6 +78,7 @@ export async function runDailyFlow() {
       comment: () => postComment(result.mediaId, caption.hashtags),
       log: () => logAndReport({ candidate, classified, status: result.published ? 'posted' : 'skipped', note: result.note }),
       facebook: () => crosspostToFacebook({ imageUrls: [result.slide1Url, result.slide2Url], message: caption.caption }),
+      story: () => shareToStory({ imageUrl: result.slide1Url }),
     });
   } catch (err) {
     await bestEffort(() => logAndReport({ candidate, classified, status: 'failed', note: 'Publishing interrupted; inspect operational state before retrying.' }));
