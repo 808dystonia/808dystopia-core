@@ -35,14 +35,22 @@ export function manualCandidates(text = process.env.MANUAL_STORY, now = new Date
 
 // Every story from today's Grok drop gets posted today, one per carousel
 // run (see the carousel hours in ops/schedule.js). Only Grok's own
-// messages from today count: older days' leftovers and this repo's News
-// Brief posts in the same channel are left out.
+// messages count; this repo's News Brief posts in the same channel are
+// left out. If Grok hasn't posted today (10/04 it skipped the morning
+// entirely), the most recent drop from the last 36 hours is used instead,
+// so a missed morning still gets its unposted stories out.
+const FALLBACK_DROP_HOURS = 36;
+
 export function todaysStories(messages, now = new Date()) {
+  const grok = messages.filter((m) => m.author?.id === config.discord.grokAuthorId);
   const today = chicagoDateString(now);
-  const todays = messages.filter(
-    (m) => chicagoDateString(new Date(m.timestamp)) === today && m.author?.id === config.discord.grokAuthorId
-  );
-  return prioritizeDrops(splitIntoStories(todays), now);
+  let drop = grok.filter((m) => chicagoDateString(new Date(m.timestamp)) === today);
+  if (drop.length === 0) {
+    const recent = grok.filter((m) => now - new Date(m.timestamp) <= FALLBACK_DROP_HOURS * 3600 * 1000);
+    const latestDay = recent.length ? chicagoDateString(new Date(recent[0].timestamp)) : null;
+    drop = recent.filter((m) => chicagoDateString(new Date(m.timestamp)) === latestDay);
+  }
+  return prioritizeDrops(splitIntoStories(drop), now);
 }
 
 export async function getCandidates() {

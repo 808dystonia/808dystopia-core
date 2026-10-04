@@ -16,8 +16,10 @@ test("only today's Grok stories are candidates, release stories first", () => {
     { id: '1', timestamp: '2026-10-03T13:45:00Z', author: { id: grok }, ...embed(['Yesterday story']) },
   ];
   assert.deepEqual(todaysStories(messages, now).map((s) => s.text), ['Pixy just dropped the Legacy EP', 'slayr announces a tour', 'LUCKI hurt at ComplexCon']);
-  // Before the drop lands: nothing.
-  assert.deepEqual(todaysStories(messages.slice(2), now), []);
+  // No drop today: the latest drop from the last 36 hours stands in.
+  assert.deepEqual(todaysStories(messages.slice(2), now).map((s) => s.text), ['Yesterday story']);
+  // Nothing recent at all: nothing.
+  assert.deepEqual(todaysStories(messages.slice(2), new Date('2026-10-06T17:00:00Z')), []);
 });
 
 test('caught up is healthy, not a failure or a missed slot', () => {
