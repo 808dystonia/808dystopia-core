@@ -15,7 +15,10 @@ import { mentionsArtist } from "../artist-pins/2-find-photo.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS = path.join(__dirname, "../templates/assets");
 
-const VIDEO_WORDS = /\b(music video|official video|video|visuals?|visualizer)\b/i;
+// A release of a video, not any mention of one: "Video showed him
+// bleeding" (10/03 LUCKI story) is footage, not a music video drop.
+const VIDEO_WORDS =
+  /\b(music video|official video|lyric video|visualizer|visuals? for)\b|\b(drops?|dropped|releases?|released|premieres?|premiered|shares?|shared|unveils?|unveiled|debuts?|debuted|revisits?)\b[^.]{0,60}\b(video|visuals?)\b|\b(video|visuals?) (for|to)\b/i;
 export const CLIP_SECONDS = 20;
 const MAX_VIDEO_AGE_DAYS = 30;
 
