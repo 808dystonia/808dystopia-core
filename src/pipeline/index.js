@@ -56,7 +56,9 @@ export async function selectPublishableArticle() {
 export async function runDailyFlow() {
   const selected = await selectPublishableArticle();
   if (!selected) {
-    return logAndReport({ classified: null, status: "skipped", note: "No unused story with a usable photo found." });
+    // Today's drop is all posted, hasn't landed yet, or the rest have no
+    // sharp photo. Not a failure, and not worth a Sheets row every hour.
+    return { status: "caught_up", note: "No unposted story from today's drop with a usable photo." };
   }
   const { candidate, classified, photo } = selected;
 

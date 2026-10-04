@@ -1,7 +1,7 @@
 // Dependency-free: also runs before npm ci in Actions.
 export const PIPELINES = {
   'weekly-performance': { hours: [10], weekday: 'Monday', minute: 43, monitor: false },
-  carousel: { hours: [9, 12], minute: 17, module: '../pipeline/index.js', entry: 'runDailyFlow' },
+  carousel: { hours: [9, 10, 11, 12, 13, 14, 15, 17, 19], minute: 17, module: '../pipeline/index.js', entry: 'runDailyFlow' },
   reel: { hours: [10, 12, 14, 16, 19], minute: 23, module: '../reels/index.js', entry: 'runDailyReelFlow' },
   pin: { hours: [9, 13, 17], minute: 29, module: '../pin-post/index.js', entry: 'runPinPost' },
   'his-pin': { hours: [11], minute: 47, module: '../artist-pins/index.js', entry: 'runHisPin' },

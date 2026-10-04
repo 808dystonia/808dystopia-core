@@ -8,6 +8,8 @@
 // list; index.js loops through it, classifying each and checking the log,
 // until one isn't a repeat (or the list runs out and the day is skipped).
 import { listHeatChannelMessages, splitIntoStories } from "../clients/discord.js";
+import { config } from "../config.js";
+import { chicagoDateString } from "../util/chicagoHour.js";
 
 // "Just dropped" carousels get the most real comments, so stories that
 // read like a new release and are under 72 hours old are tried first.
@@ -31,9 +33,20 @@ export function manualCandidates(text = process.env.MANUAL_STORY, now = new Date
   return story ? [{ text: story, timestamp: now.toISOString(), manual: true }] : null;
 }
 
+// Every story from today's Grok drop gets posted today, one per carousel
+// run (see the carousel hours in ops/schedule.js). Only Grok's own
+// messages from today count: older days' leftovers and this repo's News
+// Brief posts in the same channel are left out.
+export function todaysStories(messages, now = new Date()) {
+  const today = chicagoDateString(now);
+  const todays = messages.filter(
+    (m) => chicagoDateString(new Date(m.timestamp)) === today && m.author?.id === config.discord.grokAuthorId
+  );
+  return prioritizeDrops(splitIntoStories(todays), now);
+}
+
 export async function getCandidates() {
   const manual = manualCandidates();
   if (manual) return manual;
-  const messages = await listHeatChannelMessages();
-  return prioritizeDrops(splitIntoStories(messages));
+  return todaysStories(await listHeatChannelMessages());
 }

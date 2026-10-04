@@ -6,6 +6,9 @@ export function outcomeStatus(report) {
   if (report.status === 'failed' || report.status === 'failed-and-retried') return 'failed';
   if (report.status === 'partial' || report.followupFailed || report.site?.synced === false) return 'partial';
   if (report.status === 'posted' || report.published || report.synced) return 'posted';
+  // Nothing left to post right now (e.g. every story from today's drop is
+  // already up). Healthy, unlike no_content.
+  if (report.status === 'caught_up') return 'caught_up';
   return 'no_content';
 }
 export async function runManaged(name, run, { store = stateStore, now = new Date(), event = process.env.GITHUB_EVENT_NAME } = {}) {
