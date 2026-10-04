@@ -70,7 +70,7 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
 
   const { containerId: carouselContainerId, collaborator } = await createReadyContainer({
     label: "carousel",
-    collaborator: caption.collaborator,
+    collaborator: config.collabInvites ? caption.collaborator : null,
     withCollaborator: (collaborators) => createCollabCarouselContainer({ children, caption: caption.caption, collaborators }),
     plain: () => createCarouselContainer({ children, caption: caption.caption }),
   });

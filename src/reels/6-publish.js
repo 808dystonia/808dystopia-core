@@ -14,7 +14,7 @@ export async function publishReel({ clipPath, caption, identity, metadata }) {
 
   const { containerId, collaborator } = await createReadyContainer({
     label: "reel",
-    collaborator: caption.collaborator,
+    collaborator: config.collabInvites ? caption.collaborator : null,
     withCollaborator: (collaborators) => createCollabReelContainer(videoUrl, caption.caption, collaborators),
     plain: () => createReelContainer(videoUrl, caption.caption),
   });

@@ -160,6 +160,9 @@ export const config = {
   // Same gate, for sharing each carousel and Reel to Instagram Stories
   // after the feed post is confirmed.
   storySharePublish: process.env.IG_STORY_SHARE_PUBLISH === "1",
+  // Instagram collab invites to the featured artist. Off since 10/04 at
+  // Yvan's request; set IG_COLLAB_INVITES=1 in a workflow to turn back on.
+  collabInvites: process.env.IG_COLLAB_INVITES === "1",
   // Same gate, for the Tuesday 5 PM CT trending chart post.
   trendingTuesdayPublish: process.env.TRENDING_TUESDAY_PUBLISH === "1",
 
