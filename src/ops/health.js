@@ -18,7 +18,7 @@ export function missingSlots(states, { now = new Date(), activatedAt, graceMinut
       const due = parseTimestamp(`${slot}:${String(spec.minute).padStart(2,'0')}:00`);
       if (due < since || due < firstRun - 3600000 || now.getTime() - due < graceMinutes * 60000) continue;
       const record = states[name]?.slots?.[slot];
-      if (record?.status !== 'posted') issues.push({ pipeline: name, slot, status: record?.status || 'missing' });
+      if (record?.status !== 'posted' && record?.status !== 'caught_up') issues.push({ pipeline: name, slot, status: record?.status || 'missing' });
     }
   }
   return issues;

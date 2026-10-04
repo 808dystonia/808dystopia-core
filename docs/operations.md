@@ -6,7 +6,7 @@ GitHub Actions runs the pipelines. No Render service is involved. `src/ops/sched
 
 | Pipeline | Chicago hours | Trigger minute |
 |---|---|---|
-| Carousel, Instagram + Facebook | 9, 12 | 17 |
+| Carousel, Instagram + Facebook | 9, 10, 11, 12, 13, 14, 15, 17, 19 | 17 |
 | Reel, Instagram + Facebook | 10, 12, 14, 16, 19 | 23 |
 | Album-art Pinterest | 9, 13, 17 | 29 |
 | His Underground Pinterest | 11 | 47 |
@@ -28,6 +28,11 @@ Story sharing (`src/ops/story-share.js`, gate `IG_STORY_SHARE_PUBLISH`) is **off
 Reel sources, in order: curated TikTok links in `#reels`, then each watchlist artist's own YouTube channel (named like the artist, never a `- Topic` channel), then third-party YouTube search (interview, live performance, freestyle, studio session, beat breakdown), then the artist's Twitch clips. Third-party videos are classified by their title. A video the artist is in (an interview, a live set) is credited to them and gets a collab invite. A video *about* them (a type-beat tutorial, a reaction, a review) says so in the first caption line, credits the quote to the creator, @-mentions the artist, and sends no collab invite. A video the artist is in is always preferred.
 
 All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
+
+Carousels post **every story from today's Grok drop that same day**, one per run, new releases first.
+- **Which stories count:** only Grok's own messages in `#underground-news` from today, Chicago time. Earlier days' leftovers and News Brief posts are excluded.
+- **Caught up:** a run with nothing left to post reports `caught_up`. That happens when everything is already up, the drop hasn't landed yet, or the remaining stories have no sharp photo. It isn't a failure and writes no Sheets row; Automation Health treats it as healthy.
+- **Retries:** stories that missed the photo check are retried by later runs.
 
 Video-drop carousels (`src/pipeline/video-drop.js`) are for stories about a new music video, e.g. "releases Therapy video". They post 4 slides: cover, a 20s clip of the video, info slide, closer.
 - **Finding the video:** YouTube search for artist + song. The title must name both the artist and the song, and the video must be public and posted in the last 30 days.
