@@ -8,6 +8,10 @@ test('video drops are spotted from the story or headline', () => {
   assert.equal(isVideoDrop({ candidate: { text: 'Young M.A revisits her roots in the deeply personal Therapy video' }, classified: {} }), true);
   assert.equal(isVideoDrop({ candidate: { text: 'x' }, classified: { headlineLine2: 'DROPS LATENCY VIDEO' } }), true);
   assert.equal(isVideoDrop({ candidate: { text: 'Pixy drops a new EP' }, classified: { headlineLine2: 'DROPS LEGACY' } }), false);
+  // Footage of an event is not a music video drop (10/03 LUCKI story).
+  assert.equal(isVideoDrop({ candidate: { text: 'LUCKI was reportedly injured at ComplexCon. Video showed him bleeding from the neck.' }, classified: { headlineLine2: 'INJURED AT COMPLEXCON' } }), false);
+  assert.equal(isVideoDrop({ candidate: { text: 'Ras Kass and Ab-Soul have released the official video for "Latency".' }, classified: {} }), true);
+  assert.equal(isVideoDrop({ candidate: { text: 'x' }, classified: { headlineLine2: 'RELEASES THERAPY VIDEO' } }), true);
 });
 
 test('the word "video" is stripped from the song title', () => {
