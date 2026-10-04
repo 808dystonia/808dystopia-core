@@ -229,7 +229,10 @@ export function splitLead(text) {
 
 function buildContextHtml({ candidate, classified, photoUrl = "" }) {
   // Same red accent as the cover's second line.
-  const titleHtml = [escapeHtml(classified.headlineLine1), withAccent(classified.headlineLine2, classified.headlineAccent)]
+  // Album drops carry no AI headline line 2; give them the cover's.
+  const line2 = classified.headlineLine2 || (classified.title ? `DROPS "${classified.title}"` : "");
+  const accent = classified.headlineLine2 ? classified.headlineAccent : classified.title ? `"${classified.title}"` : "";
+  const titleHtml = [escapeHtml(classified.headlineLine1 || classified.artist), withAccent(line2, accent)]
     .filter(Boolean)
     .join(" ");
   const { body, source } = splitSource(classified.context || candidate.text);
@@ -247,8 +250,12 @@ function buildContextHtml({ candidate, classified, photoUrl = "" }) {
 // rather than rendering an empty tracklist. diss/cosign/shoutout/callout
 // -> lyric quote, but only with a confident Genius match; otherwise
 // (including "other") falls back to the general context slide too.
+// A tracklist slide with only a few songs looks empty, so short releases
+// (singles, 2-4 track EPs) get the info slide instead.
+export const MIN_TRACKLIST_SLIDE = 5;
+
 function buildSlide2({ candidate, classified, genius, photoUrl }) {
-  if (classified.type === "album_drop" && classified.tracklist.length > 0) {
+  if (classified.type === "album_drop" && classified.tracklist.length >= MIN_TRACKLIST_SLIDE) {
     return { kind: "tracklist", html: buildTracklistHtml({ classified }) };
   }
   if (classified.type === "diss" && genius?.confident) {
@@ -276,7 +283,7 @@ async function renderHtmlToPng(page, html, outPath) {
   }
 }
 
-export { buildTracklistHtml, buildContextHtml };
+export { buildTracklistHtml, buildContextHtml, buildSlide2 };
 
 export async function renderSlides({ candidate, classified, photo, genius }) {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "808-slides-"));

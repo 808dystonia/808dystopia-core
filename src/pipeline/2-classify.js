@@ -22,6 +22,7 @@ import { generateJson } from "../clients/ai.js";
 import { getAlbumInfo } from "../clients/spotify.js";
 
 const VALID_TYPES = new Set(["album_drop", "diss", "other"]);
+export const MIN_TEXT_TRACKLIST = 5;
 
 function buildPrompt(text) {
   return `You are classifying a short underground hip-hop news blurb for an Instagram carousel post. Read the text and return ONLY a JSON object (no markdown, no other text) with these fields:
@@ -55,15 +56,23 @@ export async function classifyArticle(candidate) {
   let tracklist = type === "album_drop" && Array.isArray(result.tracklist) ? result.tracklist : [];
   let albumArtUrl = null;
 
+  let fromSpotify = false;
   if (type === "album_drop") {
     try {
       const info = await getAlbumInfo(artist, title);
-      if (info.tracklist) tracklist = info.tracklist;
+      if (info.tracklist) {
+        tracklist = info.tracklist;
+        fromSpotify = true;
+      }
       albumArtUrl = info.albumArtUrl;
     } catch (err) {
       console.log("spotify album info:", err.message);
     }
   }
+  // A short list read out of the blurb is almost always a misread, not the
+  // album: 10/04 "Video for 241 / Glitchin is up" became NoCap's 18-track
+  // Heaven on Mars "tracklist". Only Spotify's list is trusted below that.
+  if (!fromSpotify && tracklist.length < MIN_TEXT_TRACKLIST) tracklist = [];
 
   const lyricTag = type === "diss" && VALID_LYRIC_TAGS.has(result.lyricTag) ? result.lyricTag : "DISS";
 

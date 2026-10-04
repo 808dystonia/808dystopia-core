@@ -38,3 +38,19 @@ test('very long lists end with a "+N MORE" row', () => {
   assert.match(out, /<span class="num">35<\/span>/);
   assert.ok(!/<span class="num">36<\/span>/.test(out));
 });
+
+test('releases with fewer than 5 tracks get the info slide, with a DROPS headline', async () => {
+  const { buildSlide2, MIN_TRACKLIST_SLIDE } = await import('../src/pipeline/5-render-slides.js');
+  const nocap = { type: 'album_drop', artist: 'NoCap', title: 'Heaven on Mars', tracklist: ['241', 'Glitchin'], headlineLine1: 'NoCap', headlineLine2: '' };
+  const slide = buildSlide2({ candidate: { text: 'NoCap finally put Heaven on Mars out. Video for 241 / Glitchin is up.' }, classified: nocap, photoUrl: 'file:///p.jpg' });
+  assert.equal(slide.kind, 'context');
+  assert.match(slide.html, /NoCap DROPS <span class="accent">&quot;Heaven on Mars&quot;<\/span>|NoCap DROPS <span class="accent">"Heaven on Mars"<\/span>/);
+  const full = { ...nocap, tracklist: Array.from({ length: MIN_TRACKLIST_SLIDE }, (_, i) => `Song ${i}`) };
+  assert.equal(buildSlide2({ candidate: { text: 'x' }, classified: full }).kind, 'tracklist');
+});
+
+test('the tracklist title sizes itself to its band', () => {
+  const out = buildTracklistHtml({ classified: { tracklist: ['a', 'b', 'c', 'd', 'e'], title: 'Heaven on Mars' } });
+  assert.match(out, /title\.scrollHeight > title\.clientHeight/);
+  assert.match(out, /createRange/);
+});
