@@ -6,10 +6,20 @@ on:
     - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
+      trigger:
+        description: "Set to 'scheduler' by the Netlify hourly dispatcher; leave empty for a manual run"
+        required: false
+        default: ""
       story:
         description: "Optional: post this story now instead of the newest #underground-news story (one or two sentences, end with the source in parentheses)"
         required: false
         default: ""
+
+# Runs dispatched by the Netlify scheduler (site/netlify/functions/
+# dispatch-schedule.mjs) are treated exactly like GitHub's own scheduled
+# runs: same Chicago window, slot and duplicate protection.
+env:
+  OPS_TRIGGER: ${{ inputs.trigger }}
 
 concurrency:
   group: 808-carousel
