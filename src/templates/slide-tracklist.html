@@ -221,11 +221,23 @@
     (async () => {
       const MAX = 58, MIN = 18;
       await document.fonts.ready;
+      // The album title first: shrink until it fits its band (10/04 "HEAVEN
+      // ON MARS" wrapped onto the TRACKLIST line).
+      const title = document.querySelector(".title");
+      let titleSize = parseInt(title.style.fontSize, 10) || 140;
+      while (titleSize > 40 && title.scrollHeight > title.clientHeight + 1) title.style.fontSize = --titleSize + "px";
       const box = document.querySelector(".tracklist");
       const cols = box.querySelector(".tracklist-cols");
+      // Exact text width (a Range), not scrollWidth: that rounds, and a title
+      // overflowing by under a pixel still gets cut with "...".
+      const textWidth = (el) => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        return range.getBoundingClientRect().width;
+      };
       const fits = () =>
         cols.scrollHeight <= box.clientHeight &&
-        [...box.querySelectorAll(".name")].every((el) => el.scrollWidth <= el.clientWidth + 1);
+        [...box.querySelectorAll(".name")].every((el) => textWidth(el) <= el.getBoundingClientRect().width + 0.01);
       let size = MAX;
       box.style.fontSize = size + "px";
       while (size > MIN && !fits()) box.style.fontSize = --size + "px";
