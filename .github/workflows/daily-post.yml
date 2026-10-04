@@ -4,7 +4,12 @@ name: Daily IG Carousel Post
 on:
   schedule:
     - cron: "17 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      story:
+        description: "Optional: post this story now instead of the newest #underground-news story (one or two sentences, end with the source in parentheses)"
+        required: false
+        default: ""
 
 concurrency:
   group: 808-carousel
@@ -58,6 +63,7 @@ jobs:
           DISCORD_HEAT_CHANNEL_ID: ${{ secrets.DISCORD_HEAT_CHANNEL_ID }}
           COMPOSIO_DISCORD_ACCOUNT_ID: ${{ secrets.COMPOSIO_DISCORD_ACCOUNT_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          MANUAL_STORY: ${{ inputs.story }}
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
           COMPOSIO_INSTAGRAM_ACCOUNT_ID: ${{ secrets.COMPOSIO_INSTAGRAM_ACCOUNT_ID }}

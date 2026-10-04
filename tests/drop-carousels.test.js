@@ -41,3 +41,11 @@ test('a release Spotify cannot confirm yet is still captioned as a drop', async 
   assert.ok(news.caption.startsWith('#Pixy released a new EP 👀'));
   assert.ok(!news.hashtags.includes('#newmusic'));
 });
+
+test('a story typed into a manual run replaces the Discord candidates', async () => {
+  const { manualCandidates } = await import('../src/pipeline/1-select-article.js');
+  const now = new Date('2026-10-04T04:00:00Z');
+  assert.deepEqual(manualCandidates('  LUCKI was reportedly injured (AllHipHop).  ', now), [{ text: 'LUCKI was reportedly injured (AllHipHop).', timestamp: '2026-10-04T04:00:00.000Z', manual: true }]);
+  assert.equal(manualCandidates('', now), null);
+  assert.equal(manualCandidates(undefined, now), null);
+});

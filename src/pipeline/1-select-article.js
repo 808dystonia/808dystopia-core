@@ -22,7 +22,18 @@ export function prioritizeDrops(stories, now = new Date()) {
   return [...stories.filter(isFreshDrop), ...stories.filter((story) => !isFreshDrop(story))];
 }
 
+// A story typed into a manual run of the carousel workflow (the "story"
+// input) replaces the Discord candidates, so breaking news can go out
+// right away. It still goes through classification, dedup and the photo
+// check like any other story.
+export function manualCandidates(text = process.env.MANUAL_STORY, now = new Date()) {
+  const story = String(text || "").trim();
+  return story ? [{ text: story, timestamp: now.toISOString(), manual: true }] : null;
+}
+
 export async function getCandidates() {
+  const manual = manualCandidates();
+  if (manual) return manual;
   const messages = await listHeatChannelMessages();
   return prioritizeDrops(splitIntoStories(messages));
 }
