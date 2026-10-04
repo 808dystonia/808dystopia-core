@@ -1,6 +1,6 @@
 // Prepare media, claim content, then persist the confirmed IG ID before follow-ups.
 import { config } from "../config.js";
-import { publishImageToRepo } from "../clients/githubMedia.js";
+import { publishImageToRepo, publishCarouselVideoToRepo } from "../clients/githubMedia.js";
 import {
   createImageContainer,
   createVideoContainer,
@@ -32,6 +32,16 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
   const runId = Date.now();
   const slide1Url = await publishImageToRepo(slides.slide1Path, `slide1-${runId}.png`);
   const slide2Url = await publishImageToRepo(slides.slide2Path, `slide2-${runId}.png`);
+  // Video-drop carousels carry a clip of the new video as slide 2:
+  // cover, clip, info slide, closer.
+  let clipUrl = null;
+  if (slides.videoClipPath) {
+    try {
+      clipUrl = await publishCarouselVideoToRepo(slides.videoClipPath, `video-clip-${runId}.mp4`);
+    } catch (err) {
+      console.log("video clip upload failed, posting without it:", err.message);
+    }
+  }
 
   // Creating these concurrently (as this originally did) is unreliable —
   // confirmed by reproducing real, non-deterministic failures from
@@ -42,14 +52,22 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
   const slide1ContainerId = await createImageContainer(slide1Url);
   const slide2ContainerId = await createImageContainer(slide2Url);
   const closerContainerId = await createVideoContainer(CLOSER_VIDEO_URL);
+  await Promise.all([slide1ContainerId, slide2ContainerId, closerContainerId].map((id) => waitForContainerReady(id)));
 
-  await Promise.all([
-    waitForContainerReady(slide1ContainerId),
-    waitForContainerReady(slide2ContainerId),
-    waitForContainerReady(closerContainerId),
-  ]);
+  // A clip Instagram rejects is dropped, not allowed to sink the post.
+  let clipContainerId = null;
+  if (clipUrl) {
+    try {
+      clipContainerId = await createVideoContainer(clipUrl);
+      await waitForContainerReady(clipContainerId);
+    } catch (err) {
+      console.log("video clip slide failed, posting without it:", err.message);
+      clipContainerId = null;
+    }
+  }
 
-  const children = [slide1ContainerId, slide2ContainerId, closerContainerId];
+  const children = [slide1ContainerId, clipContainerId, slide2ContainerId, closerContainerId].filter(Boolean);
+
   const { containerId: carouselContainerId, collaborator } = await createReadyContainer({
     label: "carousel",
     collaborator: caption.collaborator,
@@ -67,5 +85,6 @@ export async function publishCarousel({ slides, caption, identity, metadata }) {
   // cross-post (Facebook) can reuse the exact same already-uploaded
   // slides instead of uploading them a second time.
   const invite = collaborator ? `, collab invite sent to @${collaborator}` : "";
-  return { ...confirmed, slide1Url, slide2Url, note: `Published as IG media ${mediaId}${invite}` };
+  const withClip = clipContainerId ? ", with video clip slide" : "";
+  return { ...confirmed, slide1Url, slide2Url, note: `Published as IG media ${mediaId}${withClip}${invite}` };
 }

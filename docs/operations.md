@@ -29,6 +29,12 @@ Reel sources, in order: curated TikTok links in `#reels`, then each watchlist ar
 
 All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
 
+Video-drop carousels (`src/pipeline/video-drop.js`) are for stories about a new music video, e.g. "releases Therapy video". They post 4 slides: cover, a 20s clip of the video, info slide, closer.
+- **Finding the video:** YouTube search for artist + song. The title must name both the artist and the song, and the video must be public and posted in the last 30 days.
+- **The clip:** cut about 30% in, then rendered 4:5 with "NOW PLAYING" above and `"SONG" BY ARTIST` below.
+- **Fallback:** if any step fails (no match, a download error, upload, or Instagram rejecting the clip), the normal 3-slide carousel posts.
+- **Workflow:** the carousel workflow installs yt-dlp and ffmpeg for this and has YouTube credentials.
+
 Prune Media (`.github/workflows/prune-media.yml`, daily at 08:41 UTC) deletes `public-media/` files more than 7 days old from main. Published URLs are pinned to the commit that added each file, and the platforms keep their own copies, so this breaks nothing. The files remain in git history.
 
 RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
