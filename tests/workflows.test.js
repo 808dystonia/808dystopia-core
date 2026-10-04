@@ -17,6 +17,28 @@ test('workflows and Chicago schedules cannot drift; heavy setup is gated', () =>
       assert.equal(step.if, "steps.gate.outputs.due == 'true'");
     }
     if (name !== 'weekly-performance') assert.equal(job.env.OPS_STATE_ENABLED, '1');
+    // The Netlify dispatcher can start it, and the gate sees the trigger.
+    assert.ok(workflow.on.workflow_dispatch.inputs.trigger);
+    assert.equal(workflow.env.OPS_TRIGGER, '${{ inputs.trigger }}');
   }
   for (const file of ['raptoonz', 'boxart']) assert.equal(fs.existsSync(`.github/workflows/${file}.yml`), false);
+});
+
+test('the Netlify dispatcher starts every scheduled workflow, and its runs count as scheduled', async () => {
+  const { WORKFLOWS, dispatchAll } = await import('../site/netlify/functions/dispatch-schedule.mjs');
+  assert.deepEqual([...WORKFLOWS].sort(), Object.values(files).map((f) => `${f}.yml`).sort());
+  const calls = [];
+  const out = await dispatchAll('tkn', async (url, init) => { calls.push({ url, body: JSON.parse(init.body), auth: init.headers.Authorization }); return { status: 204 }; });
+  assert.equal(calls.length, WORKFLOWS.length);
+  assert.deepEqual(calls[0].body, { ref: 'main', inputs: { trigger: 'scheduler' } });
+  assert.equal(calls[0].auth, 'Bearer tkn');
+  assert.ok(out.every((line) => line.endsWith('204')));
+
+  const { currentEvent, scheduleDecision } = await import('../src/ops/schedule.js');
+  assert.equal(currentEvent({ OPS_TRIGGER: 'scheduler', GITHUB_EVENT_NAME: 'workflow_dispatch' }), 'schedule');
+  assert.equal(currentEvent({ OPS_TRIGGER: '', GITHUB_EVENT_NAME: 'workflow_dispatch' }), 'workflow_dispatch');
+  // A scheduler run outside the carousel hours is not due; a plain manual run always is.
+  const night = new Date('2026-10-04T08:30:00Z');
+  assert.equal(scheduleDecision('carousel', night, 'schedule').due, false);
+  assert.equal(scheduleDecision('carousel', night, 'workflow_dispatch').due, true);
 });

@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { PIPELINES, scheduleDecision } from './schedule.js';
+import { PIPELINES, scheduleDecision, currentEvent } from './schedule.js';
 import { stateStore } from './state.js';
 export function outcomeStatus(report) {
   if (/off.*dry run/i.test(report.note || '')) return 'dry_run';
@@ -11,7 +11,7 @@ export function outcomeStatus(report) {
   if (report.status === 'caught_up') return 'caught_up';
   return 'no_content';
 }
-export async function runManaged(name, run, { store = stateStore, now = new Date(), event = process.env.GITHUB_EVENT_NAME } = {}) {
+export async function runManaged(name, run, { store = stateStore, now = new Date(), event = currentEvent() } = {}) {
   const decision = scheduleDecision(name, now, event);
   if (!decision.due) return { status: 'outside_window' };
   if (event === 'schedule' && process.env.OPS_SLOT && decision.slot !== process.env.OPS_SLOT) return { status: 'expired_window' };

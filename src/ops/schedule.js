@@ -18,7 +18,16 @@ export function chicagoParts(date = new Date()) {
   }).formatToParts(date).map(x => [x.type, x.value]));
   return { date: `${p.year}-${p.month}-${p.day}`, hour: Number(p.hour), minute: Number(p.minute), weekday: p.weekday };
 }
-export function scheduleDecision(name, date = new Date(), event = process.env.GITHUB_EVENT_NAME) {
+// GitHub drops a lot of its own scheduled runs, so an external clock (a
+// Netlify scheduled function) also dispatches the workflows every hour with
+// trigger=scheduler. Those runs count as scheduled ones: the Chicago window
+// applies and the slot is the hour's slot, so a run from either source
+// claims the slot and the other one no-ops.
+export function currentEvent(env = process.env) {
+  return env.OPS_TRIGGER === 'scheduler' ? 'schedule' : env.GITHUB_EVENT_NAME;
+}
+
+export function scheduleDecision(name, date = new Date(), event = currentEvent()) {
   const spec = PIPELINES[name];
   if (!spec) throw new Error(`Unknown pipeline: ${name}`);
   const p = chicagoParts(date);

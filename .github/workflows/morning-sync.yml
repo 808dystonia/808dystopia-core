@@ -4,7 +4,18 @@ name: Morning Site Sync
 on:
   schedule:
     - cron: "13 * * * *"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      trigger:
+        description: "Set to 'scheduler' by the Netlify hourly dispatcher; leave empty for a manual run"
+        required: false
+        default: ""
+
+# Runs dispatched by the Netlify scheduler (site/netlify/functions/
+# dispatch-schedule.mjs) are treated exactly like GitHub's own scheduled
+# runs: same Chicago window, slot and duplicate protection.
+env:
+  OPS_TRIGGER: ${{ inputs.trigger }}
 
 concurrency:
   group: 808-morning-sync

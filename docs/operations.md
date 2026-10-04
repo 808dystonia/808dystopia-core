@@ -17,7 +17,12 @@ GitHub Actions runs the pipelines. No Render service is involved. `src/ops/sched
 | Trending Tuesday | Tuesday 17 | 31 |
 | Weekly Performance | Monday 10 | 43 |
 
-These are posting windows, not exact delivery guarantees. GitHub may delay or drop scheduled runs. News Brief starts before the noon carousel so fresh headlines have a chance to arrive, but this is not a dependency guarantee. See [GitHub scheduling documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+These are posting windows, not exact delivery guarantees. GitHub may delay or drop scheduled runs; from 2026-10-03 it dropped about half of ours.
+
+**Netlify scheduler:** the Netlify scheduled function `site/netlify/functions/dispatch-schedule.mjs` is an external clock that runs every hour at :08 UTC.
+- **What it does:** it dispatches each scheduled workflow with `trigger=scheduler`.
+- **How those runs count:** `OPS_TRIGGER=scheduler` makes them count as scheduled runs, so the same Chicago window, slot and duplicate protection apply. If GitHub's own cron also fires in that hour, the second run finds the slot claimed and does nothing.
+- **Setup:** it needs the Netlify env var `GITHUB_DISPATCH_TOKEN`, a fine-grained token for this repo with Actions read/write. Without it, the function logs and does nothing. News Brief starts before the noon carousel so fresh headlines have a chance to arrive, but this is not a dependency guarantee. See [GitHub scheduling documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
 His Underground and Her Underground (`src/artist-pins/`) pin one artist photo a day each. Artists come only from Grok's 808 TV board in `#reels`, and only names listed under an explicit **MALE** or **FEMALE** label; gender is never inferred. Photo sources, in order: the secret "Underground Photo Drop" Pinterest board (save a photo there with the artist's name in its title or description), Google Images via Composio (only when the result's own page names the artist, at least 600px on the short side), the Spotify profile photo, then the Genius photo. An artist rests for 7 days after a pin (the labelled pool is small), and a photo is never pinned twice to the same board. The pool is the last 100 `#reels` messages. Gate: `ARTIST_PIN_PUBLISH`.
 
