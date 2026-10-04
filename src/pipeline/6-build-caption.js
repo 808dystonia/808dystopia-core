@@ -7,6 +7,7 @@
 // unavailable, the plain news line below is the hook.
 import { getArtistInstagramHandle } from "../clients/genius.js";
 import { writeCopy, assembleCaption } from "../captions/voice.js";
+import { isNoCollabStory } from "../util/sensitiveContent.js";
 
 function toTitleCase(text) {
   return (text || "")
@@ -110,6 +111,8 @@ export async function buildCaption({ candidate, classified }, { write = writeCop
   return {
     caption,
     hashtags: buildHashtags(classified),
-    collaborator: instagramHandle,
+    // Mentioned, never invited, on sensitive stories and beef/diss posts.
+    collaborator:
+      classified.type === "diss" || isNoCollabStory(candidate.text, classified.context, classified.headlineLine2) ? null : instagramHandle,
   };
 }
