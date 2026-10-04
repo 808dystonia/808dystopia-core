@@ -35,7 +35,7 @@ Reel sources, in order: curated TikTok links in `#reels`, then each watchlist ar
 All three Pinterest pipelines (album art, His Underground, Her Underground) pin a vertical 1000×1500 branded image rendered from `src/templates/pin.html` and uploaded as base64, so nothing is committed to the repo. Their workflows install Chromium for this. If rendering fails, the raw image URL is pinned instead, and the run note says so. Pin titles, descriptions and alt text are written around search phrases such as "underground rap", "album cover art" and "new rappers to know".
 
 Carousels post **every story from today's Grok drop that same day**, one per run, new releases first.
-- **Which stories count:** only Grok's own messages in `#underground-news` from today, Chicago time. Earlier days' leftovers and News Brief posts are excluded.
+- **Which stories count:** Grok's own messages in `#underground-news` from today, Chicago time. If Grok skipped the morning, the most recent drop from the last 36 hours is used instead. News Brief posts are excluded.
 - **Caught up:** a run with nothing left to post reports `caught_up`. That happens when everything is already up, the drop hasn't landed yet, or the remaining stories have no sharp photo. It isn't a failure and writes no Sheets row; Automation Health treats it as healthy.
 - **Retries:** stories that missed the photo check are retried by later runs.
 
