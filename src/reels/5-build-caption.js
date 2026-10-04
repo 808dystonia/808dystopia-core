@@ -9,6 +9,7 @@
 // internal note on why it picked the moment, so it never appears.
 import { getArtistInstagramHandle } from "../clients/genius.js";
 import { writeCopy, assembleCaption } from "../captions/voice.js";
+import { isNoCollabStory } from "../util/sensitiveContent.js";
 
 const BASE_HASHTAGS = ["#hiphop", "#rap", "#undergroundhiphop", "#hiphopreels"];
 const CONTENT_TYPE_HASHTAGS = {
@@ -140,6 +141,6 @@ export async function buildReelCaption(video, { write = writeCopy } = {}) {
     // On-screen text burned onto the clip in step 4.
     overlay: copy?.overlay || fallbackHook,
     // Only invite the artist to collab on content they're actually in.
-    collaborator: about ? null : instagramHandle,
+    collaborator: about || isNoCollabStory(video.title, quote) ? null : instagramHandle,
   };
 }

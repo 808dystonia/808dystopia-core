@@ -13,3 +13,13 @@ const SENSITIVE_PATTERN =
 export function isSensitiveClaim(text) {
   return SENSITIVE_PATTERN.test(text || "");
 }
+
+// Stories nobody wants their name attached to as a "collaborator": the
+// sensitive claims above plus fights, beef and legal trouble. 10/03: LUCKI
+// got a collab invite on the post about him being injured at ComplexCon.
+const NO_COLLAB_PATTERN =
+  /\b(altercation|fight|fought|brawl|beef|feud|diss(?:es|ed)?|jail(?:ed)?|prison|sentenced|charged|indicted|lawsuit|sued|suing|robbed|robbery|hospital)\b/i;
+
+export function isNoCollabStory(...texts) {
+  return texts.some((text) => isSensitiveClaim(text) || NO_COLLAB_PATTERN.test(text || ""));
+}
