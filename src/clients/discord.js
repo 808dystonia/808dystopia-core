@@ -1,12 +1,50 @@
-// Discord read/write, via Composio's Discordbot toolkit. Three channels
-// feed three separate pipelines: #underground-news (the Grok scraper's
+// Discord reads/writes use your own bot when configured, otherwise Composio.
+// Source and operations channels: #underground-news (the Grok scraper's
 // story digest, news carousel), #reels (the Reel pipeline's artist
-// watchlist), and #admin-general (the EOD brief posts here — the only
-// pipeline that writes to Discord rather than just reading from it).
+// watchlist), and #admin-general (the EOD brief destination).
 import { config } from "../config.js";
 import { runTool } from "./composio.js";
 
+// A configured bot uses Discord directly. Never retry an uncertain write
+// through Composio: that can create duplicate messages.
+async function directDiscord(channelId, { method = "GET", limit, body } = {}) {
+  if (!/^\d+$/.test(channelId)) throw new Error("Invalid Discord channel ID");
+  const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);
+  if (limit !== undefined) url.searchParams.set("limit", String(limit));
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      signal: AbortSignal.timeout(30000),
+      headers: { Authorization: `Bot ${config.discord.botToken}`, "Content-Type": "application/json" },
+      ...(body ? { body: JSON.stringify({ ...body, allowed_mentions: { parse: [] } }) } : {}),
+    });
+  } catch {
+    // Fetch errors must not expose request headers or the token.
+    throw new Error(`Discord ${method} request failed; no retry attempted`);
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    // Only report status/code, never an arbitrary response containing secrets.
+    const code = Number.isInteger(data?.code) ? ` (code ${data.code})` : "";
+    const retry = res.status === 429 && Number.isFinite(data?.retry_after)
+      ? `; retry after ${data.retry_after}s` : "";
+    throw new Error(`Discord ${method} failed: ${res.status}${code}${retry}; no retry attempted`);
+  }
+  if (method === "GET" ? !Array.isArray(data) : !data?.id) {
+    throw new Error(`Invalid Discord ${method} response; no retry attempted`);
+  }
+  return data;
+}
+
 export async function listChannelMessages(channelId, limit = 25) {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw new Error("Discord message limit must be an integer from 1 to 100");
+  }
+  if (config.discord.botToken) {
+    const messages = await directDiscord(channelId, { limit });
+    return [...messages].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  }
   const res = await runTool(
     "DISCORDBOT_LIST_MESSAGES",
     { channel_id: channelId, limit },
@@ -225,6 +263,13 @@ export function parseTikTokUrls(messages) {
 // live via Composio's DISCORDBOT_CREATE_MESSAGE against the real
 // #admin-general channel.
 export async function postMessage(channelId, { content, embeds } = {}) {
+  if (config.discord.botToken) {
+    // Preserve the existing Composio result shape.
+    const message = await directDiscord(channelId, {
+      method: "POST", body: { ...(content ? { content } : {}), ...(embeds ? { embeds } : {}) },
+    });
+    return { details: message };
+  }
   return runTool(
     "DISCORDBOT_CREATE_MESSAGE",
     { channel_id: channelId, ...(content ? { content } : {}), ...(embeds ? { embeds } : {}) },
