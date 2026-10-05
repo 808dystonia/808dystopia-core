@@ -19,7 +19,7 @@
 // rather than requesting them from the AI — they only depend on data
 // already in hand.
 import { generateJson } from "../clients/ai.js";
-import { getAlbumInfo } from "../clients/spotify.js";
+import { getAlbumInfo } from "../clients/music.js";
 
 const VALID_TYPES = new Set(["album_drop", "diss", "other"]);
 export const MIN_TEXT_TRACKLIST = 5;
