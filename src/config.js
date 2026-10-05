@@ -24,6 +24,7 @@ export const config = {
   tz: process.env.TZ || "America/Chicago",
 
   discord: {
+    botToken: process.env.DISCORD_BOT_TOKEN || "",
     heatChannelId: process.env.DISCORD_HEAT_CHANNEL_ID || "",
     reelsChannelId: process.env.DISCORD_REELS_CHANNEL_ID || "",
     // Grok's own webhook identity in #underground-news -- confirmed live

@@ -51,6 +51,20 @@ Prune Media (`.github/workflows/prune-media.yml`, daily at 08:41 UTC) deletes `p
 
 RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
 
+## Direct Discord connection
+
+On 2026-10-05, Composio disabled the Discordbot toolkit and its proxy with HTTP 403. Posting pipelines could no longer read their Discord sources.
+
+Set the GitHub Actions secret `DISCORD_BOT_TOKEN` to use your own Discord bot for reads and writes. Without that secret, the existing Composio route remains selected. A configured direct bot never falls back to Composio or automatically retries failed writes, including timeouts and rate limits.
+
+Setup:
+1. Create or select an application at https://discord.com/developers/applications. Enable **Message Content Intent** in its Bot settings so source text and embeds are readable.
+2. Invite its bot to the 808 server with **View Channels**, **Read Message History**, **Send Messages**, and **Embed Links**. Verify channel overrides allow access to #underground-news, #reels/#tv, and #admin-general.
+3. Add its token privately at https://github.com/808dystonia/808dystopia-core/settings/secrets/actions as `DISCORD_BOT_TOKEN`. Do not put it in chat, logs, or committed files.
+4. Verify reads only before relying on scheduled publishing. An empty source channel does not prove content permissions are correct. Confirm known Grok messages include their descriptions and artist boards include their text.
+
+Direct writes disable automatic mentions. All publishing gates, schedule windows, and durable content claims remain in effect. GitHub runner acquisition failures are a separate hosting issue; this connection does not resolve those.
+
 ## Durable receipts and duplicate prevention
 
 `automation-state` is a separate runtime-data branch, created automatically by the first managed run using the repository's built-in `GITHUB_TOKEN`. It contains public, non-secret metadata under `ops-state/`. Its updates do not change main or trigger publishing workflows. Each pipeline has a JSON record with:
