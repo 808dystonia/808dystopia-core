@@ -3,7 +3,7 @@
 // parseWatchlist()) -- reusing it rather than maintaining a second list,
 // since it's already the team's curated "who we cover" roster.
 import { listReelsChannelMessages, parseWatchlist } from "../clients/discord.js";
-import { getArtistReleases } from "../clients/spotify.js";
+import { getArtistReleases } from "../clients/music.js";
 import { readPinLogRows, isAlbumAlreadyPinned } from "../clients/googleSheets.js";
 
 import { config } from "../config.js";

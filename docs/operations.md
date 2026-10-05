@@ -45,6 +45,8 @@ Video-drop carousels (`src/pipeline/video-drop.js`) are for stories about a new 
 - **Fallback:** if any step fails (no match, a download error, upload, or Instagram rejecting the clip), the normal 3-slide carousel posts.
 - **Workflow:** the carousel workflow installs yt-dlp and ffmpeg for this and has YouTube credentials.
 
+**Release data backup:** release data comes from Spotify first, then Apple's iTunes Search API (`src/clients/music.js` → `itunes.js`; free, no key). This covers tracklists and cover art for carousels, and artist catalogs for album-art pins. iTunes has no artist photos or follower counts, so the photo fallback and Trending Tuesday still need Spotify. Spotify has refused our dev-mode app since 2026-10-04 until its owner account has Premium.
+
 Prune Media (`.github/workflows/prune-media.yml`, daily at 08:41 UTC) deletes `public-media/` files more than 7 days old from main. Published URLs are pinned to the commit that added each file, and the platforms keep their own copies, so this breaks nothing. The files remain in git history.
 
 RapToonz, BoxArt, and TikTok publishing are discontinued, and their code was removed in October 2026. Recover it from git history if one is ever revived. Curated TikTok video links are still supported as Reel source material. The TikTok OAuth callback under `site/netlify/functions/` was left in place with the rest of the public site.
