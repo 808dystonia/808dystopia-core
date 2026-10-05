@@ -32,9 +32,16 @@ async function getAccessToken() {
 async function spotifyGetUrl(url) {
   const token = await getAccessToken();
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const json = await res.json();
-  if (!res.ok) throw new Error(`spotify ${url} ${res.status} ${JSON.stringify(json).slice(0, 300)}`);
-  return json;
+  // Spotify sometimes answers in plain text (10/04: "Active premium
+  // subscription required..." for every call), so read text first and
+  // report it whole instead of a JSON parse error.
+  const body = await res.text();
+  if (!res.ok) throw new Error(`spotify ${res.status}: ${body.slice(0, 300)}`);
+  try {
+    return JSON.parse(body);
+  } catch {
+    throw new Error(`spotify ${res.status} non-JSON: ${body.slice(0, 300)}`);
+  }
 }
 
 async function spotifyGet(path) {
