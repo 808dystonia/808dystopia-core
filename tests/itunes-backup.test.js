@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getItunesAlbumInfo, getItunesArtistReleases, cleanReleaseName, bigArtwork } from '../src/clients/itunes.js';
-import { getAlbumInfo, getArtistReleases } from '../src/clients/music.js';
+import { getAlbumInfo, getArtistReleases, hasPlaceholderTracks } from '../src/clients/music.js';
 
 // Shapes from the live API (10/04): two exact "NoCap" artists, one real.
 function fakeItunes(url) {
@@ -34,6 +34,19 @@ test('iTunes catalog uses the real artist, newest first, without features or "- 
   assert.equal(releases[0].spotifyUrl, 'https://music.apple.com/hom');
   assert.equal(cleanReleaseName('X - EP'), 'X');
   assert.equal(bigArtwork('https://x/y.jpg/100x100bb.jpg'), 'https://x/y.jpg/1000x1000bb.jpg');
+});
+
+test('a pre-release "Track N" placeholder list is not a confirmed tracklist', async () => {
+  // Live 10/13: Apple served Young Nudy's unreleased "Just Doin Me" this way.
+  const placeholders = ['Track 1', 'Track 2', 'Track 3', 'Who Dat Is', 'Track 5', 'Track 6'];
+  assert.equal(hasPlaceholderTracks(placeholders), true);
+  assert.equal(hasPlaceholderTracks(['GPS', 'Astronaut Tears', 'Track Star']), false);
+  const itunes = async () => ({ tracklist: placeholders, albumArtUrl: 'apple-art' });
+  // The list is dropped but the cover art stays, so the story falls back to the news slide.
+  assert.deepEqual(await getAlbumInfo('Young Nudy', 'Just Doin Me', { spotify: async () => ({ tracklist: null, albumArtUrl: null }), itunes }), { tracklist: null, albumArtUrl: 'apple-art' });
+  // A placeholder list from Spotify falls through to iTunes's real one.
+  const real = async () => ({ tracklist: ['A', 'B', 'C', 'D', 'E'], albumArtUrl: 'apple-art' });
+  assert.deepEqual(await getAlbumInfo('x', 'y', { spotify: async () => ({ tracklist: ['Track 1', 'Track 2'], albumArtUrl: 'spotify-art' }), itunes: real }), { tracklist: ['A', 'B', 'C', 'D', 'E'], albumArtUrl: 'apple-art' });
 });
 
 test('Spotify first; iTunes when Spotify refuses or has nothing', async () => {
