@@ -71,6 +71,16 @@ test('tutorials, type beats and reactions are classified as about the artist', (
   assert.deepEqual(classifyVideo('bleood - new song', null, true), { contentType: 'music video', relation: 'by' });
 });
 
+test('only a real music video title is labelled music video', () => {
+  // Own uploads that aren't clips of the song shouldn't be captioned as videos.
+  assert.deepEqual(classifyVideo('bleood - behind the scenes vlog', null, true), { contentType: 'upload', relation: 'by' });
+  assert.deepEqual(classifyVideo('bleood announces UK tour dates', null, true), { contentType: 'upload', relation: 'by' });
+  assert.deepEqual(classifyVideo('bleood - haunted hills (Official Video)', null, true), { contentType: 'music video', relation: 'by' });
+  // A third-party clip keeps the label of the search that found it.
+  assert.deepEqual(classifyVideo('bleood sits down with us', 'interview'), { contentType: 'interview', relation: 'featuring' });
+  assert.deepEqual(classifyVideo('bleood - haunted hills (Official Video)', 'studio session'), { contentType: 'music video', relation: 'featuring' });
+});
+
 test('own channel means named like the artist, never a Topic channel or a lookalike', () => {
   for (const name of ['bleood', 'bleoodMusic', 'bleood VEVO', 'Official bleood', 'BLEOOD']) assert.equal(isOwnChannel(name, 'bleood'), true, name);
   for (const name of ['bleood - Topic', 'bleood fan edits', 'Beats By Ricky', 'bleoodlover']) assert.equal(isOwnChannel(name, 'bleood'), false, name);

@@ -113,11 +113,17 @@ export function isOwnChannel(channelTitle, artist) {
   return channel.startsWith(target) && CHANNEL_AFFIXES.test(channel.slice(target.length));
 }
 
-function labelFromTitle(title, fallback = "music video") {
+// Only a title that says it's a clip of the song gets "music video". Anything
+// else the artist posts (vlogs, behind-the-scenes, announcements) stays a
+// plain "upload" so the caption doesn't claim it's a music video.
+const MUSIC_VIDEO_TITLE = /\b(music video|official (music )?video|official (audio|visuali[sz]er)|lyric video|visuali[sz]er|song|single)\b/i;
+
+function labelFromTitle(title, fallback = "upload") {
   if (/\bfreestyle\b/i.test(title)) return "freestyle";
   if (/\b(interview|podcast)\b/i.test(title)) return "interview";
   if (/\b(live|performance|concert|set)\b/i.test(title)) return "performance";
   if (/\bstudio\b/i.test(title)) return "studio session";
+  if (MUSIC_VIDEO_TITLE.test(title || "")) return "music video";
   return fallback;
 }
 
